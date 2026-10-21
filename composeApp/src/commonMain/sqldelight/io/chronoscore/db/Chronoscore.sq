@@ -7,7 +7,8 @@ CREATE TABLE session (
     round INTEGER NOT NULL,
     timestamp INTEGER NOT NULL,
     updated_at INTEGER NOT NULL,
-    game_name TEXT
+    game_name TEXT,
+    state_json TEXT
 );
 
 CREATE TABLE player (
@@ -18,6 +19,7 @@ CREATE TABLE player (
     color_hex TEXT NOT NULL,
     primary_score INTEGER NOT NULL,
     is_flipped INTEGER NOT NULL,
+    extras_json TEXT,
     PRIMARY KEY (session_id, id)
 );
 
@@ -52,9 +54,23 @@ CREATE TABLE setting (
     value TEXT NOT NULL
 );
 
+CREATE TABLE preset (
+    id TEXT NOT NULL PRIMARY KEY,
+    name TEXT NOT NULL,
+    body TEXT NOT NULL,
+    updated_at INTEGER NOT NULL
+);
+
+CREATE TABLE profile (
+    id TEXT NOT NULL PRIMARY KEY,
+    name TEXT NOT NULL,
+    color_hex TEXT NOT NULL,
+    created_at INTEGER NOT NULL
+);
+
 upsertSession:
-INSERT OR REPLACE INTO session(id, title, starting_score, round, timestamp, updated_at, game_name)
-VALUES (?, ?, ?, ?, ?, ?, ?);
+INSERT OR REPLACE INTO session(id, title, starting_score, round, timestamp, updated_at, game_name, state_json)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?);
 
 deleteSession:
 DELETE FROM session WHERE id = ?;
@@ -69,8 +85,8 @@ deleteHistory:
 DELETE FROM history_entry WHERE session_id = ?;
 
 insertPlayer:
-INSERT INTO player(id, session_id, seat_index, name, color_hex, primary_score, is_flipped)
-VALUES (?, ?, ?, ?, ?, ?, ?);
+INSERT INTO player(id, session_id, seat_index, name, color_hex, primary_score, is_flipped, extras_json)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?);
 
 insertSubCounter:
 INSERT INTO sub_counter(id, session_id, player_id, position, name, counter_value)
@@ -121,3 +137,24 @@ SELECT value FROM setting WHERE key = ?;
 
 putSetting:
 INSERT OR REPLACE INTO setting(key, value) VALUES (?, ?);
+
+allSessionIds:
+SELECT id FROM session ORDER BY updated_at DESC;
+
+presets:
+SELECT * FROM preset ORDER BY name COLLATE NOCASE;
+
+upsertPreset:
+INSERT OR REPLACE INTO preset(id, name, body, updated_at) VALUES (?, ?, ?, ?);
+
+deletePreset:
+DELETE FROM preset WHERE id = ?;
+
+profiles:
+SELECT * FROM profile ORDER BY name COLLATE NOCASE;
+
+upsertProfile:
+INSERT OR REPLACE INTO profile(id, name, color_hex, created_at) VALUES (?, ?, ?, ?);
+
+deleteProfile:
+DELETE FROM profile WHERE id = ?;

@@ -4,9 +4,12 @@ import io.chronoscore.model.Accents
 import io.chronoscore.model.CounterTarget
 import io.chronoscore.model.GameSession
 import io.chronoscore.model.Limits
+import io.chronoscore.model.MatchOptions
 import io.chronoscore.model.Player
 import io.chronoscore.model.ScoreHistoryEntry
 import io.chronoscore.model.SubCounter
+import io.chronoscore.model.Timing
+import io.chronoscore.model.storedId
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 import kotlin.uuid.ExperimentalUuidApi
@@ -29,26 +32,48 @@ class GameEngine(
     private val coalesceWindowMs: Long = 1_500,
 ) {
 
-    fun newSession(playerCount: Int = 4, startingScore: Int = 20, gameName: String? = null): GameSession {
+    fun newSession(
+        playerCount: Int = 4,
+        startingScore: Int = 20,
+        gameName: String? = null,
+        options: MatchOptions = MatchOptions(),
+        counters: List<String> = emptyList(),
+    ): GameSession {
         val count = playerCount.coerceIn(Limits.MIN_PLAYERS, Limits.MAX_PLAYERS)
         val score = startingScore.clampValue()
         val game = gameName.cleanGameName()
+        val opts = options.sanitized()
+        val now = clock()
+        val layout = counters.cleanCounterNames()
+        val players = List(count) { seat ->
+            newPlayer(seat, score).copy(subCounters = layout.map { SubCounter(newId(), it) })
+        }
         return GameSession(
             id = newId(),
             title = game ?: "Match",
-            players = List(count) { seat -> newPlayer(seat, score) },
+            players = players,
             startingScore = score,
-            timestamp = clock(),
+            timestamp = now,
             gameName = game,
+            options = opts,
+            activePlayerId = if (opts.turnTracking) players.first().id else null,
+            timing = Timing(runningSince = if (opts.usesClock) now else null),
         )
     }
 
     fun reduce(session: GameSession, action: GameAction): GameSession = when (action) {
-        is GameAction.Adjust -> adjust(session, action.playerId, action.target, action.delta, coalesce = true)
+        is GameAction.Adjust -> when (val t = action.target) {
+            is CounterTarget.Commander -> commanderDamage(session, action.playerId, t, action.delta)
+            else -> adjust(session, action.playerId, t, action.delta, coalesce = true)
+        }
         is GameAction.SetValue -> {
             val current = session.player(action.playerId)?.valueOf(action.target)
-            if (current == null) session
-            else adjust(session, action.playerId, action.target, action.value.clampValue() - current, coalesce = false)
+            when {
+                current == null -> session
+                action.target is CounterTarget.Commander ->
+                    commanderDamage(session, action.playerId, action.target, action.value - current)
+                else -> adjust(session, action.playerId, action.target, action.value.clampValue() - current, coalesce = false)
+            }
         }
 
         is GameAction.AddSubCounter -> session.updatePlayer(action.playerId) { p ->
@@ -84,15 +109,7 @@ class GameEngine(
             }
         }
 
-        is GameAction.RemovePlayer -> {
-            if (session.players.size <= Limits.MIN_PLAYERS || session.player(action.playerId) == null) session
-            else session.copy(
-                players = session.players
-                    .filterNot { it.id == action.playerId }
-                    .mapIndexed { index, p -> p.copy(seatIndex = index) },
-                historyLog = session.historyLog.filterNot { it.playerId == action.playerId },
-            )
-        }
+        is GameAction.RemovePlayer -> removePlayer(session, action.playerId)
 
         is GameAction.BulkEdit -> bulkEdit(session, action)
 
@@ -120,31 +137,78 @@ class GameEngine(
             session.copy(gameName = game, title = game ?: "Match")
         }
 
+        is GameAction.SetOptions -> setOptions(session, action.options.sanitized())
+
+        GameAction.ToggleClock -> {
+            val now = clock()
+            val t = session.timing
+            session.copy(timing = if (t.isRunning) t.settled(now).copy(runningSince = null) else t.copy(runningSince = now))
+        }
+
+        GameAction.NextTurn -> passTurn(session, forward = true)
+        GameAction.PreviousTurn -> passTurn(session, forward = false)
+        is GameAction.SetActivePlayer ->
+            if (!session.options.turnTracking || session.player(action.playerId) == null) session
+            else handOver(session, action.playerId)
+
+        is GameAction.SetConceded -> session.updatePlayer(action.playerId) { it.copy(conceded = action.conceded) }
+
+        is GameAction.SetProfile -> session.updatePlayer(action.playerId) { p ->
+            val profile = action.profile
+            if (profile == null) p.copy(profileId = null)
+            else p.copy(name = profile.name.cleanName(p.name), colorHex = profile.colorHex, profileId = profile.id)
+        }
+
+        is GameAction.SetRoundPoints -> {
+            val round = action.round.coerceIn(1, session.round)
+            val current = session.historyLog
+                .filter { it.playerId == action.playerId && it.subCounterId == null && it.round == round }
+                .sumOf { it.delta }
+            adjust(session, action.playerId, CounterTarget.Primary, action.points - current, coalesce = false, round = round)
+        }
+
+        is GameAction.SetMonarch -> session.copy(monarchId = action.playerId?.takeIf { session.player(it) != null })
+        is GameAction.SetInitiative -> session.copy(initiativeId = action.playerId?.takeIf { session.player(it) != null })
+        is GameAction.SetDayNight -> session.copy(dayNight = action.dayNight)
+
         GameAction.NextRound -> session.copy(round = session.round + 1)
 
         GameAction.Undo -> undo(session)
 
-        GameAction.ResetScores -> session.copy(
-            players = session.players.map { p ->
-                p.copy(
-                    primaryScore = session.startingScore,
-                    subCounters = p.subCounters.map { it.copy(value = 0) },
-                )
-            },
-            historyLog = emptyList(),
-            round = 1,
-        )
+        GameAction.ResetScores -> {
+            val now = clock()
+            session.copy(
+                players = session.players.map { p ->
+                    p.copy(
+                        primaryScore = session.startingScore,
+                        subCounters = p.subCounters.map { it.copy(value = 0) },
+                        timeMillis = 0,
+                        conceded = false,
+                        commanderDamage = emptyMap(),
+                    )
+                },
+                historyLog = emptyList(),
+                round = 1,
+                activePlayerId = if (session.options.turnTracking) session.players.first().id else null,
+                timing = Timing(runningSince = if (session.options.usesClock) now else null),
+                monarchId = null,
+                initiativeId = null,
+                dayNight = null,
+            )
+        }
 
         is GameAction.NewGame -> {
-            val fresh = newSession(action.playerCount, action.startingScore, action.gameName)
-            // Keep names, colors and sub-counter layout for seats that carry over.
+            val options = action.options ?: session.options
+            val fresh = newSession(action.playerCount, action.startingScore, action.gameName, options, action.counters.orEmpty())
+            // Keep names, colors, profiles and (unless counters were given) counter layout for seats that carry over.
             fresh.copy(players = fresh.players.map { p ->
                 val old = session.players.getOrNull(p.seatIndex) ?: return@map p
                 p.copy(
                     name = old.name,
                     colorHex = old.colorHex,
                     isFlipped = old.isFlipped,
-                    subCounters = old.subCounters.map { it.copy(value = 0) },
+                    profileId = old.profileId,
+                    subCounters = if (action.counters == null) old.subCounters.map { it.copy(value = 0) } else p.subCounters,
                 )
             })
         }
@@ -156,6 +220,7 @@ class GameEngine(
         target: CounterTarget,
         delta: Int,
         coalesce: Boolean,
+        round: Int = session.round,
     ): GameSession {
         val player = session.player(playerId) ?: return session
         val current = player.valueOf(target) ?: return session
@@ -164,12 +229,12 @@ class GameEngine(
         if (applied == 0) return session
 
         val now = clock()
-        val subId = (target as? CounterTarget.Sub)?.subCounterId
+        val subId = target.storedId
         val last = session.historyLog.lastOrNull()
         val merge = coalesce && last != null && last.batchId == null &&
             last.playerId == playerId &&
             last.subCounterId == subId &&
-            last.round == session.round &&
+            last.round == round &&
             now - last.timestamp in 0..coalesceWindowMs
 
         val history = if (merge) {
@@ -181,7 +246,7 @@ class GameEngine(
             session.historyLog + ScoreHistoryEntry(
                 id = newId(),
                 timestamp = now,
-                round = session.round,
+                round = round,
                 playerId = playerId,
                 subCounterId = subId,
                 delta = applied,
@@ -190,6 +255,33 @@ class GameEngine(
         }
 
         return session.withValue(playerId, target, next).copy(historyLog = history)
+    }
+
+    /** Commander damage also costs that much life; both are logged as one undoable batch. */
+    private fun commanderDamage(
+        session: GameSession,
+        playerId: String,
+        target: CounterTarget.Commander,
+        delta: Int,
+    ): GameSession {
+        val player = session.player(playerId) ?: return session
+        if (target.fromPlayerId == playerId || session.player(target.fromPlayerId) == null) return session
+        val current = player.valueOf(target) ?: 0
+        val next = (current + delta).coerceIn(0, MAX_COMMANDER_DAMAGE)
+        val applied = next - current
+        if (applied == 0) return session
+        val life = (player.primaryScore - applied).clampValue()
+
+        val batch = newId()
+        val now = clock()
+        val entries = listOf(
+            ScoreHistoryEntry(newId(), now, session.round, playerId, target.storedId, applied, next, batch),
+            ScoreHistoryEntry(newId(), now, session.round, playerId, null, life - player.primaryScore, life, batch),
+        ).filter { it.delta != 0 }
+        return session
+            .withValue(playerId, target, next)
+            .withValue(playerId, CounterTarget.Primary, life)
+            .copy(historyLog = session.historyLog + entries)
     }
 
     private fun bulkEdit(session: GameSession, action: GameAction.BulkEdit): GameSession {
@@ -214,7 +306,7 @@ class GameEngine(
                 timestamp = now,
                 round = session.round,
                 playerId = p.id,
-                subCounterId = (target as? CounterTarget.Sub)?.subCounterId,
+                subCounterId = target.storedId,
                 delta = next - current,
                 resultingValue = next,
                 batchId = batch,
@@ -235,6 +327,80 @@ class GameEngine(
         return result
     }
 
+    private fun removePlayer(session: GameSession, playerId: String): GameSession {
+        if (session.players.size <= Limits.MIN_PLAYERS || session.player(playerId) == null) return session
+        // The turn moves on first, so the removed seat's turn time is credited before it goes.
+        val passed = if (session.activePlayerId == playerId) passTurn(session, forward = true, countRound = false) else session
+        val damageId = CounterTarget.Commander(playerId).storedId
+        val remaining = passed.players
+            .filterNot { it.id == playerId }
+            .mapIndexed { index, p -> p.copy(seatIndex = index, commanderDamage = p.commanderDamage - playerId) }
+        return passed.copy(
+            players = remaining,
+            historyLog = passed.historyLog.filterNot { it.playerId == playerId || it.subCounterId == damageId },
+            activePlayerId = passed.activePlayerId?.takeIf { it != playerId } ?: remaining.first().id.takeIf { passed.options.turnTracking },
+            monarchId = passed.monarchId?.takeIf { it != playerId },
+            initiativeId = passed.initiativeId?.takeIf { it != playerId },
+        )
+    }
+
+    private fun setOptions(session: GameSession, options: MatchOptions): GameSession {
+        val now = clock()
+        var s = session
+        if (!options.turnTracking && s.activePlayerId != null) {
+            // Credit the turn in progress before tracking stops.
+            s = creditTurn(s, s.timing.settled(now)).copy(activePlayerId = null)
+        }
+        if (options.turnTracking && s.activePlayerId == null) {
+            val out = s.outcome().eliminated
+            s = s.copy(activePlayerId = (s.players.firstOrNull { it.id !in out } ?: s.players.first()).id)
+        }
+        val timing = when {
+            options.usesClock && !s.options.usesClock && !s.timing.isRunning -> s.timing.copy(runningSince = now)
+            !options.usesClock && s.timing.isRunning -> s.timing.settled(now).copy(runningSince = null)
+            else -> s.timing
+        }
+        return s.copy(options = options, timing = timing)
+    }
+
+    /** Moves the turn one seat (skipping seats that are out) and rolls the round over at the ends. */
+    private fun passTurn(session: GameSession, forward: Boolean, countRound: Boolean = true): GameSession {
+        if (!session.options.turnTracking || session.players.isEmpty()) return session
+        val order = session.players.sortedBy { it.seatIndex }
+        val start = order.indexOfFirst { it.id == session.activePlayerId }
+        if (start < 0) return handOver(session, order.first().id)
+
+        val out = session.outcome().eliminated
+        val skip = if (order.all { it.id in out }) emptySet() else out
+        var index = start
+        var wrapped = false
+        do {
+            val next = if (forward) (index + 1) % order.size else (index - 1 + order.size) % order.size
+            if (forward && next <= index || !forward && next >= index) wrapped = true
+            index = next
+        } while (order[index].id in skip && index != start)
+
+        val round = when {
+            !countRound || !wrapped -> session.round
+            forward -> session.round + 1
+            else -> (session.round - 1).coerceAtLeast(1)
+        }
+        return handOver(session, order[index].id).copy(round = round)
+    }
+
+    /** Credits the outgoing seat's turn time and starts a fresh turn for [playerId]. */
+    private fun handOver(session: GameSession, playerId: String): GameSession {
+        val credited = creditTurn(session, session.timing.settled(clock()))
+        return credited.copy(activePlayerId = playerId)
+    }
+
+    private fun creditTurn(session: GameSession, settled: Timing): GameSession {
+        val active = session.activePlayerId
+        val withTime = if (active == null) session
+        else session.updatePlayer(active) { it.copy(timeMillis = it.timeMillis + settled.turnMillis) }
+        return withTime.copy(timing = settled.copy(turnMillis = 0))
+    }
+
     private fun newPlayer(seat: Int, score: Int) = Player(
         id = newId(),
         name = "Player ${seat + 1}",
@@ -242,7 +408,18 @@ class GameEngine(
         primaryScore = score,
         seatIndex = seat,
     )
+
+    companion object {
+        const val MAX_COMMANDER_DAMAGE = 99
+    }
 }
+
+/** Seat timers and the turn limit only make sense with an active seat. */
+fun MatchOptions.sanitized(): MatchOptions = copy(
+    seatTimers = seatTimers && turnTracking,
+    turnLimitSeconds = turnLimitSeconds?.takeIf { turnTracking }?.coerceIn(5, Limits.MAX_TURN_LIMIT_SECONDS),
+    winRule = winRule.copy(target = winRule.target.coerceIn(Limits.MIN_VALUE, Limits.MAX_VALUE)),
+)
 
 private fun GameSession.updatePlayer(id: String, transform: (Player) -> Player): GameSession =
     copy(players = players.map { if (it.id == id) transform(it) else it })
@@ -254,6 +431,10 @@ private fun GameSession.withValue(playerId: String, target: CounterTarget, value
             is CounterTarget.Sub -> p.copy(subCounters = p.subCounters.map {
                 if (it.id == target.subCounterId) it.copy(value = value) else it
             })
+            is CounterTarget.Commander -> p.copy(
+                commanderDamage = if (value == 0) p.commanderDamage - target.fromPlayerId
+                else p.commanderDamage + (target.fromPlayerId to value),
+            )
         }
     }
 
@@ -264,5 +445,8 @@ private fun String.cleanName(fallback: String): String =
 
 private fun String?.cleanGameName(): String? =
     this?.trim()?.take(Limits.MAX_GAME_NAME_LENGTH)?.ifEmpty { null }
+
+private fun List<String>.cleanCounterNames(): List<String> =
+    map { it.cleanName("Counter") }.distinctBy { it.lowercase() }.take(Limits.MAX_SUB_COUNTERS)
 
 private fun Player.hasCounter(name: String) = subCounters.any { it.name.equals(name, ignoreCase = true) }

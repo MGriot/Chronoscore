@@ -1,8 +1,12 @@
 package io.chronoscore.engine
 
 import io.chronoscore.model.CounterTarget
+import io.chronoscore.model.DayNight
+import io.chronoscore.model.MatchOptions
+import io.chronoscore.model.Profile
 
 sealed interface GameAction {
+    /** Commander targets also take the same amount off the seat's life, as one undo step. */
     data class Adjust(val playerId: String, val target: CounterTarget, val delta: Int) : GameAction
     data class SetValue(val playerId: String, val target: CounterTarget, val value: Int) : GameAction
 
@@ -33,13 +37,47 @@ sealed interface GameAction {
 
     data class SetGameName(val gameName: String?) : GameAction
 
+    /** Turns optional features on or off for the current match. */
+    data class SetOptions(val options: MatchOptions) : GameAction
+
+    /** Pauses or resumes the match clock and seat timers. */
+    data object ToggleClock : GameAction
+
+    /** Passes the turn to the next seat still in; after the last seat the round advances. */
+    data object NextTurn : GameAction
+
+    /** Passes the turn back; before the first seat the round goes back one. */
+    data object PreviousTurn : GameAction
+
+    data class SetActivePlayer(val playerId: String) : GameAction
+
+    /** Marks a seat out by hand, or back in. */
+    data class SetConceded(val playerId: String, val conceded: Boolean) : GameAction
+
+    /** Links a seat to a saved player (taking its name and color), or unlinks it with null. */
+    data class SetProfile(val playerId: String, val profile: Profile?) : GameAction
+
+    /** Round sheet: sets a seat's points for [round]; the change is logged in that round. */
+    data class SetRoundPoints(val playerId: String, val round: Int, val points: Int) : GameAction
+
+    data class SetMonarch(val playerId: String?) : GameAction
+    data class SetInitiative(val playerId: String?) : GameAction
+    data class SetDayNight(val dayNight: DayNight?) : GameAction
+
     data object NextRound : GameAction
     data object Undo : GameAction
     data object ResetScores : GameAction
+
+    /**
+     * Starts a fresh match. [counters] null keeps each carried-over seat's counter layout;
+     * otherwise every seat gets exactly these counters. [options] null keeps the current ones.
+     */
     data class NewGame(
         val playerCount: Int,
         val startingScore: Int,
         val gameName: String? = null,
+        val counters: List<String>? = null,
+        val options: MatchOptions? = null,
     ) : GameAction
 }
 

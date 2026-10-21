@@ -1,0 +1,19 @@
+-- v2 → v3 (1.1): optional match features, saved presets and player profiles.
+-- Match and seat extras are JSON so later options need no further migrations.
+ALTER TABLE session ADD COLUMN state_json TEXT;
+
+ALTER TABLE player ADD COLUMN extras_json TEXT;
+
+CREATE TABLE preset (
+    id TEXT NOT NULL PRIMARY KEY,
+    name TEXT NOT NULL,
+    body TEXT NOT NULL,
+    updated_at INTEGER NOT NULL
+);
+
+CREATE TABLE profile (
+    id TEXT NOT NULL PRIMARY KEY,
+    name TEXT NOT NULL,
+    color_hex TEXT NOT NULL,
+    created_at INTEGER NOT NULL
+);

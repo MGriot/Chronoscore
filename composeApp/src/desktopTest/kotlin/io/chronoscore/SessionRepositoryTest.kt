@@ -7,7 +7,14 @@ import io.chronoscore.db.ChronoscoreDatabase
 import io.chronoscore.engine.BulkMode
 import io.chronoscore.engine.GameAction
 import io.chronoscore.engine.GameEngine
+import io.chronoscore.data.BackupCodec
 import io.chronoscore.model.CounterTarget
+import io.chronoscore.model.DayNight
+import io.chronoscore.model.GamePreset
+import io.chronoscore.model.MatchOptions
+import io.chronoscore.model.Profile
+import io.chronoscore.model.WinMode
+import io.chronoscore.model.WinRule
 import io.chronoscore.viewmodel.GameViewModel
 import io.chronoscore.viewmodel.SeatStyle
 import io.chronoscore.viewmodel.ThemeMode
@@ -152,6 +159,90 @@ class SessionRepositoryTest {
             migrated.save(engine.reduce(s, GameAction.SetGameName("Catan")))
             migrated.putSetting("seat_style", "COLORED")
             assertEquals("Catan", migrated.loadLatest()!!.gameName)
+        }
+    }
+
+    @Test
+    fun matchFeaturesRoundTrip() {
+        val options = MatchOptions(
+            turnTracking = true, matchClock = true, seatTimers = true, turnLimitSeconds = 90,
+            winRule = WinRule(WinMode.ELIMINATION, 0), mtgExtras = true,
+        )
+        val s = engine.newSession(3, 40, "Commander", options).let { s ->
+            listOf(
+                GameAction.Adjust(s.players[0].id, CounterTarget.Commander(s.players[1].id), 6),
+                GameAction.NextTurn,
+                GameAction.SetConceded(s.players[2].id, true),
+                GameAction.SetProfile(s.players[1].id, Profile("pr", "Jonas", "#16A34A")),
+                GameAction.SetMonarch(s.players[1].id),
+                GameAction.SetInitiative(s.players[0].id),
+                GameAction.SetDayNight(DayNight.NIGHT),
+                GameAction.ToggleClock,
+            ).fold(s, engine::reduce)
+        }
+        repo.save(s)
+        assertEquals(s, repo.load(s.id))
+    }
+
+    @Test
+    fun presetsAndProfilesPersist() {
+        val preset = GamePreset("p1", "Hearts", "Hearts", 4, 0, emptyList(), MatchOptions(sheetMode = true))
+        repo.savePreset(preset)
+        repo.savePreset(preset.copy(name = "Hearts (4p)"))
+        assertEquals(listOf(preset.copy(name = "Hearts (4p)")), repo.presets())
+        repo.deletePreset("p1")
+        assertEquals(emptyList(), repo.presets())
+
+        repo.saveProfile(Profile("b", "Zed", "#2563EB"))
+        repo.saveProfile(Profile("a", "ana", "#E11D48"))
+        assertEquals(listOf("ana", "Zed"), repo.profiles().map { it.name })
+        repo.deleteProfile("a")
+        assertEquals(listOf("Zed"), repo.profiles().map { it.name })
+    }
+
+    @Test
+    fun backupExportsAndImportsIntoAnotherDatabase() {
+        val a = sampleSession("Catan")
+        val b = engine.newSession(2, 20, options = MatchOptions(turnTracking = true))
+        repo.save(a)
+        repo.save(b)
+        repo.saveProfile(Profile("pr", "Mara", "#2563EB"))
+        val text = BackupCodec.encode(repo.exportBackup())
+
+        SessionRepository(openDesktopDriver(tempDbFile())).use { other ->
+            val current = engine.newSession(1, 20)
+            other.save(current)
+            val backup = BackupCodec.decode(text)
+            assertEquals(2, other.importBackup(backup, keepSessionId = current.id))
+            assertEquals(a, other.load(a.id))
+            assertEquals(b, other.load(b.id))
+            assertEquals(listOf("Mara"), other.profiles().map { it.name })
+            assertEquals(current, other.loadLatest(), "the match on the table stays the latest")
+            // Importing again replaces rather than duplicates.
+            other.importBackup(backup, keepSessionId = current.id)
+            assertEquals(3, other.summaries().size)
+        }
+    }
+
+    @Test
+    fun migratesVersion2DatabaseWithoutExtras() {
+        val file = tempDbFile()
+        val session = sampleSession()
+        SessionRepository(openDesktopDriver(file)).use { it.save(session) }
+        // Simulate a 1.0 database: same rows, no JSON columns filled, user_version 2.
+        DriverManager.getConnection("jdbc:sqlite:${file.absolutePath}").use { conn ->
+            conn.createStatement().use { st ->
+                listOf(
+                    "DROP TABLE preset", "DROP TABLE profile",
+                    "ALTER TABLE session DROP COLUMN state_json", "ALTER TABLE player DROP COLUMN extras_json",
+                    "PRAGMA user_version = 2",
+                ).forEach(st::execute)
+            }
+        }
+        SessionRepository(openDesktopDriver(file)).use { migrated ->
+            assertEquals(session, migrated.loadLatest())
+            migrated.saveProfile(Profile("p", "Mara", "#2563EB"))
+            assertEquals(1, migrated.profiles().size)
         }
     }
 
