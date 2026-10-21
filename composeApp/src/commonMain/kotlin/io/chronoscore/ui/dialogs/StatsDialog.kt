@@ -106,7 +106,7 @@ private fun StatsRow(s: PlayerStats) {
                 maxLines = 1, overflow = TextOverflow.Ellipsis,
             )
             val avg = (s.averageScore * 10).roundToInt() / 10.0
-            val time = if (s.timeMillis > 0) " · ${formatDuration(s.timeMillis)} on turns" else ""
+            val time = if (s.timeMillis >= 1_000) " · ${formatDuration(s.timeMillis)} on turns" else ""
             Text(
                 "${s.played} played · avg $avg · best ${s.bestScore}$time",
                 style = ChronoTheme.type.body.copy(fontSize = 13.sp), color = c.muted,

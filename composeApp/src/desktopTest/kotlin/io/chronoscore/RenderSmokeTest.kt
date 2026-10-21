@@ -193,7 +193,7 @@ class RenderSmokeTest {
             "library_backup" to { LibraryDialog(session, emptyList(), {}, {}, {}, {}, filesAvailable = true) },
         )
         for ((name, dialog) in dialogs) {
-            ImageComposeScene(720, 1700, Density(1.5f)) {
+            ImageComposeScene(720, 2600, Density(1.5f)) {
                 ChronoscoreTheme(ThemeMode.DARK) { dialog() }
             }.use { scene ->
                 scene.render(0)

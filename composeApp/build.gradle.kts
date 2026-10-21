@@ -64,8 +64,8 @@ android {
         applicationId = "io.chronoscore"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 2
+        versionName = "1.1.0"
     }
     signingConfigs {
         if (keystoreProps.isNotEmpty()) {
@@ -106,13 +106,17 @@ compose.desktop {
     application {
         mainClass = "io.chronoscore.MainKt"
         nativeDistributions {
-            targetFormats(TargetFormat.Msi, TargetFormat.Deb, TargetFormat.Rpm)
+            targetFormats(TargetFormat.Exe, TargetFormat.Msi, TargetFormat.Deb, TargetFormat.Rpm)
             packageName = "Chronoscore"
-            packageVersion = "1.0.0"
+            packageVersion = "1.1.0"
+            description = "Offline scorekeeper for tabletop, card and board games"
+            vendor = "Chronoscore"
             modules("java.sql")
             windows {
                 iconFile.set(project.file("icons/chronoscore.ico"))
                 menu = true
+                shortcut = true
+                dirChooser = true
                 upgradeUuid = "6f1c2d8e-4b7a-4c3e-9a51-2e8f0c7d9b14"
             }
             linux {

@@ -21,10 +21,11 @@ Get the latest build from [**Releases**](https://github.com/MGriot/Chronoscore/r
 
 | Platform | File | Notes |
 | --- | --- | --- |
-| Android 7.0+ | `Chronoscore-1.0.0.apk` | Signed release build. Allow installs from your browser or file manager, then open the file. |
-| Windows x64 | `Chronoscore-windows-x64-1.0.0.jar` | Needs Java 17+. Run it with `java -jar Chronoscore-windows-x64-1.0.0.jar`. |
+| Android 7.0+ | `Chronoscore-1.1.0.apk` | Signed release build. Allow installs from your browser or file manager, then open the file. |
+| Windows x64 | `Chronoscore-1.1.0.exe` | Installer with its own Java runtime, so you don't need Java. Adds Chronoscore to the Start menu. |
+| Windows x64 (portable) | `Chronoscore-windows-x64-1.1.0.jar` | Needs Java 17+. Run it with `java -jar Chronoscore-windows-x64-1.1.0.jar`. |
 
-To get a Linux build, or a native Windows installer, build it from source (see below).
+To get a Linux build, build it from source (see below).
 
 ## Features
 
@@ -40,11 +41,22 @@ To get a Linux build, or a native Windows installer, build it from source (see b
 - **Match log:** changes grouped by round, with single-step undo.
 - **Saved matches:** every match keeps its own history, grouped by game (for example Catan or Commander), and any match can be continued.
 - **Neutral or Colored seat style**, plus System, Dark or Light theme.
+
+New in 1.1. Each of these is optional and set per match:
+
+- **Turn tracker:** an active seat with Previous / Next buttons. After the last seat the round advances.
+- **Timers:** a match clock, seat timers (chess-clock style) and an optional turn limit, with pause and resume.
+- **Win rules:** first to a target score (highest or lowest wins) or elimination. Dimmed seats are out, a banner names the winner, and Undo revives.
+- **Presets:** Commander, Magic 1v1, Hearts, Race to 10 and Chess clock, plus your own.
+- **Round sheet:** a scorepad of points per round with totals.
+- **Magic: The Gathering extras:** per-opponent commander damage, Monarch, Initiative and Day/Night.
+- **Players & stats:** saved players and their wins, win rate, averages and time on turns.
+- **Backups:** export and import everything as a JSON file, or a match as CSV, through the system file picker.
 - **Fully air-gapped:**
   - The Android app has no `INTERNET` permission and turns off cloud backup.
   - Data lives only in a local SQLite database.
 
-See the **[User guide](docs/USER_GUIDE.md)** for a walkthrough with screenshots.
+See the **[illustrated HTML guide](docs/guide/index.html)** (open it in a browser) or the **[User guide](docs/USER_GUIDE.md)** for a walkthrough with screenshots.
 
 <p align="center">
   <img src="docs/images/desktop-colored.png" width="800" alt="Desktop, Colored seat style">
@@ -60,7 +72,8 @@ You need JDK 17+. For the Android build you also need the Android SDK, with `sdk
 ./gradlew :composeApp:assembleDebug               # Android debug APK
 ./gradlew :composeApp:assembleRelease             # Android release APK (signed if keystore.properties exists)
 ./gradlew :composeApp:packageUberJarForCurrentOS  # desktop JAR for this OS
-./gradlew :composeApp:packageMsi                  # Windows installer (packageDeb / packageRpm on Linux)
+./gradlew :composeApp:packageExe                  # Windows .exe installer (packageMsi also works; needs WiX 3)
+./gradlew :composeApp:packageDeb                  # Linux .deb (packageRpm for .rpm)
 ```
 
 Release signing reads `keystore.properties` from the repo root. That file is git-ignored and has these keys:
@@ -92,7 +105,7 @@ Everything lives in `composeApp/src/commonMain/kotlin/io/chronoscore/`:
 | `model/` | Immutable data models |
 | `engine/` | The pure reducer (`GameEngine.reduce`): coalescing, batch undo, bulk edits |
 | `random/` | Dice, coin and seat randomizers |
-| `data/` | The SQLDelight repository, with migrations in `sqldelight/…/1.sqm` |
+| `data/` | The SQLDelight repository (migrations in `sqldelight/…/*.sqm`), JSON backups and CSV export |
 | `viewmodel/` | The `StateFlow` ViewModel: autosave, library, settings |
 | `ui/` | The board, dialogs, and the design system (`ui/theme`) |
 

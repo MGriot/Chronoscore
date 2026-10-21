@@ -5,6 +5,7 @@ import io.chronoscore.data.Backup
 import io.chronoscore.data.matchCsv
 import io.chronoscore.engine.GameAction
 import io.chronoscore.engine.GameEngine
+import io.chronoscore.engine.computeStats
 import io.chronoscore.engine.outcome
 import io.chronoscore.model.CounterTarget
 import io.chronoscore.model.GameSession
@@ -230,6 +231,30 @@ class MatchFeaturesTest {
         assertEquals("#16A34A", r.players[0].colorHex)
         assertEquals("pr1", r.players[0].profileId)
         assertNull(r.apply(GameAction.SetProfile(s.id(0), null)).players[0].profileId)
+    }
+
+    @Test
+    fun statsCountWinsOnlyForDecidedMatchesAndFollowProfiles() {
+        val rule = MatchOptions(winRule = WinRule(WinMode.ELIMINATION, 0))
+        val mara = Profile("pm", "Mara", "#2563EB")
+        fun match(game: String, winnerSeat: Int?, options: MatchOptions) = engine.newSession(2, 10, game, options).let { s ->
+            val linked = s.apply(GameAction.SetProfile(s.id(0), mara))
+            if (winnerSeat == null) linked else linked.apply(GameAction.SetValue(s.id(1 - winnerSeat), CounterTarget.Primary, 0))
+        }
+        val sessions = listOf(
+            match("Catan", 0, rule),
+            match("Catan", 1, rule),
+            match("Hearts", null, MatchOptions()), // no rule: played, not decided
+        )
+        val stats = computeStats(sessions, listOf(mara))
+        val m = stats.first { it.key == "pm" }
+        assertEquals(3, m.played)
+        assertEquals(2, m.decided)
+        assertEquals(1, m.wins)
+        assertEquals(0.5, m.winRate)
+        // Unlinked seats are grouped by name across matches.
+        assertEquals(3, stats.first { it.key == "name:player 2" }.played)
+        assertEquals(2, computeStats(sessions, listOf(mara), game = "catan").first { it.key == "pm" }.played)
     }
 
     @Test

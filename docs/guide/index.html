@@ -1,0 +1,730 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chronoscore User Guide</title>
+<meta name="description" content="How to use Chronoscore 1.1, the offline multi-seat scorekeeper for tabletop, card and board games.">
+<link rel="icon" href="../images/icon.png">
+<style>
+  :root {
+    --bg: #FAFAFA;
+    --surface: #F4F4F5;
+    --raised: #E4E4E7;
+    --outline: #E4E4E7;
+    --muted: #52525B;
+    --text: #09090B;
+    --primary: #09090B;
+    --on-primary: #FFFFFF;
+    --rose: #E11D48;
+    --blue: #2563EB;
+    --green: #16A34A;
+    --amber: #D97706;
+    --code-bg: #E4E4E7;
+    --shadow: 0 1px 2px rgb(0 0 0 / 0.06);
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0D0D0D;
+      --surface: #18181B;
+      --raised: #27272A;
+      --outline: #3F3F46;
+      --muted: #A1A1AA;
+      --text: #FFFFFF;
+      --primary: #FFFFFF;
+      --on-primary: #09090B;
+      --code-bg: #27272A;
+      --shadow: none;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0D0D0D;
+    --surface: #18181B;
+    --raised: #27272A;
+    --outline: #3F3F46;
+    --muted: #A1A1AA;
+    --text: #FFFFFF;
+    --primary: #FFFFFF;
+    --on-primary: #09090B;
+    --code-bg: #27272A;
+    --shadow: none;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 72px; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.6 Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; text-decoration-color: var(--muted); text-underline-offset: 3px; }
+  a:hover { text-decoration-color: var(--text); }
+  code, kbd {
+    font: 0.88em ui-monospace, "Cascadia Code", Consolas, monospace;
+    background: var(--code-bg);
+    border-radius: 4px;
+    padding: 0.1em 0.35em;
+  }
+  kbd { border: 1px solid var(--outline); background: var(--surface); }
+
+  /* Top bar */
+  .topbar {
+    position: sticky; top: 0; z-index: 10;
+    display: flex; align-items: center; gap: 12px;
+    height: 56px; padding: 0 16px;
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--outline);
+  }
+  .topbar img { width: 28px; height: 28px; border-radius: 7px; }
+  .topbar .name { font-weight: 600; letter-spacing: 0.01em; }
+  .topbar .ver {
+    font-size: 12px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--muted); border: 1px solid var(--outline); border-radius: 4px; padding: 1px 6px; white-space: nowrap;
+  }
+  .topbar .spacer { flex: 1; }
+  .theme-btn, .toc-btn {
+    height: 36px; min-width: 36px; padding: 0 10px;
+    border: 1px solid var(--outline); border-radius: 6px;
+    background: var(--surface); color: var(--text);
+    font: inherit; font-size: 14px; cursor: pointer;
+  }
+  .toc-btn { display: none; }
+
+  /* Layout */
+  .layout {
+    display: grid; grid-template-columns: 240px minmax(0, 1fr);
+    gap: 48px; max-width: 1120px; margin: 0 auto; padding: 0 24px;
+  }
+  nav.toc {
+    position: sticky; top: 56px; align-self: start;
+    max-height: calc(100vh - 56px); overflow-y: auto;
+    padding: 24px 0 48px;
+  }
+  nav.toc .group {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--muted); margin: 20px 0 6px;
+  }
+  nav.toc .group:first-child { margin-top: 0; }
+  nav.toc a {
+    display: block; padding: 4px 10px; margin-left: -10px;
+    border-left: 2px solid transparent;
+    text-decoration: none; color: var(--muted); font-size: 14px; line-height: 1.4;
+  }
+  nav.toc a:hover { color: var(--text); }
+  nav.toc a.current { color: var(--text); border-left-color: var(--text); }
+  main { padding: 32px 0 96px; min-width: 0; }
+
+  /* Type */
+  h1 { font-size: 40px; line-height: 1.1; letter-spacing: -0.02em; margin: 0 0 12px; }
+  h2 {
+    font-size: 26px; line-height: 1.25; letter-spacing: -0.01em;
+    margin: 64px 0 12px; padding-top: 24px; border-top: 1px solid var(--outline);
+  }
+  h3 { font-size: 18px; margin: 32px 0 8px; }
+  p, ul, ol { margin: 0 0 14px; }
+  ul, ol { padding-left: 22px; }
+  li { margin: 4px 0; }
+  .lede { font-size: 19px; color: var(--muted); max-width: 680px; }
+  .label {
+    font-size: 12px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
+  }
+
+  /* Hero */
+  .hero { display: flex; gap: 20px; align-items: center; margin-bottom: 20px; }
+  .hero img { width: 72px; height: 72px; border-radius: 16px; }
+  .pills { display: flex; flex-wrap: wrap; gap: 8px; margin: 20px 0 8px; }
+  .pill {
+    font-size: 13px; padding: 4px 10px; border-radius: 999px;
+    border: 1px solid var(--outline); background: var(--surface); color: var(--muted);
+  }
+  .pill.new { color: var(--text); border-color: var(--text); }
+
+  /* Figures */
+  figure { margin: 20px 0 24px; }
+  figure img {
+    display: block; max-width: 100%; height: auto;
+    border-radius: 10px; border: 1px solid var(--outline); box-shadow: var(--shadow);
+  }
+  figure.phone img { width: 300px; }
+  figure.dialog img { width: 360px; }
+  figcaption { font-size: 13px; color: var(--muted); margin-top: 8px; }
+  .figs { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; }
+  .figs figure { margin: 0; }
+  .split { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 32px; align-items: start; }
+  .split figure { margin-top: 4px; }
+
+  /* Tables */
+  .table-wrap { overflow-x: auto; margin: 12px 0 20px; border: 1px solid var(--outline); border-radius: 10px; }
+  table { border-collapse: collapse; width: 100%; font-size: 15px; }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--outline); vertical-align: top; }
+  tr:last-child td { border-bottom: 0; }
+  td code { white-space: nowrap; }
+  th { font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); background: var(--surface); }
+
+  /* Callouts and steps */
+  .note {
+    margin: 16px 0 20px; padding: 12px 16px;
+    background: var(--surface); border: 1px solid var(--outline); border-left: 3px solid var(--blue);
+    border-radius: 6px; font-size: 15px;
+  }
+  .note.tip { border-left-color: var(--green); }
+  .note.warn { border-left-color: var(--amber); }
+  .note strong:first-child { margin-right: 4px; }
+  ol.steps { list-style: none; counter-reset: step; padding-left: 0; }
+  ol.steps li { counter-increment: step; position: relative; padding-left: 40px; margin: 10px 0; }
+  ol.steps li::before {
+    content: counter(step); position: absolute; left: 0; top: 1px;
+    width: 26px; height: 26px; border-radius: 50%;
+    display: grid; place-items: center;
+    background: var(--primary); color: var(--on-primary); font-size: 13px; font-weight: 600;
+  }
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; margin: 16px 0 24px; }
+  .card {
+    background: var(--surface); border: 1px solid var(--outline); border-radius: 10px; padding: 14px 16px;
+  }
+  .card h4 { margin: 0 0 4px; font-size: 15px; }
+  .card p { margin: 0; font-size: 14px; color: var(--muted); }
+  .card .bar { width: 4px; height: 18px; display: inline-block; vertical-align: -3px; margin-right: 8px; border-radius: 1px; }
+  .tag {
+    display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: 0.04em;
+    padding: 1px 6px; border-radius: 4px; vertical-align: 1px;
+    background: var(--blue); color: #fff;
+  }
+  .tag.outline { background: transparent; color: var(--text); border: 1px solid var(--outline); }
+  .tag.rose { background: var(--rose); }
+  footer { color: var(--muted); font-size: 14px; border-top: 1px solid var(--outline); margin-top: 64px; padding-top: 20px; }
+
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: minmax(0, 1fr); gap: 0; padding: 0 16px; }
+    .toc-btn { display: inline-block; }
+    nav.toc {
+      display: none; position: fixed; inset: 56px 0 0 0; z-index: 9;
+      max-height: none; padding: 16px 20px 48px; background: var(--bg);
+    }
+    nav.toc.open { display: block; }
+    nav.toc a { margin-left: 0; font-size: 16px; padding: 8px 10px; }
+    h1 { font-size: 32px; }
+    h2 { font-size: 22px; margin-top: 48px; }
+    .split { grid-template-columns: minmax(0, 1fr); }
+    figure.phone img, figure.dialog img { width: 100%; max-width: 320px; }
+  }
+  @media print {
+    .topbar, nav.toc { display: none; }
+    .layout { display: block; }
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <img src="../images/icon.png" alt="">
+  <span class="name">Chronoscore</span>
+  <span class="ver">Guide · 1.1</span>
+  <span class="spacer"></span>
+  <button class="toc-btn" id="tocBtn" aria-expanded="false" aria-controls="toc">Contents</button>
+  <button class="theme-btn" id="themeBtn" title="Switch light / dark">◐</button>
+</header>
+
+<div class="layout">
+<nav class="toc" id="toc" aria-label="Contents">
+  <div class="group">Start</div>
+  <a href="#overview">Overview</a>
+  <a href="#install">Install</a>
+  <a href="#quick-start">Quick start</a>
+  <div class="group">The table</div>
+  <a href="#seats">Seats and layouts</a>
+  <a href="#counting">Counting</a>
+  <a href="#hub">The center hub</a>
+  <a href="#keypad">Keypad</a>
+  <a href="#counters">Counters</a>
+  <a href="#edit-all">Edit all seats</a>
+  <a href="#editing-a-seat">Editing a seat</a>
+  <div class="group">Match options</div>
+  <a href="#options">Turning options on</a>
+  <a href="#turns">Turn tracker</a>
+  <a href="#timers">Match clock and seat timers</a>
+  <a href="#winning">Winning and elimination</a>
+  <a href="#sheet">Round sheet</a>
+  <a href="#mtg">Magic: The Gathering extras</a>
+  <a href="#presets">Presets</a>
+  <div class="group">Tools and history</div>
+  <a href="#utilities">Table utilities</a>
+  <a href="#log">Match log and undo</a>
+  <a href="#library">Saved matches</a>
+  <a href="#stats">Players and stats</a>
+  <a href="#backup">Backup, import and CSV</a>
+  <div class="group">More</div>
+  <a href="#appearance">Appearance</a>
+  <a href="#desktop">Desktop</a>
+  <a href="#data">Your data</a>
+  <a href="#faq">Questions</a>
+</nav>
+
+<main>
+
+<section id="overview">
+  <div class="hero">
+    <img src="../images/icon.png" alt="Chronoscore icon">
+    <div>
+      <div class="label">User guide · version 1.1</div>
+      <h1>Chronoscore</h1>
+    </div>
+  </div>
+  <p class="lede">Chronoscore keeps score for tabletop, card and board games on one shared screen. Put the device in the middle of the table or pass it around. There is no account, no sync and no network: everything stays on the device.</p>
+  <div class="pills">
+    <span class="pill">1–8 players</span>
+    <span class="pill">Android · Windows · Linux</span>
+    <span class="pill">Fully offline</span>
+    <span class="pill new">New: turns &amp; timers</span>
+    <span class="pill new">New: win rules</span>
+    <span class="pill new">New: presets</span>
+    <span class="pill new">New: round sheet</span>
+    <span class="pill new">New: MTG extras</span>
+    <span class="pill new">New: stats &amp; backups</span>
+  </div>
+  <div class="note"><strong>Everything new in 1.1 is optional.</strong> With every match option off, Chronoscore looks and works exactly like 1.0: a plain, fast counter. Turn on only what your game needs.</div>
+</section>
+
+<section id="install">
+  <h2>Install</h2>
+  <div class="table-wrap"><table>
+    <tr><th>Platform</th><th>File</th><th>How</th></tr>
+    <tr><td>Android 7.0+</td><td><code>Chronoscore-1.1.0.apk</code></td><td>Allow installs from your browser or file manager, then open the file. Updating over 1.0 keeps all your matches.</td></tr>
+    <tr><td>Windows 10/11 (x64)</td><td><code>Chronoscore-1.1.0.exe</code></td><td>Run the installer. It includes its own Java runtime, so you don't need Java installed. Chronoscore appears in the Start menu.</td></tr>
+    <tr><td>Windows, portable</td><td><code>Chronoscore-windows-x64-1.1.0.jar</code></td><td>Needs Java 17+. Run <code>java -jar Chronoscore-windows-x64-1.1.0.jar</code>.</td></tr>
+    <tr><td>Linux</td><td>build from source</td><td><code>./gradlew :composeApp:packageDeb</code> or <code>packageRpm</code> on the target machine.</td></tr>
+  </table></div>
+  <p>Your data is upgraded automatically the first time 1.1 starts. Nothing is lost, and 1.0 matches open with every new option off.</p>
+</section>
+
+<section id="quick-start">
+  <h2>Quick start</h2>
+  <ol class="steps">
+    <li>Open Chronoscore. A 4-player table at 20 is ready to use.</li>
+    <li>Open <strong>Menu</strong> (the sliders icon in the center pill). Under <em>New game</em>, tap a <strong>preset</strong> such as <em>Commander</em> or <em>Hearts</em>, or set the players and starting score yourself.</li>
+    <li>Optionally tap <strong>Options</strong> to turn on the turn tracker, timers or a win rule, then <strong>Start new game</strong>.</li>
+    <li>Tap a seat's <strong>left half to subtract</strong> and its <strong>right half to add</strong>. Hold to count faster.</li>
+    <li>Made a mistake? Tap <strong>Undo</strong> in the center pill. Every match saves itself as you play.</li>
+  </ol>
+</section>
+
+<section id="seats">
+  <h2>Seats and layouts</h2>
+  <div class="figs">
+    <figure class="phone"><img src="../images/phone-neutral.png" alt="Four seats, Neutral style"><figcaption>Four seats, Neutral style</figcaption></figure>
+    <figure class="phone"><img src="../images/phone-8-players.png" alt="Eight seats on a phone"><figcaption>Eight seats on a phone</figcaption></figure>
+  </div>
+  <p>Each player has a <strong>seat</strong>: a card with their name, their score and any counters. The grid adapts to how many players there are (1 to 8) and to portrait or landscape.</p>
+  <ul>
+    <li><strong>Seats in the top half are rotated 180°</strong> so they face the players sitting across from the device.</li>
+    <li>To turn a seat by hand, use its rotate button, or <em>Edit seat → Rotate 180°</em>.</li>
+    <li>Header buttons: <kbd>#</kbd> keypad, <kbd>⟲</kbd> rotate and <kbd>✎</kbd> edit. On narrow phone seats only ✎ is shown; the rest is inside the seat editor.</li>
+  </ul>
+</section>
+
+<section id="counting">
+  <h2>Counting</h2>
+  <ul>
+    <li><strong>Tap</strong> the left half for −1 or the right half for +1.</li>
+    <li><strong>Hold</strong> to repeat. After about a second it switches to steps of ±5.</li>
+    <li>While you count, the <strong>running delta</strong> (for example <strong>−7</strong>) shows next to the name. When you pause, it folds into the match log as one entry, so one Undo reverts the whole press.</li>
+  </ul>
+</section>
+
+<section id="hub">
+  <h2>The center hub</h2>
+  <p>The pill on the line between the two halves of the table holds the shared controls. When the turn tracker or a clock is on, the <a href="#turns">turn bar</a> appears just above it, and a <a href="#winning">winner banner</a> appears when a match is decided.</p>
+  <div class="table-wrap"><table>
+    <tr><th>Button</th><th>Action</th></tr>
+    <tr><td>↶ Undo</td><td>Reverts the last change, or the last batch. Dimmed when the log is empty.</td></tr>
+    <tr><td>⚄ Dice</td><td>Opens the <a href="#utilities">table utilities</a>.</td></tr>
+    <tr><td>▦ Edit all seats</td><td>Changes a score or counter on many seats at once.</td></tr>
+    <tr><td>☰ Log</td><td>Opens the <a href="#log">match log</a>, organized by round.</td></tr>
+    <tr><td>⚌ Menu</td><td>Current game, match options, saved matches, appearance and new games.</td></tr>
+  </table></div>
+</section>
+
+<section id="keypad">
+  <h2>Keypad</h2>
+  <div class="split">
+    <div>
+      <p>Open it with <kbd>#</kbd> on a seat, or by tapping a counter's value.</p>
+      <ul>
+        <li><strong>Set</strong> replaces the value. <strong>+ Add</strong> and <strong>− Sub</strong> change it by the amount you type.</li>
+        <li><strong>±</strong> makes a Set value negative.</li>
+        <li><strong>Only <em>name</em> / All seats</strong> chooses whether the change applies to this seat or every seat.</li>
+      </ul>
+      <p>A keypad opened from a flipped seat is turned to face that player.</p>
+    </div>
+    <figure class="dialog"><img src="../images/dialog-keypad.png" alt="Keypad"></figure>
+  </div>
+</section>
+
+<section id="counters">
+  <h2>Counters</h2>
+  <div class="split">
+    <div>
+      <p>Each seat holds up to <strong>4 counters</strong>: Poison, Commander, Energy, VP, Fouls, Tax, or one you name yourself.</p>
+      <ul>
+        <li>One seat: tap <strong>+ COUNTER</strong> on the seat, or <em>✎ → Counters</em>.</li>
+        <li>Whole table: <em>Menu → Counters on every seat</em>. Turning a counter on adds it to every seat at 0. A half-filled switch means it's only on some seats. Seats that already hold 4 counters are skipped and named.</li>
+        <li>Counters count like the score: tap − or +, hold to repeat, or tap the value for the keypad.</li>
+      </ul>
+    </div>
+    <figure class="dialog"><img src="../images/dialog-counters-all.png" alt="Counters on every seat"></figure>
+  </div>
+</section>
+
+<section id="edit-all">
+  <h2>Edit all seats</h2>
+  <div class="split">
+    <div>
+      <ol class="steps">
+        <li>Pick the seats, or <strong>All</strong>.</li>
+        <li>Pick what to change: <strong>Score</strong> or a counter by name.</li>
+        <li>Choose <strong>Set to</strong>, <strong>+ Add</strong> or <strong>− Sub</strong> and enter the amount.</li>
+      </ol>
+      <p>Each seat previews <em>old → new</em>. <strong>Apply</strong> writes one log entry per seat, and a single <strong>Undo</strong> reverts all of them.</p>
+    </div>
+    <figure class="dialog"><img src="../images/dialog-edit-all.png" alt="Edit all seats"></figure>
+  </div>
+</section>
+
+<section id="editing-a-seat">
+  <h2>Editing a seat</h2>
+  <div class="split">
+    <div>
+      <p>Tap a seat's name or <kbd>✎</kbd>. From here you can:</p>
+      <ul>
+        <li>Rename the seat, set its score, or rotate it.</li>
+        <li><strong>Give turn</strong> makes it the active seat (turn tracker on).</li>
+        <li><strong>Mark as out</strong> or <strong>Back in</strong>: concede, or undo a concession.</li>
+        <li><strong>Monarch</strong> and <strong>Initiative</strong> (MTG extras on).</li>
+        <li><strong>Saved player</strong>: save this seat as a player, or pick an existing one. It takes that player's name and color, and the seat's results count toward their <a href="#stats">stats</a>.</li>
+        <li>Choose a color, manage counters, or remove the seat (tap twice to confirm).</li>
+      </ul>
+    </div>
+    <figure class="dialog"><img src="../images/dialog-editor.png" alt="Edit seat with 1.1 options"></figure>
+  </div>
+</section>
+
+<section id="options">
+  <h2>Turning options on</h2>
+  <div class="split">
+    <div>
+      <p>Match options belong to one match. Set them in either place:</p>
+      <ul>
+        <li><strong>For the match on the table:</strong> <em>Menu → Match options</em>. Changes apply immediately, mid-game included.</li>
+        <li><strong>For a new match:</strong> <em>Menu → New game → Options</em>, or pick a <a href="#presets">preset</a> that sets them for you.</li>
+      </ul>
+      <p>The <em>Match options</em> button shows a short summary of what's on, for example <em>Turns · Clock · Elimination</em>.</p>
+      <div class="table-wrap"><table>
+        <tr><th>Option</th><th>What it does</th></tr>
+        <tr><td>Turn tracker</td><td>One active seat, with Previous / Next buttons.</td></tr>
+        <tr><td>Match clock</td><td>Total match time, with pause and resume.</td></tr>
+        <tr><td>Seat timers</td><td>Each seat's own time on its turns (needs the turn tracker).</td></tr>
+        <tr><td>Turn limit</td><td>A countdown per turn: 30 s, 1, 2 or 5 min (needs the turn tracker).</td></tr>
+        <tr><td>Winning</td><td>None, Target score, or Elimination.</td></tr>
+        <tr><td>Round sheet</td><td>A scorepad layout instead of seat cards.</td></tr>
+        <tr><td>MTG extras</td><td>Commander damage, Monarch, Initiative, Day/Night.</td></tr>
+      </table></div>
+    </div>
+    <figure class="dialog"><img src="../images/dialog-options.png" alt="Match options"></figure>
+  </div>
+</section>
+
+<section id="turns">
+  <h2>Turn tracker</h2>
+  <figure><img src="../images/desktop-commander.png" alt="Commander match with the turn bar, seat timers and commander damage" style="width:100%;max-width:820px"><figcaption>The turn bar between the halves: Previous, the active seat with round and turn time, Day/Night, the match clock with pause, Next.</figcaption></figure>
+  <p>With the turn tracker on, one seat is <strong>active</strong>. It gets a colored ring and a <span class="tag rose">TURN</span> tag, and the <strong>turn bar</strong> appears above the center hub.</p>
+  <ul>
+    <li><strong>Next ›</strong> passes the turn to the next seat in seat order. After the last seat, the <strong>round advances</strong> automatically.</li>
+    <li><strong>‹ Previous</strong> passes it back. Going back past the first seat returns to the previous round (never below round 1). Use it if someone tapped Next too early.</li>
+    <li>Seats that are <strong>out</strong> are skipped. A seat that concedes on its own turn hands the turn to the next seat.</li>
+    <li>To jump to any seat, open its editor and tap <strong>Give turn</strong>.</li>
+  </ul>
+  <p>Score changes are logged under the round shown in the turn bar, so the <a href="#log">match log</a> groups them correctly.</p>
+</section>
+
+<section id="timers">
+  <h2>Match clock and seat timers</h2>
+  <div class="cards">
+    <div class="card"><h4>Match clock</h4><p>Total time for the match, shown in the turn bar next to the pause button.</p></div>
+    <div class="card"><h4>Seat timers</h4><p>Each seat shows its own total time on turns, like a chess clock. Only the active seat's time runs.</p></div>
+    <div class="card"><h4>Turn limit</h4><p>A countdown for each turn. Past the limit, the time turns rose and counts into negative overtime.</p></div>
+  </div>
+  <ul>
+    <li><strong>⏸ Pause / ▶ Resume</strong> in the turn bar stops and starts all timing.</li>
+    <li>The clock <strong>pauses by itself</strong> when you leave the app on Android, or close the window on desktop, so time isn't counted while nobody is playing. Tap ▶ to resume.</li>
+    <li>When the turn passes, the outgoing seat's turn time is added to its seat timer and the turn time starts again at zero.</li>
+    <li>Seat time is kept with the match, and the <a href="#stats">stats</a> show each player's total time on turns.</li>
+  </ul>
+  <div class="note tip"><strong>Chess clock:</strong> the built-in <em>Chess clock</em> preset is 2 players with the turn tracker, the match clock and seat timers on. Tap Next when you finish your move.</div>
+</section>
+
+<section id="winning">
+  <h2>Winning and elimination</h2>
+  <div class="figs">
+    <figure class="phone"><img src="../images/phone-winner.png" alt="Winner banner on a phone"><figcaption>Last seat standing: dimmed seats are out, and the banner names the winner.</figcaption></figure>
+  </div>
+  <p>Choose a rule under <em>Match options → Winning</em>:</p>
+  <div class="table-wrap"><table>
+    <tr><th>Rule</th><th>How it works</th><th>Good for</th></tr>
+    <tr><td><strong>None</strong></td><td>No automatic result. A seat can still <em>Mark as out</em>; when only one seat is left, it wins.</td><td>Most games</td></tr>
+    <tr><td><strong>Target</strong></td><td>The match ends when a seat reaches the target score (counting up or down, depending on where you started). Then <em>Highest wins</em> or <em>Lowest wins</em> decides.</td><td>Race to 10 VP; Hearts (to 100, lowest wins)</td></tr>
+    <tr><td><strong>Elimination</strong></td><td>A seat at or below the threshold (0 by default) is <span class="tag outline">OUT</span>. The last seat standing wins.</td><td>Life-total games, Magic</td></tr>
+  </table></div>
+  <ul>
+    <li>Seats that are out are <strong>dimmed</strong> but stay editable, so you can still fix mistakes.</li>
+    <li>The winner gets a ring and a <span class="tag">WINNER</span> tag, and a banner appears on the center line. A tie names everyone tied; if nobody is left standing, it's a draw.</li>
+    <li>Results come from the scores, so <strong>Undo brings an eliminated seat back</strong>, and correcting a score can reopen a finished match.</li>
+  </ul>
+</section>
+
+<section id="sheet">
+  <h2>Round sheet</h2>
+  <div class="split">
+    <div>
+      <p>For games scored at the end of each round (Hearts, Rummy, Yahtzee-style games), turn on <em>Round sheet</em>. Seat cards are replaced by a scorepad:</p>
+      <ul>
+        <li>One column per seat and one row per round. <strong>TOTAL</strong> at the bottom is each seat's score.</li>
+        <li>Tap a cell to enter that seat's points for the round. <em>Set</em> replaces the round's points and <em>+ Add</em> adds to them. Earlier rounds can be corrected the same way.</li>
+        <li><strong>Next round →</strong> adds a row. With the turn tracker on, Next after the last seat does the same.</li>
+        <li>Tap a name in the header to edit that seat.</li>
+      </ul>
+      <p>Every entry is an ordinary log entry in its round, so Undo, the match log, win rules and CSV export all work.</p>
+    </div>
+    <figure class="phone"><img src="../images/phone-sheet.png" alt="Round sheet for Hearts"></figure>
+  </div>
+</section>
+
+<section id="mtg">
+  <h2>Magic: The Gathering extras</h2>
+  <div class="split">
+    <div>
+      <p>Turn on <em>Magic: The Gathering extras</em> (the <em>Commander</em> and <em>Magic 1v1</em> presets do this for you). It adds:</p>
+      <h3>Commander damage</h3>
+      <ul>
+        <li>Each seat shows a <strong>CMDR</strong> chip with the most damage it has taken from a single commander.</li>
+        <li>Tap it to open the tracker, which has one row per opponent in their seat color.</li>
+        <li>Each change also takes the same amount <strong>off that seat's life</strong>, and the two are one Undo step.</li>
+      </ul>
+      <h3>Monarch and Initiative</h3>
+      <p>Assign them from a seat's editor. The holder shows a <span class="tag outline">MONARCH</span> or <span class="tag outline">INITIATIVE</span> tag. Only one seat holds each at a time.</p>
+      <h3>Day / Night</h3>
+      <p>Set it in <em>Table utilities</em>. The current state shows in the turn bar.</p>
+      <div class="note warn"><strong>Lethal rules:</strong> with Elimination on, a seat is also out at <strong>21 commander damage</strong> from one commander, or at <strong>10 Poison</strong> (a counter named "Poison").</div>
+    </div>
+    <figure class="dialog"><img src="../images/dialog-commander.png" alt="Commander damage tracker"></figure>
+  </div>
+</section>
+
+<section id="presets">
+  <h2>Presets</h2>
+  <p>A preset is a ready-made match setup: number of players, starting score, counters on every seat, game name, and match options. Pick one under <em>Menu → New game</em>. It fills in the form, which you can still adjust before starting.</p>
+  <div class="table-wrap"><table>
+    <tr><th>Built-in preset</th><th>Setup</th></tr>
+    <tr><td>Commander</td><td>4 players at 40, Poison counter, turn tracker, Elimination, MTG extras</td></tr>
+    <tr><td>Magic 1v1</td><td>2 players at 20, Poison counter, Elimination, MTG extras</td></tr>
+    <tr><td>Hearts</td><td>4 players at 0, Round sheet, Target 100 with lowest wins</td></tr>
+    <tr><td>Race to 10</td><td>4 players at 0, turn tracker, Target 10</td></tr>
+    <tr><td>Chess clock</td><td>2 players, turn tracker, match clock and seat timers</td></tr>
+  </table></div>
+  <ul>
+    <li><strong>Save as preset</strong> (under the New game form) stores your current setup under its game name.</li>
+    <li>Pick one of your saved presets to see <strong>Delete this preset</strong>. Built-in presets can't be deleted.</li>
+    <li>Saved presets are included in <a href="#backup">backups</a>.</li>
+  </ul>
+  <figure class="dialog"><img src="../images/dialog-menu.png" alt="Menu with presets and match options"><figcaption>The menu: Current game (with Match options and Players &amp; stats), Appearance, and New game with presets.</figcaption></figure>
+</section>
+
+<section id="utilities">
+  <h2>Table utilities</h2>
+  <div class="split">
+    <div>
+      <ul>
+        <li><strong>Dice:</strong> d4, d6, d8, d10, d12 and d20, or a custom <strong>dX</strong> from 2 to 1000. <em>Dice per roll</em> rolls up to 6 and shows the total.</li>
+        <li><strong>Flip coin:</strong> heads or tails.</li>
+        <li><strong>First player:</strong> picks a random seat, which gets a ring and a <span class="tag">FIRST</span> tag for a few seconds.</li>
+        <li><strong>Turn order:</strong> a random order of all players.</li>
+        <li><strong>Day / Night</strong> appears here when MTG extras are on.</li>
+      </ul>
+    </div>
+    <figure class="dialog"><img src="../images/dialog-utilities.png" alt="Table utilities"></figure>
+  </div>
+</section>
+
+<section id="log">
+  <h2>Match log and undo</h2>
+  <div class="split">
+    <div>
+      <p>Every change is listed under its round: the player, what changed (Score, a counter, or <em>Cmdr · opponent</em>), the change (green up, red down) and the resulting value.</p>
+      <ul>
+        <li><strong>Undo</strong> reverts the most recent entry, or a whole batch (Edit all seats, commander damage).</li>
+        <li><strong>Next round →</strong> starts a new round by hand, which is useful without the turn tracker.</li>
+      </ul>
+    </div>
+    <figure class="dialog"><img src="../images/dialog-log.png" alt="Match log"></figure>
+  </div>
+</section>
+
+<section id="library">
+  <h2>Saved matches</h2>
+  <div class="split">
+    <div>
+      <p>Every match saves itself and is kept until you delete it, with its own players, counters, options, timers and log. Open <em>Menu → Saved matches</em> (or the link in the log):</p>
+      <ul>
+        <li>Matches are <strong>grouped by game</strong>, most recently played first.</li>
+        <li><strong>Continue</strong> brings a match back exactly as you left it.</li>
+        <li>🗑 deletes a match. Tap a second time to confirm.</li>
+        <li><strong>This match belongs to</strong> files the current match under a game.</li>
+        <li>Starting a new game never loses the current one; it stays here.</li>
+      </ul>
+    </div>
+    <figure class="dialog"><img src="../images/dialog-library.png" alt="Saved matches with backup buttons"></figure>
+  </div>
+</section>
+
+<section id="stats">
+  <h2>Players and stats</h2>
+  <div class="split">
+    <div>
+      <p>Open <em>Menu → Players &amp; stats</em>. For every player across your saved matches you'll see matches played, wins, win rate, average and best score, and time on turns.</p>
+      <ul>
+        <li>Filter by game with the chips at the top.</li>
+        <li><strong>Wins count only matches with a result</strong>: a win rule decided it, or everyone else was marked out.</li>
+        <li>Seats linked to a <strong>saved player</strong> are counted together even if the seat name changed. Other seats are grouped by name and marked <em>by name</em>, so matches from 1.0 count too.</li>
+        <li>Remove a saved player from the list at the bottom. Their past matches stay and are counted by name.</li>
+      </ul>
+    </div>
+    <figure class="dialog"><img src="../images/dialog-stats.png" alt="Players and stats"></figure>
+  </div>
+</section>
+
+<section id="backup">
+  <h2>Backup, import and CSV</h2>
+  <p>Chronoscore never uploads anything. Cloud backup is turned off on Android, so <strong>uninstalling deletes your matches</strong>. A backup is a file you keep yourself. The buttons are in <em>Saved matches → Backup</em>:</p>
+  <div class="cards">
+    <div class="card"><h4><span class="bar" style="background:var(--blue)"></span>Export all</h4><p>One <code>.json</code> file with every match, preset and saved player. You choose where it goes: Downloads, a USB stick, or another app.</p></div>
+    <div class="card"><h4><span class="bar" style="background:var(--green)"></span>Import</h4><p>Pick a backup file. Matches, presets and players are added; ones already here with the same id are replaced. The match on the table is never overwritten.</p></div>
+    <div class="card"><h4><span class="bar" style="background:var(--amber)"></span>This match as CSV</h4><p>The current match for a spreadsheet: every logged change (round, time, player, counter, change, result) and final standings.</p></div>
+  </div>
+  <h3>Moving to a new phone or computer</h3>
+  <ol class="steps">
+    <li>On the old device: <em>Saved matches → Export all</em>, and save the file somewhere you can reach.</li>
+    <li>Copy the file to the new device and install Chronoscore there.</li>
+    <li>On the new device: <em>Saved matches → Import</em> and pick the file.</li>
+  </ol>
+  <p>Backups work across platforms: a backup made on Android imports on Windows or Linux, and back again.</p>
+</section>
+
+<section id="appearance">
+  <h2>Appearance</h2>
+  <div class="figs">
+    <figure class="phone"><img src="../images/phone-colored.png" alt="Colored seat style"><figcaption>Colored seat style</figcaption></figure>
+    <figure class="phone"><img src="../images/android-table-light.png" alt="Light theme"><figcaption>Light theme</figcaption></figure>
+  </div>
+  <ul>
+    <li><strong>Seat style:</strong> <em>Neutral</em> (dark cards with a color bar) or <em>Colored</em> (each card filled with the seat's color).</li>
+    <li><strong>Theme:</strong> System, Dark or Light.</li>
+  </ul>
+  <p>Both are in <em>Menu → Appearance</em> and apply to every match.</p>
+</section>
+
+<section id="desktop">
+  <h2>Desktop</h2>
+  <figure><img src="../images/desktop-sheet.png" alt="Round sheet on desktop" style="width:100%;max-width:820px"><figcaption>The round sheet in a desktop window.</figcaption></figure>
+  <ul>
+    <li>Everything works the same as on Android. Click the halves to count, and click and hold to repeat.</li>
+    <li>On wide windows, seat headers show the keypad and rotate buttons and spell tags out in full (<em>MONARCH</em> instead of <em>MON</em>).</li>
+    <li>Closing the window saves the match and pauses its clock.</li>
+    <li>Export and import use the normal Windows or Linux file dialog.</li>
+  </ul>
+</section>
+
+<section id="data">
+  <h2>Your data</h2>
+  <p>Data is stored only on your device, in a local SQLite database:</p>
+  <div class="table-wrap"><table>
+    <tr><th>Platform</th><th>Where it's stored</th></tr>
+    <tr><td>Android</td><td>Private app storage, excluded from cloud backup and device transfer. The app has no internet permission.</td></tr>
+    <tr><td>Windows</td><td><code>%APPDATA%\Chronoscore\chronoscore.db</code></td></tr>
+    <tr><td>Linux</td><td><code>~/.local/share/chronoscore/chronoscore.db</code> (or <code>$XDG_DATA_HOME/chronoscore/</code>)</td></tr>
+  </table></div>
+  <p>Uninstalling the Android app deletes its data, so export a backup first. On desktop, delete the file to start fresh, or start the app with <code>-Dchronoscore.db=&lt;path&gt;</code> to use another location.</p>
+</section>
+
+<section id="faq">
+  <h2>Questions</h2>
+  <h3>The clock shows PAUSED or isn't moving.</h3>
+  <p>It pauses itself when you leave the app or close the window. Tap ▶ in the turn bar.</p>
+  <h3>A seat is dimmed and marked OUT, but it shouldn't be.</h3>
+  <p>Check the win rule threshold in <em>Match options</em>, or tap <em>Undo</em>. If the seat was marked out by hand, use <em>Edit seat → Back in</em>.</p>
+  <h3>I can't find the turn bar.</h3>
+  <p>It appears only when the turn tracker, the match clock, or Day/Night (MTG extras) is on. Turn one on in <em>Menu → Match options</em>.</p>
+  <h3>Stats show "0 wins" for everyone.</h3>
+  <p>Wins count only matches with a result. Set a win rule (Target or Elimination), or mark the other seats out at the end of a match.</p>
+  <h3>Does import duplicate my matches?</h3>
+  <p>No. Matches are matched by id, so importing the same backup twice replaces rather than duplicates.</p>
+  <h3>Can I turn all of this off?</h3>
+  <p>Yes. Every 1.1 feature is a per-match option; with all of them off, the table is the classic counter.</p>
+</section>
+
+<footer>
+  Chronoscore 1.1 · offline scorekeeper for Android, Windows and Linux · Fonts in the app: Inter and Inter Tight (SIL Open Font License 1.1).
+</footer>
+</main>
+</div>
+
+<script>
+  (function () {
+    var root = document.documentElement;
+    var key = 'chronoscore-guide-theme';
+    try {
+      var saved = localStorage.getItem(key);
+      if (saved === 'light' || saved === 'dark') root.setAttribute('data-theme', saved);
+    } catch (e) {}
+    document.getElementById('themeBtn').addEventListener('click', function () {
+      var current = root.getAttribute('data-theme') ||
+        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      var next = current === 'dark' ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+      try { localStorage.setItem(key, next); } catch (e) {}
+    });
+
+    var toc = document.getElementById('toc');
+    var btn = document.getElementById('tocBtn');
+    btn.addEventListener('click', function () {
+      var open = toc.classList.toggle('open');
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+    toc.addEventListener('click', function (e) {
+      if (e.target.tagName === 'A') { toc.classList.remove('open'); btn.setAttribute('aria-expanded', 'false'); }
+    });
+
+    // Highlight the section in view.
+    var links = Array.prototype.slice.call(toc.querySelectorAll('a'));
+    var byId = {};
+    links.forEach(function (a) { byId[a.getAttribute('href').slice(1)] = a; });
+    if ('IntersectionObserver' in window) {
+      var observer = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          if (entry.isIntersecting) {
+            links.forEach(function (a) { a.classList.remove('current'); });
+            var link = byId[entry.target.id];
+            if (link) link.classList.add('current');
+          }
+        });
+      }, { rootMargin: '-72px 0px -70% 0px' });
+      document.querySelectorAll('main section[id]').forEach(function (s) { observer.observe(s); });
+    }
+  })();
+</script>
+</body>
+</html>
