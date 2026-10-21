@@ -32,6 +32,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.rotate
@@ -68,6 +69,25 @@ class SeatCallbacks(
     val onOpenKeypad: (CounterTarget) -> Unit,
     val onToggleFlip: () -> Unit,
     val onEdit: () -> Unit,
+    val onOpenCommander: () -> Unit = {},
+)
+
+/** Optional-feature state shown on a seat; the default shows nothing extra (1.0 look). */
+@Immutable
+data class SeatStatus(
+    /** It is this seat's turn (turn tracker). */
+    val active: Boolean = false,
+    /** Out by concession or the win rule; the seat is dimmed but still editable. */
+    val out: Boolean = false,
+    val winner: Boolean = false,
+    val monarch: Boolean = false,
+    val initiative: Boolean = false,
+    /** Seat timer text, e.g. "4:12"; null when seat timers are off. */
+    val timeLabel: String? = null,
+    /** The active seat ran past the turn limit. */
+    val overtime: Boolean = false,
+    /** MTG extras: highest commander damage taken from one commander; null when off. */
+    val commanderDamage: Int? = null,
 )
 
 /** Colors inside one seat; the Colored style swaps the zinc card for the seat's accent. */
@@ -86,6 +106,7 @@ private data class SeatPalette(
 
 private val SeatShape = RoundedCornerShape(10.dp)
 private val COMPACT_WIDTH = 220.dp
+private const val OUT_ALPHA = 0.45f
 
 /** How long the running delta stays beside the name before folding into the log. */
 private const val DELTA_VISIBLE_MS = 1_500L
@@ -104,6 +125,7 @@ fun SeatViewport(
     lastEntry: ScoreHistoryEntry?,
     callbacks: SeatCallbacks,
     modifier: Modifier = Modifier,
+    status: SeatStatus = SeatStatus(),
 ) {
     val accent = parseHex(player.colorHex)
     val c = ChronoTheme.colors
@@ -122,15 +144,17 @@ fun SeatViewport(
 
     BoxWithConstraints(modifier) {
         val compact = maxWidth < COMPACT_WIDTH
+        val ring = highlighted || status.active || status.winner
         Column(
             Modifier
                 .fillMaxSize()
                 .rotate(if (flipped) 180f else 0f)
+                .alpha(if (status.out) OUT_ALPHA else 1f)
                 .clip(SeatShape)
                 .background(p.fill)
-                .then(if (highlighted) Modifier.border(4.dp, p.ring, SeatShape) else Modifier),
+                .then(if (ring) Modifier.border(4.dp, p.ring, SeatShape) else Modifier),
         ) {
-            SeatHeader(player, p, compact, highlighted, lastEntry, callbacks)
+            SeatHeader(player, p, compact, highlighted, status, lastEntry, callbacks)
 
             // Primary score: left half decrements, right half increments.
             Box(Modifier.weight(1f).fillMaxWidth()) {
@@ -153,17 +177,19 @@ fun SeatViewport(
                 )
             }
 
-            CounterRow(player, p, compact, callbacks)
+            CounterRow(player, p, compact, status, callbacks)
         }
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun SeatHeader(
     player: Player,
     p: SeatPalette,
     compact: Boolean,
     highlighted: Boolean,
+    status: SeatStatus,
     lastEntry: ScoreHistoryEntry?,
     callbacks: SeatCallbacks,
 ) {
@@ -183,16 +209,8 @@ private fun SeatHeader(
                 modifier = Modifier.weight(1f, fill = false).clickable(onClick = callbacks.onEdit),
             )
             RunningDelta(lastEntry, p)
-            if (highlighted) {
-                Spacer(Modifier.width(6.dp))
-                Text(
-                    if (compact) "1ST" else "FIRST",
-                    style = ChronoTheme.type.label.copy(fontSize = 10.sp, letterSpacing = 0.5.sp, fontWeight = FontWeight.Bold),
-                    color = p.tagText,
-                    maxLines = 1,
-                    modifier = Modifier.clip(RoundedCornerShape(4.dp)).background(p.tagFill).padding(horizontal = 5.dp, vertical = 2.dp),
-                )
-            }
+            if (highlighted) SeatTag(if (compact) "1ST" else "FIRST", p)
+            if (!compact) StatusTags(status, p, compact = false)
         }
         if (!compact) {
             HeaderIcon(ChronoIcons.Keypad, "Enter value", p.muted) { callbacks.onOpenKeypad(CounterTarget.Primary) }
@@ -200,6 +218,60 @@ private fun SeatHeader(
         }
         HeaderIcon(ChronoIcons.Edit, "Edit seat", p.muted, callbacks.onEdit)
     }
+    // Narrow seats keep the name readable by moving status tags to their own line.
+    if (compact && status.hasTags) {
+        FlowRow(
+            Modifier.fillMaxWidth().padding(start = 18.dp, end = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+            itemVerticalAlignment = Alignment.CenterVertically,
+        ) {
+            StatusTags(status, p, compact = true)
+        }
+    }
+}
+
+private val SeatStatus.hasTags: Boolean
+    get() = winner || out || active || monarch || initiative || timeLabel != null
+
+@Composable
+private fun StatusTags(status: SeatStatus, p: SeatPalette, compact: Boolean) {
+    if (status.winner) SeatTag(if (compact) "WIN" else "WINNER", p)
+    if (status.out) SeatTag("OUT", p, filled = false)
+    if (status.active && !status.winner) SeatTag("TURN", p)
+    if (status.monarch) SeatTag(if (compact) "MON" else "MONARCH", p, filled = false)
+    if (status.initiative) SeatTag(if (compact) "INI" else "INITIATIVE", p, filled = false)
+    status.timeLabel?.let { SeatTimer(it, status.overtime, p) }
+}
+
+@Composable
+private fun SeatTag(text: String, p: SeatPalette, filled: Boolean = true) {
+    Spacer(Modifier.width(6.dp))
+    Text(
+        text,
+        style = ChronoTheme.type.label.copy(fontSize = 10.sp, letterSpacing = 0.5.sp, fontWeight = FontWeight.Bold),
+        color = if (filled) p.tagText else p.text,
+        maxLines = 1,
+        softWrap = false,
+        modifier = Modifier.clip(RoundedCornerShape(4.dp))
+            .then(if (filled) Modifier.background(p.tagFill) else Modifier.border(1.dp, p.outline, RoundedCornerShape(4.dp)))
+            .padding(horizontal = 5.dp, vertical = 2.dp),
+    )
+}
+
+/** Seat timer; turns into a rose chip once the turn limit is exceeded. */
+@Composable
+private fun SeatTimer(text: String, overtime: Boolean, p: SeatPalette) {
+    Spacer(Modifier.width(6.dp))
+    Text(
+        text,
+        style = ChronoTheme.type.counter.copy(fontSize = 12.sp),
+        color = if (overtime) Color.White else p.muted,
+        maxLines = 1,
+        softWrap = false,
+        modifier = Modifier.clip(RoundedCornerShape(4.dp))
+            .then(if (overtime) Modifier.background(ChronoTheme.colors.destructive) else Modifier)
+            .padding(horizontal = 4.dp, vertical = 2.dp),
+    )
 }
 
 @Composable
@@ -228,14 +300,15 @@ private fun RunningDelta(entry: ScoreHistoryEntry?, p: SeatPalette) {
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun CounterRow(player: Player, p: SeatPalette, compact: Boolean, callbacks: SeatCallbacks) {
+private fun CounterRow(player: Player, p: SeatPalette, compact: Boolean, status: SeatStatus, callbacks: SeatCallbacks) {
     val showAdd = !compact && player.subCounters.size < Limits.MAX_SUB_COUNTERS
-    if (player.subCounters.isEmpty() && !showAdd) return
+    if (player.subCounters.isEmpty() && !showAdd && status.commanderDamage == null) return
     FlowRow(
         Modifier.fillMaxWidth().padding(if (compact) 6.dp else 8.dp),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
+        status.commanderDamage?.let { CommanderChip(it, p, compact, callbacks.onOpenCommander) }
         player.subCounters.forEach { counter -> SubCounterChip(counter, p, compact, callbacks) }
         if (showAdd) AddCounterChip(p, callbacks.onEdit)
     }
@@ -304,6 +377,22 @@ private fun SubCounterChip(counter: SubCounter, p: SeatPalette, compact: Boolean
             Modifier.width(side).fillMaxHeight().repeatingPress(tint) { callbacks.onAdjust(target, it) },
             contentAlignment = Alignment.Center,
         ) { Icon(ChronoIcons.Plus, "Increase ${counter.name}", Modifier.size(16.dp), tint = p.muted) }
+    }
+}
+
+/** Commander damage summary; opens the per-opponent tracker. */
+@Composable
+private fun CommanderChip(damage: Int, p: SeatPalette, compact: Boolean, onClick: () -> Unit) {
+    Column(
+        Modifier.height(MinTouch + 4.dp).clip(ChronoShapes.control).background(p.chipFill)
+            .border(1.dp, p.outline, ChronoShapes.control)
+            .clickable(onClickLabel = "Commander damage", onClick = onClick)
+            .padding(horizontal = if (compact) 8.dp else 12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Text("CMDR", style = ChronoTheme.type.label.copy(fontSize = 9.sp, letterSpacing = 0.5.sp), color = p.muted, maxLines = 1)
+        Text("$damage", style = ChronoTheme.type.counter.copy(fontSize = 17.sp, lineHeight = 18.sp), color = p.text)
     }
 }
 

@@ -20,6 +20,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.chronoscore.model.DayNight
 import io.chronoscore.random.CoinSide
 import io.chronoscore.random.TableRng
 import io.chronoscore.ui.theme.ChronoShapes
@@ -36,6 +37,10 @@ fun UtilitiesDialog(
     onPickFirst: () -> Unit,
     onShuffleOrder: () -> Unit,
     onDismiss: () -> Unit,
+    /** MTG extras: shows the Day / Night switch. */
+    showDayNight: Boolean = false,
+    dayNight: DayNight? = null,
+    onDayNight: (DayNight?) -> Unit = {},
 ) {
     var sides by remember { mutableIntStateOf((state.last as? UtilityResult.Dice)?.sides ?: 20) }
     var count by remember { mutableIntStateOf(1) }
@@ -87,6 +92,19 @@ fun UtilitiesDialog(
             Pill("Flip coin", Modifier.weight(1f), onClick = onFlipCoin)
             Pill("First player", Modifier.weight(1f), onClick = onPickFirst)
             Pill("Turn order", Modifier.weight(1f), onClick = onShuffleOrder)
+        }
+
+        if (showDayNight) {
+            SectionLabel("Day / Night")
+            Segmented(
+                options = listOf("Off", "Day", "Night"),
+                selectedIndex = when (dayNight) {
+                    null -> 0
+                    DayNight.DAY -> 1
+                    DayNight.NIGHT -> 2
+                },
+                onSelect = { onDayNight(listOf(null, DayNight.DAY, DayNight.NIGHT)[it]) },
+            )
         }
 
         if (state.log.size > 1) {

@@ -8,10 +8,16 @@ import androidx.compose.ui.use
 import io.chronoscore.engine.GameAction
 import io.chronoscore.engine.GameEngine
 import androidx.compose.runtime.Composable
+import io.chronoscore.model.BuiltInPresets
 import io.chronoscore.model.CounterTarget
+import io.chronoscore.model.DayNight
+import io.chronoscore.model.Profile
 import io.chronoscore.model.SessionSummary
 import io.chronoscore.ui.App
+import io.chronoscore.ui.dialogs.CommanderDialog
 import io.chronoscore.ui.dialogs.CountersAllSeatsDialog
+import io.chronoscore.ui.dialogs.OptionsDialog
+import io.chronoscore.ui.dialogs.StatsDialog
 import io.chronoscore.ui.dialogs.EditAllSeatsDialog
 import io.chronoscore.ui.dialogs.HistoryDialog
 import io.chronoscore.ui.dialogs.KeypadDialog
@@ -112,6 +118,82 @@ class RenderSmokeTest {
         )
         for ((name, dialog) in dialogs) {
             ImageComposeScene(720, 1500, Density(1.5f)) {
+                ChronoscoreTheme(ThemeMode.DARK) { dialog() }
+            }.use { scene ->
+                scene.render(0)
+                scene.snapshot("dialog_$name")
+            }
+        }
+    }
+
+    /** A Commander pod using the 1.1 options: turns, seat timers, elimination and MTG extras. */
+    private fun commanderTable() = GameViewModel(null, Dispatchers.Unconfined, GameEngine()).also { vm ->
+        val preset = BuiltInPresets.all.first { it.name == "Commander" }
+        vm.dispatch(
+            GameAction.NewGame(4, 40, "Commander", preset.counters, preset.options.copy(seatTimers = true, matchClock = true, turnLimitSeconds = 120)),
+        )
+        val ids = vm.session.value.players.map { it.id }
+        listOf("Mara", "Jonas", "Priya", "Theo").forEachIndexed { i, n -> vm.dispatch(GameAction.RenamePlayer(ids[i], n)) }
+        vm.dispatch(GameAction.Adjust(ids[1], CounterTarget.Commander(ids[0]), 9))
+        vm.dispatch(GameAction.Adjust(ids[2], CounterTarget.Primary, -40))
+        vm.dispatch(GameAction.SetMonarch(ids[3]))
+        vm.dispatch(GameAction.NextTurn)
+        vm.dispatch(GameAction.SetDayNight(DayNight.DAY))
+    }
+
+    @Test
+    fun rendersMatchFeatures() {
+        val vm = commanderTable()
+        ImageComposeScene(420, 880, Density(1.5f)) { App(vm) }.use { it.snapshot("feature_commander_phone") }
+        ImageComposeScene(1280, 800, Density(1.5f)) { App(vm) }.use { it.snapshot("feature_commander_desktop") }
+
+        // Last seat standing: the banner names the winner.
+        val ids = vm.session.value.players.map { it.id }
+        vm.dispatch(GameAction.SetConceded(ids[1], true))
+        vm.dispatch(GameAction.SetConceded(ids[3], true))
+        ImageComposeScene(420, 880, Density(1.5f)) { App(vm) }.use { it.snapshot("feature_winner_phone") }
+
+        val hearts = GameViewModel(null, Dispatchers.Unconfined, GameEngine()).also { h ->
+            val preset = BuiltInPresets.all.first { it.name == "Hearts" }
+            h.dispatch(GameAction.NewGame(4, 0, "Hearts", preset.counters, preset.options.copy(turnTracking = true)))
+            val p = h.session.value.players.map { it.id }
+            listOf("Ana", "Ben", "Cy", "Dee").forEachIndexed { i, n -> h.dispatch(GameAction.RenamePlayer(p[i], n)) }
+            listOf(listOf(4, 9, 0, 13), listOf(13, 2, 6, 5), listOf(0, 11, 8, 7)).forEachIndexed { r, row ->
+                row.forEachIndexed { i, pts -> h.dispatch(GameAction.SetRoundPoints(p[i], r + 1, pts)) }
+                h.dispatch(GameAction.NextRound)
+            }
+        }
+        ImageComposeScene(420, 880, Density(1.5f)) { App(hearts) }.use { it.snapshot("feature_sheet_phone") }
+        ImageComposeScene(1280, 800, Density(1.5f)) { App(hearts) }.use { it.snapshot("feature_sheet_desktop") }
+    }
+
+    @Test
+    fun rendersFeatureDialogs() {
+        val vm = commanderTable()
+        val session = vm.session.value
+        val noop: (GameAction) -> Unit = {}
+        val profiles = listOf(Profile("a", "Mara", "#2563EB"), Profile("b", "Jonas", "#E11D48"))
+        val history = listOf(session, session.copy(id = "x", gameName = "Catan"))
+        val dialogs: Map<String, @Composable () -> Unit> = mapOf(
+            "options" to { OptionsDialog(session.options, {}, {}) },
+            "commander" to { CommanderDialog(session, session.players[1].id, false, noop, {}) },
+            "stats" to { StatsDialog(history, profiles, {}, {}) },
+            "menu_presets" to {
+                MenuDialog(
+                    session, ThemeMode.DARK, SeatStyle.NEUTRAL, listOf("Commander"), noop, {}, {}, {}, {}, {}, {},
+                    presets = BuiltInPresets.all,
+                )
+            },
+            "editor_extras" to {
+                PlayerEditorDialog(
+                    session.players[0], true, false, noop, {}, {},
+                    options = session.options, isMonarch = true, profiles = profiles,
+                )
+            },
+            "library_backup" to { LibraryDialog(session, emptyList(), {}, {}, {}, {}, filesAvailable = true) },
+        )
+        for ((name, dialog) in dialogs) {
+            ImageComposeScene(720, 1700, Density(1.5f)) {
                 ChronoscoreTheme(ThemeMode.DARK) { dialog() }
             }.use { scene ->
                 scene.render(0)

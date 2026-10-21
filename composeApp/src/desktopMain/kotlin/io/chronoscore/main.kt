@@ -1,5 +1,6 @@
 package io.chronoscore
 
+import androidx.compose.runtime.remember
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
@@ -9,6 +10,7 @@ import io.chronoscore.data.openDesktopDriver
 import io.chronoscore.resources.Res
 import io.chronoscore.resources.app_icon
 import io.chronoscore.ui.App
+import io.chronoscore.ui.DesktopFileBridge
 import io.chronoscore.viewmodel.GameViewModel
 import kotlinx.coroutines.Dispatchers
 import org.jetbrains.compose.resources.painterResource
@@ -18,6 +20,7 @@ fun main() {
     application {
         Window(
             onCloseRequest = {
+                viewModel.pauseClock()
                 viewModel.flush()
                 exitApplication()
             },
@@ -25,7 +28,7 @@ fun main() {
             icon = painterResource(Res.drawable.app_icon),
             state = rememberWindowState(width = 1100.dp, height = 760.dp),
         ) {
-            App(viewModel)
+            App(viewModel, remember { DesktopFileBridge(window) })
         }
     }
 }

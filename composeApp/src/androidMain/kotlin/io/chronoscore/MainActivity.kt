@@ -12,6 +12,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import app.cash.sqldelight.driver.android.AndroidSqliteDriver
 import io.chronoscore.data.SessionRepository
 import io.chronoscore.db.ChronoscoreDatabase
+import io.chronoscore.ui.AndroidFileBridge
 import io.chronoscore.ui.App
 import io.chronoscore.viewmodel.GameViewModel
 import kotlinx.coroutines.Dispatchers
@@ -37,15 +38,20 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    // File pickers must be registered before the activity starts.
+    private val files = AndroidFileBridge(this)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         // The device sits on the table for the whole match.
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        setContent { App(viewModel) }
+        setContent { App(viewModel, files) }
     }
 
     override fun onStop() {
+        // Leaving the app (or a file picker covering it) pauses the clock; resume from the turn bar.
+        if (!isChangingConfigurations) viewModel.pauseClock()
         viewModel.flush()
         super.onStop()
     }

@@ -28,7 +28,9 @@ import androidx.compose.ui.unit.sp
 import io.chronoscore.engine.GameAction
 import io.chronoscore.model.Accents
 import io.chronoscore.model.Limits
+import io.chronoscore.model.MatchOptions
 import io.chronoscore.model.Player
+import io.chronoscore.model.Profile
 import io.chronoscore.model.SubCounterPresets
 import io.chronoscore.ui.theme.ChronoIcons
 import io.chronoscore.ui.theme.ChronoShapes
@@ -45,6 +47,12 @@ fun PlayerEditorDialog(
     dispatch: (GameAction) -> Unit,
     onSetScore: () -> Unit,
     onDismiss: () -> Unit,
+    options: MatchOptions = MatchOptions(),
+    isActive: Boolean = false,
+    isMonarch: Boolean = false,
+    isInitiative: Boolean = false,
+    profiles: List<Profile> = emptyList(),
+    onSaveProfile: () -> Unit = {},
 ) {
     var name by remember(player.id) { mutableStateOf(player.name) }
     var customCounter by remember { mutableStateOf("") }
@@ -68,6 +76,52 @@ fun PlayerEditorDialog(
             Pill("Rotate 180°", Modifier.weight(1f), leadingIcon = ChronoIcons.Rotate) {
                 dispatch(GameAction.ToggleFlip(player.id))
                 close()
+            }
+        }
+
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (options.turnTracking) {
+                Pill(if (isActive) "Their turn" else "Give turn", Modifier.weight(1f), enabled = !isActive) {
+                    dispatch(GameAction.SetActivePlayer(player.id))
+                    close()
+                }
+            }
+            Pill(
+                if (player.conceded) "Back in" else "Mark as out", Modifier.weight(1f),
+                selected = player.conceded,
+            ) { dispatch(GameAction.SetConceded(player.id, !player.conceded)) }
+        }
+        if (options.mtgExtras) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Pill("Monarch", Modifier.weight(1f), selected = isMonarch) {
+                    dispatch(GameAction.SetMonarch(if (isMonarch) null else player.id))
+                }
+                Pill("Initiative", Modifier.weight(1f), selected = isInitiative) {
+                    dispatch(GameAction.SetInitiative(if (isInitiative) null else player.id))
+                }
+            }
+        }
+
+        SectionLabel("Saved player")
+        val linked = profiles.firstOrNull { it.id == player.profileId }
+        if (linked != null) {
+            Note("Stats for this seat count toward ${linked.name}.")
+            Pill("Unlink from ${linked.name}", Modifier.fillMaxWidth()) { dispatch(GameAction.SetProfile(player.id, null)) }
+        } else {
+            Pill("Save ${name.trim().ifEmpty { player.name }} as a player", Modifier.fillMaxWidth(), leadingIcon = ChronoIcons.Person) {
+                commitName()
+                onSaveProfile()
+            }
+        }
+        val others = profiles.filter { it.id != player.profileId }
+        if (others.isNotEmpty()) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                others.forEach { profile ->
+                    Pill(profile.name, accent = parseHex(profile.colorHex)) {
+                        name = profile.name
+                        dispatch(GameAction.SetProfile(player.id, profile))
+                    }
+                }
             }
         }
 

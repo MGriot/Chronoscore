@@ -39,6 +39,17 @@ object ChronoIcons {
     val Library = icon("Library", "M12 3a9 9 0 1 1 0 18a9 9 0 1 1 0-18z", "M12 7.5V12l3 2")
     val Trash = icon("Trash", "M4 7h16", "M10 11v6", "M14 11v6", "M6 7l1 13h10l1-13", "M9 7V4h6v3")
     val Check = icon("Check", "M5 12.5l4.5 4.5L19 7.5")
+    val ChevronLeft = icon("ChevronLeft", "M15 5l-7 7 7 7")
+    val ChevronRight = icon("ChevronRight", "M9 5l7 7-7 7")
+    val Play = icon("Play", "M8 5.5v13l10.5-6.5z")
+    val Pause = icon("Pause", "M8.5 5.5v13", "M15.5 5.5v13")
+    val Timer = icon("Timer", "M12 21a8 8 0 1 1 0-16a8 8 0 1 1 0 16z", "M12 9v4l2.5 1.5", "M10 2.5h4")
+    val Options = icon("Options", "M4 6h16", "M4 12h16", "M4 18h16", dots = listOf(9f to 6f, 15f to 12f, 7f to 18f))
+    val Trophy = icon("Trophy", "M8 4h8v5a4 4 0 0 1-8 0z", "M8 6H5a3 3 0 0 0 3 4", "M16 6h3a3 3 0 0 1-3 4", "M12 13v4", "M8.5 20h7")
+    val Export = icon("Export", "M12 15V4", "M7.5 8.5L12 4l4.5 4.5", "M5 14v5h14v-5")
+    val Import = icon("Import", "M12 4v11", "M7.5 10.5L12 15l4.5-4.5", "M5 14v5h14v-5")
+    val Sheet = icon("Sheet", "M4 5h16v14H4z", "M4 10h16", "M10 5v14", "M15 5v14")
+    val Person = icon("Person", "M12 12a4 4 0 1 1 0-8a4 4 0 1 1 0 8z", "M4.5 20a7.5 7.5 0 0 1 15 0")
 
     private fun icon(name: String, vararg paths: String, dots: List<Pair<Float, Float>> = emptyList()): ImageVector =
         ImageVector.Builder(name, 24.dp, 24.dp, 24f, 24f).apply {

@@ -5,6 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -21,12 +22,26 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
+import io.chronoscore.data.matchCsv
 import io.chronoscore.engine.BulkMode
 import io.chronoscore.engine.GameAction
+import io.chronoscore.engine.Outcome
+import io.chronoscore.engine.nowMillis
+import io.chronoscore.engine.outcome
 import io.chronoscore.model.CounterTarget
+import io.chronoscore.model.GameSession
+import io.chronoscore.model.Player
 import io.chronoscore.ui.board.PlayerGrid
+import io.chronoscore.ui.board.ResultBanner
+import io.chronoscore.ui.board.RoundSheet
 import io.chronoscore.ui.board.SeatCallbacks
+import io.chronoscore.ui.board.SeatStatus
+import io.chronoscore.ui.board.TurnBar
 import io.chronoscore.ui.board.gridFor
+import io.chronoscore.ui.board.rememberNow
+import io.chronoscore.ui.board.roundPoints
+import io.chronoscore.ui.board.showsTurnBar
+import io.chronoscore.ui.dialogs.CommanderDialog
 import io.chronoscore.ui.dialogs.CountersAllSeatsDialog
 import io.chronoscore.ui.dialogs.EditAllSeatsDialog
 import io.chronoscore.ui.dialogs.HistoryDialog
@@ -34,7 +49,9 @@ import io.chronoscore.ui.dialogs.IconTap
 import io.chronoscore.ui.dialogs.KeypadDialog
 import io.chronoscore.ui.dialogs.LibraryDialog
 import io.chronoscore.ui.dialogs.MenuDialog
+import io.chronoscore.ui.dialogs.OptionsDialog
 import io.chronoscore.ui.dialogs.PlayerEditorDialog
+import io.chronoscore.ui.dialogs.StatsDialog
 import io.chronoscore.ui.dialogs.UtilitiesDialog
 import io.chronoscore.ui.dialogs.knownGames
 import io.chronoscore.ui.theme.ChronoIcons
@@ -51,58 +68,89 @@ private sealed interface OpenDialog {
     data object EditAllSeats : OpenDialog
     data object CountersAllSeats : OpenDialog
     data object Library : OpenDialog
+    data object Options : OpenDialog
+    data object Stats : OpenDialog
     data class Keypad(val playerId: String, val target: CounterTarget, val rotated: Boolean) : OpenDialog
     data class Editor(val playerId: String, val rotated: Boolean) : OpenDialog
+    data class Commander(val playerId: String, val rotated: Boolean) : OpenDialog
+    data class RoundPoints(val playerId: String, val round: Int) : OpenDialog
 }
 
 @Composable
-fun App(viewModel: GameViewModel) {
+fun App(viewModel: GameViewModel, files: FileBridge = NoFileBridge) {
     val session by viewModel.session.collectAsState()
     val utility by viewModel.utility.collectAsState()
     val themeMode by viewModel.themeMode.collectAsState()
     val seatStyle by viewModel.seatStyle.collectAsState()
     val library by viewModel.library.collectAsState()
+    val presets by viewModel.presets.collectAsState()
+    val profiles by viewModel.profiles.collectAsState()
+    val allSessions by viewModel.allSessions.collectAsState()
     var dialog by remember { mutableStateOf<OpenDialog>(OpenDialog.None) }
+    var libraryNotice by remember { mutableStateOf<String?>(null) }
     val dispatch = viewModel::dispatch
+    val now = rememberNow(session.timing.isRunning)
+    val outcome = remember(session) { session.outcome() }
 
     // The library list is refreshed whenever a dialog that shows saved games opens.
     LaunchedEffect(dialog) {
         if (dialog == OpenDialog.Menu || dialog == OpenDialog.Library) viewModel.refreshLibrary()
+        if (dialog == OpenDialog.Stats) viewModel.refreshStats()
+        if (dialog != OpenDialog.Library) libraryNotice = null
     }
 
     ChronoscoreTheme(themeMode) {
         BoxWithConstraints(
             Modifier.fillMaxSize().background(ChronoTheme.colors.background).safeDrawingPadding(),
         ) {
-            val grid = gridFor(session.players.size, isLandscape = maxWidth > maxHeight)
+            val strip = @Composable {
+                CenterStrip(
+                    session = session,
+                    outcome = outcome,
+                    now = now,
+                    dispatch = dispatch,
+                    onDice = { dialog = OpenDialog.Utilities },
+                    onEditAll = { dialog = OpenDialog.EditAllSeats },
+                    onLog = { dialog = OpenDialog.History },
+                    onMenu = { dialog = OpenDialog.Menu },
+                )
+            }
 
-            PlayerGrid(
-                players = session.players,
-                grid = grid,
-                style = seatStyle,
-                highlightedPlayerId = utility.highlightedPlayerId,
-                lastEntry = session.historyLog.lastOrNull(),
-                callbacksFor = { player ->
-                    val rotated = grid.defaultFlipped(player.seatIndex) != player.isFlipped
-                    SeatCallbacks(
-                        onAdjust = { target, delta -> dispatch(GameAction.Adjust(player.id, target, delta)) },
-                        onOpenKeypad = { target -> dialog = OpenDialog.Keypad(player.id, target, rotated) },
-                        onToggleFlip = { dispatch(GameAction.ToggleFlip(player.id)) },
-                        onEdit = { dialog = OpenDialog.Editor(player.id, rotated) },
+            if (session.options.sheetMode) {
+                Column(Modifier.fillMaxSize().padding(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    strip()
+                    RoundSheet(
+                        session = session,
+                        outcome = outcome,
+                        onCell = { id, round -> dialog = OpenDialog.RoundPoints(id, round) },
+                        onNextRound = { dispatch(GameAction.NextRound) },
+                        onEditSeat = { id -> dialog = OpenDialog.Editor(id, rotated = false) },
+                        modifier = Modifier.weight(1f).fillMaxWidth(),
                     )
-                },
-                centerStrip = {
-                    CenterHub(
-                        canUndo = session.historyLog.isNotEmpty(),
-                        onUndo = { dispatch(GameAction.Undo) },
-                        onDice = { dialog = OpenDialog.Utilities },
-                        onEditAll = { dialog = OpenDialog.EditAllSeats },
-                        onLog = { dialog = OpenDialog.History },
-                        onMenu = { dialog = OpenDialog.Menu },
-                    )
-                },
-                modifier = Modifier.fillMaxSize(),
-            )
+                }
+            } else {
+                val grid = gridFor(session.players.size, isLandscape = maxWidth > maxHeight)
+                PlayerGrid(
+                    players = session.players,
+                    grid = grid,
+                    style = seatStyle,
+                    highlightedPlayerId = utility.highlightedPlayerId,
+                    lastEntry = session.historyLog.lastOrNull(),
+                    callbacksFor = { player ->
+                        val rotated = grid.defaultFlipped(player.seatIndex) != player.isFlipped
+                        SeatCallbacks(
+                            onAdjust = { target, delta -> dispatch(GameAction.Adjust(player.id, target, delta)) },
+                            onOpenKeypad = { target -> dialog = OpenDialog.Keypad(player.id, target, rotated) },
+                            onToggleFlip = { dispatch(GameAction.ToggleFlip(player.id)) },
+                            onEdit = { dialog = OpenDialog.Editor(player.id, rotated) },
+                            onOpenCommander = { dialog = OpenDialog.Commander(player.id, rotated) },
+                        )
+                    },
+                    statusFor = { player -> seatStatus(session, outcome, player, now) },
+                    centerStrip = strip,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
         }
 
         val dismiss = { dialog = OpenDialog.None }
@@ -115,6 +163,9 @@ fun App(viewModel: GameViewModel) {
                 onPickFirst = viewModel::pickFirstPlayer,
                 onShuffleOrder = viewModel::shuffleTurnOrder,
                 onDismiss = dismiss,
+                showDayNight = session.options.mtgExtras,
+                dayNight = session.dayNight,
+                onDayNight = { dispatch(GameAction.SetDayNight(it)) },
             )
             OpenDialog.History -> HistoryDialog(
                 session = session,
@@ -135,6 +186,22 @@ fun App(viewModel: GameViewModel) {
                 onCountersAllSeats = { dialog = OpenDialog.CountersAllSeats },
                 onOpenLibrary = { dialog = OpenDialog.Library },
                 onDismiss = dismiss,
+                presets = presets,
+                onMatchOptions = { dialog = OpenDialog.Options },
+                onStats = { dialog = OpenDialog.Stats },
+                onSavePreset = viewModel::savePreset,
+                onDeletePreset = viewModel::deletePreset,
+            )
+            OpenDialog.Options -> OptionsDialog(
+                options = session.options,
+                onChange = { dispatch(GameAction.SetOptions(it)) },
+                onDismiss = dismiss,
+            )
+            OpenDialog.Stats -> StatsDialog(
+                sessions = allSessions,
+                profiles = profiles,
+                onDeleteProfile = viewModel::deleteProfile,
+                onDismiss = dismiss,
             )
             OpenDialog.EditAllSeats -> EditAllSeatsDialog(session, dispatch, dismiss)
             OpenDialog.CountersAllSeats -> CountersAllSeatsDialog(session, dispatch, dismiss)
@@ -145,6 +212,29 @@ fun App(viewModel: GameViewModel) {
                 onOpen = viewModel::openSession,
                 onDelete = viewModel::deleteSession,
                 onDismiss = dismiss,
+                filesAvailable = files.available,
+                onExportBackup = {
+                    viewModel.exportBackup { text ->
+                        files.saveText("chronoscore-backup-${isoDate(nowMillis())}.json", "application/json", text) { ok ->
+                            libraryNotice = if (ok) "Backup saved." else "Backup not saved."
+                        }
+                    }
+                },
+                onImportBackup = {
+                    files.openText(listOf("application/json", "text/plain", "application/octet-stream")) { text ->
+                        if (text == null) libraryNotice = "Nothing imported."
+                        else viewModel.importBackup(text) { libraryNotice = it }
+                    }
+                },
+                onExportCsv = {
+                    val name = (session.gameName ?: "match").filter { it.isLetterOrDigit() || it == ' ' || it == '-' }.trim()
+                        .replace(' ', '-').lowercase().ifEmpty { "match" }
+                    files.saveText("$name-${isoDate(session.timestamp)}.csv", "text/csv", matchCsv(session, ::formatDateTime)) { ok ->
+                        libraryNotice = if (ok) "Match saved as CSV." else "CSV not saved."
+                    }
+                },
+                notice = libraryNotice,
+                onStats = { dialog = OpenDialog.Stats },
             )
             is OpenDialog.Keypad -> {
                 val player = session.player(d.playerId)
@@ -174,6 +264,27 @@ fun App(viewModel: GameViewModel) {
                     )
                 }
             }
+            is OpenDialog.RoundPoints -> {
+                val player = session.player(d.playerId)
+                if (player == null) {
+                    LaunchedEffect(Unit) { dialog = OpenDialog.None }
+                } else {
+                    val current = session.roundPoints()[d.round to d.playerId] ?: 0
+                    KeypadDialog(
+                        playerName = player.name,
+                        playerColor = player.colorHex,
+                        targetLabel = "Round ${d.round}",
+                        current = current,
+                        rotated = false,
+                        seatCount = 1,
+                        onDismiss = dismiss,
+                        onApply = { _, mode, value ->
+                            val points = if (mode == BulkMode.SET) value else current + value
+                            dispatch(GameAction.SetRoundPoints(player.id, d.round, points))
+                        },
+                    )
+                }
+            }
             is OpenDialog.Editor -> {
                 val player = session.player(d.playerId)
                 if (player == null) {
@@ -186,10 +297,74 @@ fun App(viewModel: GameViewModel) {
                         dispatch = dispatch,
                         onSetScore = { dialog = OpenDialog.Keypad(player.id, CounterTarget.Primary, d.rotated) },
                         onDismiss = dismiss,
+                        options = session.options,
+                        isActive = session.activePlayerId == player.id,
+                        isMonarch = session.monarchId == player.id,
+                        isInitiative = session.initiativeId == player.id,
+                        profiles = profiles,
+                        onSaveProfile = { viewModel.saveProfileFromSeat(player.id) },
                     )
                 }
             }
+            is OpenDialog.Commander -> CommanderDialog(session, d.playerId, d.rotated, dispatch, dismiss)
         }
+    }
+}
+
+/** What a seat shows for the optional features that are on. */
+private fun seatStatus(session: GameSession, outcome: Outcome, player: Player, now: Long): SeatStatus {
+    val o = session.options
+    val active = o.turnTracking && player.id == session.activePlayerId
+    val turn = if (active) session.timing.liveTurnMillis(now) else 0
+    val limit = o.turnLimitSeconds?.let { it * 1000L }
+    val timeLabel = when {
+        o.seatTimers -> formatDuration(player.timeMillis + turn)
+        active && limit != null -> formatDuration(limit - turn)
+        else -> null
+    }
+    return SeatStatus(
+        active = active,
+        out = player.id in outcome.eliminated,
+        winner = player.id in outcome.winners,
+        monarch = o.mtgExtras && session.monarchId == player.id,
+        initiative = o.mtgExtras && session.initiativeId == player.id,
+        timeLabel = timeLabel,
+        overtime = active && limit != null && turn > limit,
+        commanderDamage = if (o.mtgExtras) player.commanderDamage.values.maxOrNull() ?: 0 else null,
+    )
+}
+
+/** Center line: result banner, turn bar and hub, each only when there is something to show. */
+@Composable
+private fun CenterStrip(
+    session: GameSession,
+    outcome: Outcome,
+    now: Long,
+    dispatch: (GameAction) -> Unit,
+    onDice: () -> Unit,
+    onEditAll: () -> Unit,
+    onLog: () -> Unit,
+    onMenu: () -> Unit,
+) {
+    Column {
+        ResultBanner(session, outcome)
+        if (session.showsTurnBar()) {
+            TurnBar(
+                session = session,
+                now = now,
+                onPrevious = { dispatch(GameAction.PreviousTurn) },
+                onNext = { dispatch(GameAction.NextTurn) },
+                onToggleClock = { dispatch(GameAction.ToggleClock) },
+            )
+        }
+        CenterHub(
+            canUndo = session.historyLog.isNotEmpty(),
+            onUndo = { dispatch(GameAction.Undo) },
+            onDice = onDice,
+            onEditAll = onEditAll,
+            onLog = onLog,
+            onMenu = onMenu,
+        )
     }
 }
 

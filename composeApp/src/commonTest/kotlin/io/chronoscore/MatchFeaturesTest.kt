@@ -72,6 +72,14 @@ class MatchFeaturesTest {
     }
 
     @Test
+    fun concedingOnYourTurnPassesIt() {
+        val s = engine.newSession(3, 20, options = MatchOptions(turnTracking = true))
+        val r = s.apply(GameAction.SetConceded(s.id(0), true))
+        assertEquals(s.id(1), r.activePlayerId)
+        assertEquals(1, r.round)
+    }
+
+    @Test
     fun seatTimersCreditTurnTimeAndPauseStopsTheClock() {
         val s = engine.newSession(2, 20, options = turns)
         assertTrue(s.timing.isRunning)

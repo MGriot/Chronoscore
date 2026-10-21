@@ -21,6 +21,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.chronoscore.model.CounterTarget
 import io.chronoscore.model.GameSession
 import io.chronoscore.ui.formatDateTime
 import io.chronoscore.ui.theme.ChronoIcons
@@ -59,8 +60,11 @@ fun HistoryDialog(
                     entries.asReversed().forEachIndexed { i, e ->
                         if (i > 0) Hairline()
                         val player = players[e.playerId]
-                        val counter = e.subCounterId
-                            ?.let { id -> player?.subCounters?.firstOrNull { it.id == id }?.name } ?: "Score"
+                        val counter = when (val t = e.target) {
+                            CounterTarget.Primary -> "Score"
+                            is CounterTarget.Sub -> player?.subCounters?.firstOrNull { it.id == t.subCounterId }?.name ?: "Counter"
+                            is CounterTarget.Commander -> "Cmdr · " + (players[t.fromPlayerId]?.name ?: "?")
+                        }
                         Row(
                             Modifier.fillMaxWidth().heightIn(min = 44.dp),
                             verticalAlignment = Alignment.CenterVertically,

@@ -26,6 +26,7 @@ fun PlayerGrid(
     highlightedPlayerId: String?,
     lastEntry: ScoreHistoryEntry?,
     callbacksFor: (Player) -> SeatCallbacks,
+    statusFor: (Player) -> SeatStatus,
     centerStrip: @Composable () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -46,6 +47,7 @@ fun PlayerGrid(
                             lastEntry = lastEntry?.takeIf { it.playerId == player.id && it.subCounterId == null },
                             callbacks = callbacksFor(player),
                             modifier = Modifier.weight(1f).fillMaxHeight(),
+                            status = statusFor(player),
                         )
                     }
                 }

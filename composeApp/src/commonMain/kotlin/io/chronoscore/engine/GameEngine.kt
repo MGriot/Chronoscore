@@ -151,7 +151,11 @@ class GameEngine(
             if (!session.options.turnTracking || session.player(action.playerId) == null) session
             else handOver(session, action.playerId)
 
-        is GameAction.SetConceded -> session.updatePlayer(action.playerId) { it.copy(conceded = action.conceded) }
+        is GameAction.SetConceded -> {
+            val updated = session.updatePlayer(action.playerId) { it.copy(conceded = action.conceded) }
+            // A seat that concedes on its own turn hands the turn on.
+            if (action.conceded && session.activePlayerId == action.playerId) passTurn(updated, forward = true) else updated
+        }
 
         is GameAction.SetProfile -> session.updatePlayer(action.playerId) { p ->
             val profile = action.profile

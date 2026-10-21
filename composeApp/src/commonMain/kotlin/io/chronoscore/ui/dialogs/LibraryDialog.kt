@@ -18,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -44,6 +45,13 @@ fun LibraryDialog(
     onOpen: (String) -> Unit,
     onDelete: (String) -> Unit,
     onDismiss: () -> Unit,
+    filesAvailable: Boolean = false,
+    onExportBackup: () -> Unit = {},
+    onImportBackup: () -> Unit = {},
+    onExportCsv: () -> Unit = {},
+    /** Result of the last export or import, shown under the buttons. */
+    notice: String? = null,
+    onStats: () -> Unit = {},
 ) {
     val c = ChronoTheme.colors
     var game by remember { mutableStateOf(current.gameName.orEmpty()) }
@@ -57,6 +65,20 @@ fun LibraryDialog(
             knownGames = games,
             label = "This match belongs to",
         )
+        Pill(
+            "Players & stats", Modifier.fillMaxWidth(),
+            leadingIcon = ChronoIcons.Person, trailingIcon = ChronoIcons.ArrowRight, textAlign = TextAlign.Start,
+            onClick = onStats,
+        )
+        if (filesAvailable) {
+            SectionLabel("Backup", Modifier.padding(top = 4.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Pill("Export all", Modifier.weight(1f), leadingIcon = ChronoIcons.Export, onClick = onExportBackup)
+                Pill("Import", Modifier.weight(1f), leadingIcon = ChronoIcons.Import, onClick = onImportBackup)
+            }
+            Pill("This match as CSV", Modifier.fillMaxWidth(), leadingIcon = ChronoIcons.Sheet, onClick = onExportCsv)
+            Note(notice ?: "Backups are a file you keep: every match, preset and saved player. Nothing is uploaded.")
+        }
 
         // Show the current match under its (possibly just edited) game.
         val rows = summaries.map { if (it.id == current.id) it.copy(gameName = game.trim().ifEmpty { null }) else it }

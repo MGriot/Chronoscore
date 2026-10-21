@@ -6,6 +6,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -31,8 +33,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.chronoscore.engine.GameAction
 import io.chronoscore.model.Accents
+import io.chronoscore.model.BuiltInPresets
+import io.chronoscore.model.GamePreset
 import io.chronoscore.model.GameSession
 import io.chronoscore.model.Limits
+import io.chronoscore.model.MatchOptions
 import io.chronoscore.ui.theme.ChronoIcons
 import io.chronoscore.ui.theme.ChronoShapes
 import io.chronoscore.ui.theme.ChronoTheme
@@ -44,6 +49,7 @@ import io.chronoscore.viewmodel.ThemeMode
 private val ScorePresets = listOf(20, 30, 40)
 
 /** Menu (UI kit · Menu & all seats): current game, saved matches, appearance, new game. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun MenuDialog(
     session: GameSession,
@@ -57,12 +63,23 @@ fun MenuDialog(
     onCountersAllSeats: () -> Unit,
     onOpenLibrary: () -> Unit,
     onDismiss: () -> Unit,
+    presets: List<GamePreset> = emptyList(),
+    onMatchOptions: () -> Unit = {},
+    onStats: () -> Unit = {},
+    onSavePreset: (GamePreset) -> Unit = {},
+    onDeletePreset: (String) -> Unit = {},
 ) {
     var playerCount by remember { mutableIntStateOf(session.players.size) }
     var startingScore by remember { mutableIntStateOf(session.startingScore) }
     var customScore by remember { mutableStateOf(if (session.startingScore in ScorePresets) "" else "${session.startingScore}") }
     var gameName by remember { mutableStateOf(session.gameName.orEmpty()) }
     var confirmReset by remember { mutableStateOf(false) }
+    var presetId by remember { mutableStateOf<String?>(null) }
+    // Null keeps each seat's current counters; a preset sets them for every seat.
+    var counters by remember { mutableStateOf<List<String>?>(null) }
+    var newOptions by remember { mutableStateOf(session.options) }
+    var showOptions by remember { mutableStateOf(false) }
+    var presetSaved by remember { mutableStateOf(false) }
 
     DialogFrame("Menu", onDismiss, maxWidth = 420.dp) {
         SectionLabel("Current game")
@@ -91,9 +108,19 @@ fun MenuDialog(
             }
         }
         Pill(
+            "Match options · ${session.options.summary()}", Modifier.fillMaxWidth(),
+            leadingIcon = ChronoIcons.Options, trailingIcon = ChronoIcons.ArrowRight, textAlign = TextAlign.Start,
+            onClick = onMatchOptions,
+        )
+        Pill(
             "Saved matches", Modifier.fillMaxWidth(),
             leadingIcon = ChronoIcons.Library, trailingIcon = ChronoIcons.ArrowRight, textAlign = TextAlign.Start,
             onClick = onOpenLibrary,
+        )
+        Pill(
+            "Players & stats", Modifier.fillMaxWidth(),
+            leadingIcon = ChronoIcons.Person, trailingIcon = ChronoIcons.ArrowRight, textAlign = TextAlign.Start,
+            onClick = onStats,
         )
 
         SectionLabel("Appearance", Modifier.padding(top = 8.dp))
@@ -110,6 +137,36 @@ fun MenuDialog(
         )
 
         SectionLabel("New game", Modifier.padding(top = 8.dp))
+        if (presets.isNotEmpty()) {
+            Text("Preset", style = ChronoTheme.type.body, color = ChronoTheme.colors.text)
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                presets.forEach { preset ->
+                    Pill(preset.name, selected = preset.id == presetId) {
+                        presetId = preset.id
+                        playerCount = preset.playerCount
+                        startingScore = preset.startingScore
+                        customScore = if (preset.startingScore in ScorePresets) "" else "${preset.startingScore}"
+                        gameName = preset.gameName.orEmpty()
+                        counters = preset.counters
+                        newOptions = preset.options
+                        presetSaved = false
+                    }
+                }
+            }
+            presets.firstOrNull { it.id == presetId }?.let { preset ->
+                Note(
+                    "${preset.playerCount} players · start ${preset.startingScore}" +
+                        (if (preset.counters.isEmpty()) "" else " · " + preset.counters.joinToString(", ")) +
+                        " · " + preset.options.summary(),
+                )
+                if (!BuiltInPresets.isBuiltIn(preset)) {
+                    Pill("Delete this preset", Modifier.fillMaxWidth()) {
+                        onDeletePreset(preset.id)
+                        presetId = null
+                    }
+                }
+            }
+        }
         GamePicker(gameName, { gameName = it }, knownGames)
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("Players", style = ChronoTheme.type.body, color = ChronoTheme.colors.text, modifier = Modifier.weight(1f))
@@ -135,9 +192,29 @@ fun MenuDialog(
             keyboardType = KeyboardType.Number,
             showCounter = false,
         )
-        Pill("Start new game", Modifier.fillMaxWidth()) {
-            dispatch(GameAction.NewGame(playerCount, startingScore, gameName.ifBlank { null }))
+        Pill(
+            "Options · ${newOptions.summary()}", Modifier.fillMaxWidth(),
+            leadingIcon = ChronoIcons.Options, trailingIcon = if (showOptions) ChronoIcons.Minus else ChronoIcons.Plus,
+            textAlign = TextAlign.Start,
+        ) { showOptions = !showOptions }
+        if (showOptions) OptionsEditor(newOptions) { newOptions = it; presetSaved = false }
+        Pill("Start new game", Modifier.fillMaxWidth(), style = PillStyle.PRIMARY) {
+            dispatch(GameAction.NewGame(playerCount, startingScore, gameName.ifBlank { null }, counters, newOptions))
             onDismiss()
+        }
+        Pill(if (presetSaved) "Saved as a preset" else "Save as preset", Modifier.fillMaxWidth(), enabled = !presetSaved) {
+            onSavePreset(
+                GamePreset(
+                    id = "",
+                    name = gameName.trim().ifEmpty { "My preset" },
+                    gameName = gameName.trim().ifEmpty { null },
+                    playerCount = playerCount,
+                    startingScore = startingScore,
+                    counters = counters ?: session.players.first().subCounters.map { it.name },
+                    options = newOptions,
+                ),
+            )
+            presetSaved = true
         }
         Note("The current match stays in Saved matches, so you can continue it later.")
     }
