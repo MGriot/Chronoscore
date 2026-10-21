@@ -1,0 +1,123 @@
+-- Columns added by migrations are declared last so SELECT * matches migrated databases.
+
+CREATE TABLE session (
+    id TEXT NOT NULL PRIMARY KEY,
+    title TEXT NOT NULL,
+    starting_score INTEGER NOT NULL,
+    round INTEGER NOT NULL,
+    timestamp INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    game_name TEXT
+);
+
+CREATE TABLE player (
+    id TEXT NOT NULL,
+    session_id TEXT NOT NULL REFERENCES session(id) ON DELETE CASCADE,
+    seat_index INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    color_hex TEXT NOT NULL,
+    primary_score INTEGER NOT NULL,
+    is_flipped INTEGER NOT NULL,
+    PRIMARY KEY (session_id, id)
+);
+
+CREATE TABLE sub_counter (
+    id TEXT NOT NULL,
+    session_id TEXT NOT NULL REFERENCES session(id) ON DELETE CASCADE,
+    player_id TEXT NOT NULL,
+    position INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    counter_value INTEGER NOT NULL,
+    PRIMARY KEY (session_id, player_id, id)
+);
+
+CREATE TABLE history_entry (
+    id TEXT NOT NULL,
+    session_id TEXT NOT NULL REFERENCES session(id) ON DELETE CASCADE,
+    position INTEGER NOT NULL,
+    timestamp INTEGER NOT NULL,
+    round INTEGER NOT NULL,
+    player_id TEXT NOT NULL,
+    sub_counter_id TEXT,
+    delta INTEGER NOT NULL,
+    resulting_value INTEGER NOT NULL,
+    batch_id TEXT,
+    PRIMARY KEY (session_id, id)
+);
+
+CREATE INDEX history_entry_session ON history_entry(session_id, position);
+
+CREATE TABLE setting (
+    key TEXT NOT NULL PRIMARY KEY,
+    value TEXT NOT NULL
+);
+
+upsertSession:
+INSERT OR REPLACE INTO session(id, title, starting_score, round, timestamp, updated_at, game_name)
+VALUES (?, ?, ?, ?, ?, ?, ?);
+
+deleteSession:
+DELETE FROM session WHERE id = ?;
+
+deletePlayers:
+DELETE FROM player WHERE session_id = ?;
+
+deleteSubCounters:
+DELETE FROM sub_counter WHERE session_id = ?;
+
+deleteHistory:
+DELETE FROM history_entry WHERE session_id = ?;
+
+insertPlayer:
+INSERT INTO player(id, session_id, seat_index, name, color_hex, primary_score, is_flipped)
+VALUES (?, ?, ?, ?, ?, ?, ?);
+
+insertSubCounter:
+INSERT INTO sub_counter(id, session_id, player_id, position, name, counter_value)
+VALUES (?, ?, ?, ?, ?, ?);
+
+insertHistory:
+INSERT INTO history_entry(id, session_id, position, timestamp, round, player_id, sub_counter_id, delta, resulting_value, batch_id)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+latestSession:
+SELECT * FROM session ORDER BY updated_at DESC LIMIT 1;
+
+sessionById:
+SELECT * FROM session WHERE id = ?;
+
+sessionSummaries:
+SELECT
+    s.id,
+    s.title,
+    s.game_name,
+    s.round,
+    s.timestamp,
+    s.updated_at,
+    (SELECT COUNT(*) FROM history_entry h WHERE h.session_id = s.id) AS entry_count
+FROM session s
+ORDER BY s.updated_at DESC;
+
+playerNamesBySeat:
+SELECT session_id, name FROM player ORDER BY session_id, seat_index;
+
+playersFor:
+SELECT * FROM player WHERE session_id = ? ORDER BY seat_index;
+
+subCountersFor:
+SELECT * FROM sub_counter WHERE session_id = ? ORDER BY player_id, position;
+
+historyFor:
+SELECT * FROM history_entry WHERE session_id = ? ORDER BY position;
+
+countChildRows:
+SELECT
+  (SELECT COUNT(*) FROM player WHERE session_id = :id) +
+  (SELECT COUNT(*) FROM sub_counter WHERE session_id = :id) +
+  (SELECT COUNT(*) FROM history_entry WHERE session_id = :id);
+
+getSetting:
+SELECT value FROM setting WHERE key = ?;
+
+putSetting:
+INSERT OR REPLACE INTO setting(key, value) VALUES (?, ?);

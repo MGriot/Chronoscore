@@ -1,0 +1,9 @@
+-- v1 → v2: matches can belong to a game, bulk edits undo as one batch, persisted settings.
+ALTER TABLE session ADD COLUMN game_name TEXT;
+
+ALTER TABLE history_entry ADD COLUMN batch_id TEXT;
+
+CREATE TABLE setting (
+    key TEXT NOT NULL PRIMARY KEY,
+    value TEXT NOT NULL
+);
