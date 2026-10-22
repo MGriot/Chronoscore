@@ -18,11 +18,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.chronoscore.engine.sanitized
 import io.chronoscore.model.MatchOptions
+import io.chronoscore.model.TimeBonus
+import io.chronoscore.model.TimeControl
 import io.chronoscore.model.WinMode
+import io.chronoscore.ui.board.bonusLabel
 import io.chronoscore.ui.theme.ChronoTheme
 
 private val TurnLimits = listOf(null, 30, 60, 120, 300)
 private val TurnLimitLabels = listOf("Off", "30s", "1m", "2m", "5m")
+
+private val BankMinutes = listOf(1, 3, 5, 10, 15, 30, 60)
+private val BonusSeconds = listOf(2, 5, 10, 30)
 
 /** Match options for the match on the table; every change applies immediately. */
 @Composable
@@ -59,6 +65,8 @@ fun OptionsEditor(options: MatchOptions, onChange: (MatchOptions) -> Unit) {
         onSelect = { if (options.turnTracking) set(options.copy(turnLimitSeconds = TurnLimits[it])) },
     )
     if (!options.turnTracking) Note("Seat timers and the turn limit need the turn tracker.")
+
+    TimerModeEditor(options, set)
 
     SectionLabel("Winning", Modifier.padding(top = 8.dp))
     val rule = options.winRule
@@ -110,6 +118,7 @@ fun MatchOptions.summary(): String {
         if (matchClock) add("Clock")
         if (seatTimers) add("Seat timers")
         turnLimitSeconds?.let { add(if (it % 60 == 0) "${it / 60}m limit" else "${it}s limit") }
+        timeControl?.let { add("Clock " + formatBank(it.bankSeconds) + (it.bonusLabel()?.let { b -> " $b" } ?: "")) }
         when (winRule.mode) {
             WinMode.TARGET_SCORE -> add("Target ${winRule.target}" + if (winRule.lowestWins) " (low wins)" else "")
             WinMode.ELIMINATION -> add("Elimination")
@@ -120,6 +129,61 @@ fun MatchOptions.summary(): String {
     }
     return if (parts.isEmpty()) "Off" else parts.joinToString(" · ")
 }
+
+/**
+ * Timer mode: a chess clock for every seat. Turning it on also turns on the turn tracker,
+ * since the clock follows the active seat.
+ */
+@Composable
+private fun TimerModeEditor(options: MatchOptions, set: (MatchOptions) -> Unit) {
+    val control = options.timeControl
+    SwitchRow(
+        "Timer mode", "Each seat counts down its own time bank, like a chess clock. Tap your seat to end your turn.",
+        control != null,
+    ) { on -> set(options.copy(turnTracking = options.turnTracking || on, timeControl = if (on) TimeControl() else null)) }
+    if (control == null) return
+    val update = { t: TimeControl -> set(options.copy(timeControl = t)) }
+
+    Text("Time per seat", style = ChronoTheme.type.body, color = ChronoTheme.colors.text)
+    Segmented(
+        options = BankMinutes.map { "${it}m" },
+        selectedIndex = BankMinutes.indexOf(control.bankSeconds / 60).coerceAtLeast(0),
+        onSelect = { update(control.copy(bankSeconds = BankMinutes[it] * 60)) },
+    )
+    Text("Bonus per turn", style = ChronoTheme.type.body, color = ChronoTheme.colors.text)
+    Segmented(
+        options = listOf("None", "Increment", "Delay"),
+        selectedIndex = control.bonus.ordinal,
+        onSelect = { i ->
+            val bonus = TimeBonus.entries[i]
+            update(control.copy(bonus = bonus, bonusSeconds = if (bonus == TimeBonus.NONE) 0 else control.bonusSeconds.takeIf { it > 0 } ?: 5))
+        },
+    )
+    if (control.bonus != TimeBonus.NONE) {
+        Segmented(
+            options = BonusSeconds.map { "${it}s" },
+            selectedIndex = BonusSeconds.indexOf(control.bonusSeconds).coerceAtLeast(0),
+            onSelect = { update(control.copy(bonusSeconds = BonusSeconds[it])) },
+        )
+    }
+    Text("When time runs out", style = ChronoTheme.type.body, color = ChronoTheme.colors.text)
+    Segmented(
+        options = listOf("Seat is out", "Overtime"),
+        selectedIndex = if (control.outOnTimeout) 0 else 1,
+        onSelect = { update(control.copy(outOnTimeout = it == 0)) },
+    )
+    Note(
+        when (control.bonus) {
+            TimeBonus.NONE -> "The clock starts paused; tap the first seat to start."
+            TimeBonus.INCREMENT -> "Each seat gains the bonus after every turn it finishes in time."
+            TimeBonus.DELAY -> "The first seconds of each turn are free; only time past the delay comes off the bank."
+        } + if (control.outOnTimeout) " A seat that runs out is out, and the last seat left wins."
+        else " A seat that runs out keeps playing, with its overtime shown in red.",
+    )
+}
+
+private fun formatBank(seconds: Int): String =
+    if (seconds % 60 == 0) "${seconds / 60}m" else "${seconds / 60}m${seconds % 60}s"
 
 /** Title and explanation on the left, a switch on the right. */
 @Composable

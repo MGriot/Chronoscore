@@ -18,6 +18,7 @@ TABLES = {
     "kit_table_neutral": "phone-neutral",
     "kit_table_colored": "phone-colored",
     "phone_8": "phone-8-players",
+    "feature_board_game_timer_phone": "phone-timer",
 }
 DIALOGS = ["keypad", "utilities", "log", "menu", "edit_all", "counters_all", "library", "editor"]
 

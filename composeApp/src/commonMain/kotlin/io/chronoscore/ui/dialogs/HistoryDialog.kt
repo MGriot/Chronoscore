@@ -38,8 +38,8 @@ fun HistoryDialog(
     onDismiss: () -> Unit,
 ) {
     val c = ChronoTheme.colors
-    DialogFrame("Match log · Round ${session.round}", onDismiss, maxWidth = 440.dp) {
-        Note("${session.gameName ?: "Match"} · started ${formatDateTime(session.timestamp)}")
+    DialogFrame("${session.gameName ?: "Match log"} · Round ${session.round}", onDismiss, maxWidth = 440.dp) {
+        Note((if (session.gameName == null) "No game set" else "Match log") + " · started ${formatDateTime(session.timestamp)}")
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Pill("Undo", Modifier.weight(1f), enabled = session.historyLog.isNotEmpty(), leadingIcon = ChronoIcons.Undo, onClick = onUndo)
             Pill("Next round →", Modifier.weight(1f), style = PillStyle.PRIMARY, onClick = onNextRound)

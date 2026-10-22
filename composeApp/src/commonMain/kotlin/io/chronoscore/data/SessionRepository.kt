@@ -41,9 +41,9 @@ class SessionRepository(
         queries.deleteSubCounters(id)
         queries.deletePlayers(id)
         session.players.forEach { p ->
-            val extras = PlayerExtras(p.timeMillis, p.conceded, p.profileId, p.commanderDamage)
+            val extras = PlayerExtras(p.timeMillis, p.conceded, p.profileId, p.commanderDamage, p.clockMillis, p.rotation)
             queries.insertPlayer(
-                p.id, id, p.seatIndex.toLong(), p.name, p.colorHex, p.primaryScore.toLong(), if (p.isFlipped) 1L else 0L,
+                p.id, id, p.seatIndex.toLong(), p.name, p.colorHex, p.primaryScore.toLong(), if (p.rotation == 180) 1L else 0L,
                 ChronoJson.encodeToString(PlayerExtras.serializer(), extras),
             )
             p.subCounters.forEachIndexed { pos, c ->
@@ -132,13 +132,14 @@ class SessionRepository(
                 name = p.name,
                 colorHex = p.color_hex,
                 primaryScore = p.primary_score.toInt(),
-                isFlipped = p.is_flipped != 0L,
+                rotation = extras.rotation ?: if (p.is_flipped != 0L) 180 else 0,
                 seatIndex = p.seat_index.toInt(),
                 subCounters = counters[p.id].orEmpty().map { SubCounter(it.id, it.name, it.counter_value.toInt()) },
                 timeMillis = extras.timeMillis,
                 conceded = extras.conceded,
                 profileId = extras.profileId,
                 commanderDamage = extras.commanderDamage,
+                clockMillis = extras.clockMillis,
             )
         }
         if (players.isEmpty()) return null

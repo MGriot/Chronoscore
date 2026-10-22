@@ -72,8 +72,11 @@ fun MenuDialog(
     var playerCount by remember { mutableIntStateOf(session.players.size) }
     var startingScore by remember { mutableIntStateOf(session.startingScore) }
     var customScore by remember { mutableStateOf(if (session.startingScore in ScorePresets) "" else "${session.startingScore}") }
+    var currentGame by remember { mutableStateOf(session.gameName.orEmpty()) }
+    var currentGameChanged by remember { mutableStateOf(false) }
     var gameName by remember { mutableStateOf(session.gameName.orEmpty()) }
     var confirmReset by remember { mutableStateOf(false) }
+    var confirmNewGame by remember { mutableStateOf(false) }
     var presetId by remember { mutableStateOf<String?>(null) }
     // Null keeps each seat's current counters; a preset sets them for every seat.
     var counters by remember { mutableStateOf<List<String>?>(null) }
@@ -83,6 +86,24 @@ fun MenuDialog(
 
     DialogFrame("Menu", onDismiss, maxWidth = 420.dp) {
         SectionLabel("Current game")
+        // Applies to the match on the table right away; the New game section below is separate.
+        GamePicker(
+            value = currentGame,
+            onValueChange = {
+                currentGame = it
+                currentGameChanged = true
+                dispatch(GameAction.SetGameName(it.ifBlank { null }))
+            },
+            knownGames = knownGames,
+            label = "This match's game",
+        )
+        if (currentGameChanged) {
+            val name = currentGame.trim()
+            Note(
+                if (name.isEmpty()) "Saved. This match is now filed under \"No game\"."
+                else "Saved. This match is now filed under \"$name\" in Saved matches.",
+            )
+        }
         Pill(
             "Edit all seats", Modifier.fillMaxWidth(), style = PillStyle.PRIMARY,
             leadingIcon = ChronoIcons.Grid, trailingIcon = ChronoIcons.ArrowRight, textAlign = TextAlign.Start,
@@ -167,7 +188,7 @@ fun MenuDialog(
                 }
             }
         }
-        GamePicker(gameName, { gameName = it }, knownGames)
+        GamePicker(gameName, { gameName = it; confirmNewGame = false }, knownGames, label = "Game for the new match (optional)")
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("Players", style = ChronoTheme.type.body, color = ChronoTheme.colors.text, modifier = Modifier.weight(1f))
             Stepper(
@@ -198,9 +219,15 @@ fun MenuDialog(
             textAlign = TextAlign.Start,
         ) { showOptions = !showOptions }
         if (showOptions) OptionsEditor(newOptions) { newOptions = it; presetSaved = false }
-        Pill("Start new game", Modifier.fillMaxWidth(), style = PillStyle.PRIMARY) {
-            dispatch(GameAction.NewGame(playerCount, startingScore, gameName.ifBlank { null }, counters, newOptions))
-            onDismiss()
+        // Two taps, like Reset: a new game clears the table (the current match stays saved).
+        Pill(
+            if (confirmNewGame) "Tap again to start" else "Start new game", Modifier.fillMaxWidth(),
+            style = PillStyle.PRIMARY,
+        ) {
+            if (confirmNewGame) {
+                dispatch(GameAction.NewGame(playerCount, startingScore, gameName.ifBlank { null }, counters, newOptions))
+                onDismiss()
+            } else confirmNewGame = true
         }
         Pill(if (presetSaved) "Saved as a preset" else "Save as preset", Modifier.fillMaxWidth(), enabled = !presetSaved) {
             onSavePreset(
@@ -216,7 +243,10 @@ fun MenuDialog(
             )
             presetSaved = true
         }
-        Note("The current match stays in Saved matches, so you can continue it later.")
+        Note(
+            "Starting a new game doesn't delete anything: the current match" +
+                (session.gameName?.let { " ($it)" } ?: "") + " stays in Saved matches, so you can continue it later.",
+        )
     }
 }
 

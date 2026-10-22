@@ -43,7 +43,21 @@ object BuiltInPresets {
             name = "Chess clock",
             playerCount = 2,
             startingScore = 0,
-            options = MatchOptions(turnTracking = true, matchClock = true, seatTimers = true),
+            options = MatchOptions(
+                turnTracking = true,
+                timeControl = TimeControl(bankSeconds = 10 * 60, bonus = TimeBonus.INCREMENT, bonusSeconds = 5),
+            ),
+        ),
+        GamePreset(
+            id = ID_PREFIX + "boardtimer",
+            name = "Board game timer",
+            playerCount = 4,
+            startingScore = 0,
+            options = MatchOptions(
+                turnTracking = true,
+                matchClock = true,
+                timeControl = TimeControl(bankSeconds = 20 * 60, bonus = TimeBonus.DELAY, bonusSeconds = 10, outOnTimeout = false),
+            ),
         ),
     )
 

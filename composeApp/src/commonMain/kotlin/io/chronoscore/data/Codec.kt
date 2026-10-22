@@ -1,6 +1,7 @@
 package io.chronoscore.data
 
 import io.chronoscore.engine.outcome
+import io.chronoscore.engine.normalizedRotation
 import io.chronoscore.engine.sanitized
 import io.chronoscore.model.Accents
 import io.chronoscore.model.CounterTarget
@@ -44,6 +45,9 @@ internal data class PlayerExtras(
     val conceded: Boolean = false,
     val profileId: String? = null,
     val commanderDamage: Map<String, Int> = emptyMap(),
+    val clockMillis: Long? = null,
+    /** Seat rotation in degrees; null in rows from before 1.2, which only had is_flipped. */
+    val rotation: Int? = null,
 )
 
 /** A full local backup: every saved match, preset and player profile. */
@@ -97,15 +101,19 @@ internal fun GameSession.sanitized(): GameSession? {
             primaryScore = p.primaryScore.clamp(),
             subCounters = p.subCounters.take(Limits.MAX_SUB_COUNTERS).map { it.copy(value = it.value.clamp()) },
             timeMillis = p.timeMillis.coerceAtLeast(0),
+            rotation = normalizedRotation(p.rotation),
         )
     }
     val ids = fixed.map { it.id }.toSet()
     if (ids.size != fixed.size) return null
+    val opts = options.sanitized()
+    // Timer mode needs a bank on every seat; without it the banks are meaningless.
+    val bank = opts.timeControl?.bankMillis
     return copy(
-        players = fixed,
+        players = fixed.map { it.copy(clockMillis = bank?.let { b -> it.clockMillis ?: b }) },
         historyLog = historyLog.filter { it.playerId in ids },
         round = round.coerceAtLeast(1),
-        options = options.sanitized(),
+        options = opts,
         activePlayerId = activePlayerId?.takeIf { it in ids },
         monarchId = monarchId?.takeIf { it in ids },
         initiativeId = initiativeId?.takeIf { it in ids },

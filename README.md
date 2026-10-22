@@ -21,9 +21,9 @@ Get the latest build from [**Releases**](https://github.com/MGriot/Chronoscore/r
 
 | Platform | File | Notes |
 | --- | --- | --- |
-| Android 7.0+ | `Chronoscore-1.1.0.apk` | Signed release build. Allow installs from your browser or file manager, then open the file. |
-| Windows x64 | `Chronoscore-1.1.0.exe` | Installer with its own Java runtime, so you don't need Java. Adds Chronoscore to the Start menu. |
-| Windows x64 (portable) | `Chronoscore-windows-x64-1.1.0.jar` | Needs Java 17+. Run it with `java -jar Chronoscore-windows-x64-1.1.0.jar`. |
+| Android 7.0+ | `Chronoscore-1.2.0.apk` | Signed release build. Allow installs from your browser or file manager, then open the file. |
+| Windows x64 | `Chronoscore-1.2.0.exe` | Installer with its own Java runtime, so you don't need Java. Adds Chronoscore to the Start menu. |
+| Windows x64 (portable) | `Chronoscore-windows-x64-1.2.0.jar` | Needs Java 17+. Run it with `java -jar Chronoscore-windows-x64-1.2.0.jar`. |
 
 To get a Linux build, build it from source (see below).
 
@@ -47,7 +47,7 @@ New in 1.1. Each of these is optional and set per match:
 - **Turn tracker:** an active seat with Previous / Next buttons. After the last seat the round advances.
 - **Timers:** a match clock, seat timers (chess-clock style) and an optional turn limit, with pause and resume.
 - **Win rules:** first to a target score (highest or lowest wins) or elimination. Dimmed seats are out, a banner names the winner, and Undo revives.
-- **Presets:** Commander, Magic 1v1, Hearts, Race to 10 and Chess clock, plus your own.
+- **Presets:** Commander, Magic 1v1, Hearts, Race to 10, Chess clock and Board game timer, plus your own.
 - **Round sheet:** a scorepad of points per round with totals.
 - **Magic: The Gathering extras:** per-opponent commander damage, Monarch, Initiative and Day/Night.
 - **Players & stats:** saved players and their wins, win rate, averages and time on turns.
@@ -55,6 +55,12 @@ New in 1.1. Each of these is optional and set per match:
 - **Fully air-gapped:**
   - The Android app has no `INTERNET` permission and turns off cloud backup.
   - Data lives only in a local SQLite database.
+
+New in 1.2:
+
+- **Timer mode:** a chess clock for 1–8 seats. Each seat counts down its own bank, with an optional Fischer increment or delay. A seat that runs out is either out or plays on in overtime. Tap your tile to end your turn.
+- **Seats turn in 30° steps**, so a seat can face a player at any side or corner of the table.
+- **Game name on the table:** name the current match from the menu. It shows on the hub and in the match log, with a confirmation. Starting a new game asks for a second tap and keeps the old match in Saved matches.
 
 See the **[illustrated HTML guide](docs/guide/index.html)** (open it in a browser) or the **[User guide](docs/USER_GUIDE.md)** for a walkthrough with screenshots.
 

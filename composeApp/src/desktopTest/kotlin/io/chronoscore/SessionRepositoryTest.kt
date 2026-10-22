@@ -13,6 +13,8 @@ import io.chronoscore.model.DayNight
 import io.chronoscore.model.GamePreset
 import io.chronoscore.model.MatchOptions
 import io.chronoscore.model.Profile
+import io.chronoscore.model.TimeBonus
+import io.chronoscore.model.TimeControl
 import io.chronoscore.model.WinMode
 import io.chronoscore.model.WinRule
 import io.chronoscore.viewmodel.GameViewModel
@@ -50,7 +52,8 @@ class SessionRepositoryTest {
         listOf(
             GameAction.Adjust(p, CounterTarget.Primary, -7),
             GameAction.Adjust(p, CounterTarget.Sub(sub), 2),
-            GameAction.ToggleFlip(s.players[0].id),
+            GameAction.RotateSeat(s.players[0].id, 180),
+            GameAction.RotateSeat(s.players[1].id, 30),
             GameAction.NextRound,
             GameAction.SetValue(s.players[2].id, CounterTarget.Primary, 12),
             GameAction.BulkEdit(s.players.map { it.id }, null, BulkMode.ADD, 1),
@@ -185,6 +188,20 @@ class SessionRepositoryTest {
     }
 
     @Test
+    fun timerModeRoundTrips() {
+        val options = MatchOptions(
+            turnTracking = true,
+            timeControl = TimeControl(bankSeconds = 300, bonus = TimeBonus.DELAY, bonusSeconds = 5, outOnTimeout = false),
+        )
+        val s = engine.newSession(2, 0, options = options).let { s ->
+            listOf(GameAction.ToggleClock, GameAction.AdjustClock(s.players[1].id, -90_000), GameAction.NextTurn).fold(s, engine::reduce)
+        }
+        repo.save(s)
+        assertEquals(s, repo.load(s.id))
+        assertEquals(210_000L, repo.load(s.id)!!.players[1].clockMillis)
+    }
+
+    @Test
     fun presetsAndProfilesPersist() {
         val preset = GamePreset("p1", "Hearts", "Hearts", 4, 0, emptyList(), MatchOptions(sheetMode = true))
         repo.savePreset(preset)
@@ -240,7 +257,9 @@ class SessionRepositoryTest {
             }
         }
         SessionRepository(openDesktopDriver(file)).use { migrated ->
-            assertEquals(session, migrated.loadLatest())
+            // 1.0 only stored the 180° flip, so the seat turned 30° comes back upright.
+            val legacy = session.copy(players = session.players.map { if (it.rotation == 180) it else it.copy(rotation = 0) })
+            assertEquals(legacy, migrated.loadLatest())
             migrated.saveProfile(Profile("p", "Mara", "#2563EB"))
             assertEquals(1, migrated.profiles().size)
         }

@@ -78,11 +78,14 @@ fun TurnBar(
                         )
                         val turn = timing.liveTurnMillis(now)
                         val limit = o.turnLimitSeconds?.let { it * 1000L }
-                        // Turn time counts up, or down to the turn limit (negative once over).
-                        val detail = (if (narrow) "R" else "Round ") + session.round + if (o.usesClock) " · " + formatDuration(limit?.minus(turn) ?: turn) else ""
+                        // Timer mode shows the seat's bank; otherwise turn time counts up, or down
+                        // to the turn limit (negative once over).
+                        val shown = session.liveClockMillis(active, now) ?: limit?.minus(turn) ?: turn
+                        val over = if (o.timeControl != null) shown < 0 else limit != null && turn > limit
+                        val detail = (if (narrow) "R" else "Round ") + session.round + if (o.usesClock) " · " + formatDuration(shown) else ""
                         Text(
                             detail, style = ChronoTheme.type.counter.copy(fontSize = 12.sp, fontWeight = FontWeight.Medium),
-                            color = if (limit != null && turn > limit) c.negative else c.muted,
+                            color = if (over) c.negative else c.muted,
                             maxLines = 1, overflow = TextOverflow.Ellipsis,
                         )
                     }

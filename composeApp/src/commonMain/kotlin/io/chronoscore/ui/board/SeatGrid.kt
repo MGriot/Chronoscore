@@ -1,5 +1,7 @@
 package io.chronoscore.ui.board
 
+import io.chronoscore.model.Player
+
 /**
  * Row-major seat grid. When the seat count doesn't fill the last row, the remaining
  * seats in that row share its full width (e.g. 3 players in 2x2 → bottom seat spans).
@@ -13,6 +15,9 @@ data class SeatGrid(val rows: Int, val cols: Int, val count: Int) {
 
     /** Seats in the top half face the far side of the table, so they start rotated 180°. */
     fun defaultFlipped(seat: Int): Boolean = rows >= 2 && rowOf(seat) < rows / 2
+
+    /** On-screen angle of [player]'s card: its default facing plus the seat's own rotation. */
+    fun angleOf(seat: Int, player: Player): Int = ((if (defaultFlipped(seat)) 180 else 0) + player.rotation) % 360
 
     /** The control strip sits on the flip boundary, or below a single row. */
     val stripAfterRow: Int get() = if (rows >= 2) rows / 2 - 1 else rows - 1

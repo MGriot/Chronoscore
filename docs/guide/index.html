@@ -249,6 +249,7 @@
   <a href="#options">Turning options on</a>
   <a href="#turns">Turn tracker</a>
   <a href="#timers">Match clock and seat timers</a>
+  <a href="#timer-mode">Timer mode</a>
   <a href="#winning">Winning and elimination</a>
   <a href="#sheet">Round sheet</a>
   <a href="#mtg">Magic: The Gathering extras</a>
@@ -295,9 +296,9 @@
   <h2>Install</h2>
   <div class="table-wrap"><table>
     <tr><th>Platform</th><th>File</th><th>How</th></tr>
-    <tr><td>Android 7.0+</td><td><code>Chronoscore-1.1.0.apk</code></td><td>Allow installs from your browser or file manager, then open the file. Updating over 1.0 keeps all your matches.</td></tr>
-    <tr><td>Windows 10/11 (x64)</td><td><code>Chronoscore-1.1.0.exe</code></td><td>Run the installer. It includes its own Java runtime, so you don't need Java installed. Chronoscore appears in the Start menu.</td></tr>
-    <tr><td>Windows, portable</td><td><code>Chronoscore-windows-x64-1.1.0.jar</code></td><td>Needs Java 17+. Run <code>java -jar Chronoscore-windows-x64-1.1.0.jar</code>.</td></tr>
+    <tr><td>Android 7.0+</td><td><code>Chronoscore-1.2.0.apk</code></td><td>Allow installs from your browser or file manager, then open the file. Updating over 1.0 keeps all your matches.</td></tr>
+    <tr><td>Windows 10/11 (x64)</td><td><code>Chronoscore-1.2.0.exe</code></td><td>Run the installer. It includes its own Java runtime, so you don't need Java installed. Chronoscore appears in the Start menu.</td></tr>
+    <tr><td>Windows, portable</td><td><code>Chronoscore-windows-x64-1.2.0.jar</code></td><td>Needs Java 17+. Run <code>java -jar Chronoscore-windows-x64-1.2.0.jar</code>.</td></tr>
     <tr><td>Linux</td><td>build from source</td><td><code>./gradlew :composeApp:packageDeb</code> or <code>packageRpm</code> on the target machine.</td></tr>
   </table></div>
   <p>Your data is upgraded automatically the first time 1.1 starts. Nothing is lost, and 1.0 matches open with every new option off.</p>
@@ -323,7 +324,7 @@
   <p>Each player has a <strong>seat</strong>: a card with their name, their score and any counters. The grid adapts to how many players there are (1 to 8) and to portrait or landscape.</p>
   <ul>
     <li><strong>Seats in the top half are rotated 180°</strong> so they face the players sitting across from the device.</li>
-    <li>To turn a seat by hand, use its rotate button, or <em>Edit seat → Rotate 180°</em>.</li>
+    <li>To turn a seat by hand, tap its <kbd>⟲</kbd> rotate button. Each tap turns it <strong>30°</strong>, so a seat can face a player at a corner or along the side of the table. <em>Edit seat</em> also has <strong>−30° / +30°</strong> and <strong>Flip 180°</strong>. A tilted seat shrinks to stay inside its space.</li>
     <li>Header buttons: <kbd>#</kbd> keypad, <kbd>⟲</kbd> rotate and <kbd>✎</kbd> edit. On narrow phone seats only ✎ is shown; the rest is inside the seat editor.</li>
   </ul>
 </section>
@@ -402,7 +403,8 @@
     <div>
       <p>Tap a seat's name or <kbd>✎</kbd>. From here you can:</p>
       <ul>
-        <li>Rename the seat, set its score, or rotate it.</li>
+        <li>Rename the seat, set its score, or turn it (30° steps, or flip 180°).</li>
+        <li><strong>Clock −1 min / +1 min</strong> (timer mode): correct a clock, give a handicap, or bring back a seat that ran out by mistake.</li>
         <li><strong>Give turn</strong> makes it the active seat (turn tracker on).</li>
         <li><strong>Mark as out</strong> or <strong>Back in</strong>: concede, or undo a concession.</li>
         <li><strong>Monarch</strong> and <strong>Initiative</strong> (MTG extras on).</li>
@@ -465,7 +467,25 @@
     <li>When the turn passes, the outgoing seat's turn time is added to its seat timer and the turn time starts again at zero.</li>
     <li>Seat time is kept with the match, and the <a href="#stats">stats</a> show each player's total time on turns.</li>
   </ul>
-  <div class="note tip"><strong>Chess clock:</strong> the built-in <em>Chess clock</em> preset is 2 players with the turn tracker, the match clock and seat timers on. Tap Next when you finish your move.</div>
+  <div class="note tip">Seat timers count time <em>up</em>. For a real chess clock that counts down, see <a href="#timer-mode">Timer mode</a>.</div>
+</section>
+
+<section id="timer-mode">
+  <h2>Timer mode</h2>
+  <div class="split">
+    <div>
+      <p>A chess clock for 1–8 seats, for any game where each player has a fixed amount of thinking time: chess, Go, or board games where turns drag on. Turn on <em>Match options → Timer mode</em> and every seat becomes a large clock tile that counts down its own time bank.</p>
+      <ul>
+        <li><strong>Time per seat:</strong> 1, 3, 5, 10, 15, 30 or 60 minutes.</li>
+        <li><strong>Increment</strong> (Fischer): the seat gains 2, 5, 10 or 30 s after every turn it finishes in time.</li>
+        <li><strong>Delay:</strong> the first seconds of each turn are free, and only time past the delay comes off the bank.</li>
+        <li><strong>Seat is out</strong> when time runs out: the tile is dimmed with <em>OUT OF TIME</em> and skipped, and the last seat left wins. Or choose <strong>Overtime</strong>: the clock keeps going below zero in red, and nobody is knocked out.</li>
+      </ul>
+      <p>The clock starts paused. Tap the active tile (<em>TAP TO START</em>) to start it. After that, <strong>tapping your own tile ends your turn</strong>, like pressing a chess clock. Other tiles ignore taps, so a stray touch can't pass the turn. The tile turns red in the last 10 seconds, and ⏸ in the turn bar pauses everyone.</p>
+    </div>
+    <figure class="phone"><img src="../images/phone-timer.png" alt="Timer mode with eight seats"><figcaption>Board game timer, eight seats</figcaption></figure>
+  </div>
+  <div class="note tip"><strong>Presets:</strong> <em>Chess clock</em> is 2 players at 10 min +5 s, out on time. <em>Board game timer</em> is 4 players at 20 min with a 10 s delay and overtime.</div>
 </section>
 
 <section id="winning">
@@ -534,7 +554,8 @@
     <tr><td>Magic 1v1</td><td>2 players at 20, Poison counter, Elimination, MTG extras</td></tr>
     <tr><td>Hearts</td><td>4 players at 0, Round sheet, Target 100 with lowest wins</td></tr>
     <tr><td>Race to 10</td><td>4 players at 0, turn tracker, Target 10</td></tr>
-    <tr><td>Chess clock</td><td>2 players, turn tracker, match clock and seat timers</td></tr>
+    <tr><td>Chess clock</td><td>2 players, timer mode: 10 min each, +5 s increment, out on time</td></tr>
+    <tr><td>Board game timer</td><td>4 players, timer mode: 20 min each, 10 s delay, overtime; match clock</td></tr>
   </table></div>
   <ul>
     <li><strong>Save as preset</strong> (under the New game form) stores your current setup under its game name.</li>
@@ -583,8 +604,8 @@
         <li>Matches are <strong>grouped by game</strong>, most recently played first.</li>
         <li><strong>Continue</strong> brings a match back exactly as you left it.</li>
         <li>🗑 deletes a match. Tap a second time to confirm.</li>
-        <li><strong>This match belongs to</strong> files the current match under a game.</li>
-        <li>Starting a new game never loses the current one; it stays here.</li>
+        <li><strong>This match belongs to</strong> (here, or <em>This match's game</em> in the menu) files the current match under a game. The name is saved right away and shows on the hub and in the match log.</li>
+        <li>Starting a new game never loses the current one; it stays here. <em>Start new game</em> asks for a second tap.</li>
       </ul>
     </div>
     <figure class="dialog"><img src="../images/dialog-library.png" alt="Saved matches with backup buttons"></figure>

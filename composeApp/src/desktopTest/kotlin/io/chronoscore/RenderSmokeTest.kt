@@ -165,6 +165,25 @@ class RenderSmokeTest {
         }
         ImageComposeScene(420, 880, Density(1.5f)) { App(hearts) }.use { it.snapshot("feature_sheet_phone") }
         ImageComposeScene(1280, 800, Density(1.5f)) { App(hearts) }.use { it.snapshot("feature_sheet_desktop") }
+        // Timer mode: a two-seat chess clock and an eight-seat board game timer.
+        listOf("Chess clock" to 2, "Board game timer" to 8).forEach { (name, seats) ->
+            val timer = GameViewModel(null, Dispatchers.Unconfined, GameEngine()).also { t ->
+                val preset = BuiltInPresets.all.first { it.name == name }
+                t.dispatch(GameAction.NewGame(seats, 0, null, preset.counters, preset.options))
+                t.dispatch(GameAction.AdjustClock(t.session.value.players[1].id, -95_000))
+                t.dispatch(GameAction.NextTurn)
+            }
+            val tag = name.lowercase().replace(' ', '_')
+            ImageComposeScene(420, 880, Density(1.5f)) { App(timer) }.use { it.snapshot("feature_${tag}_phone") }
+            ImageComposeScene(1280, 800, Density(1.5f)) { App(timer) }.use { it.snapshot("feature_${tag}_desktop") }
+        }
+
+        // Seats turned in 30° steps still fit their cells.
+        val angled = GameViewModel(null, Dispatchers.Unconfined, GameEngine()).also { a ->
+            a.dispatch(GameAction.NewGame(4, 20))
+            a.session.value.players.forEachIndexed { i, p -> a.dispatch(GameAction.RotateSeat(p.id, 30 * (i + 1))) }
+        }
+        ImageComposeScene(420, 880, Density(1.5f)) { App(angled) }.use { it.snapshot("feature_rotation_phone") }
     }
 
     @Test

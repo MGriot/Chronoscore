@@ -44,10 +44,11 @@ data class Player(
     val colorHex: String,
     val primaryScore: Int = 20,
     /**
-     * Rotates the seat 180° relative to its default orientation. Seats in the top half of
-     * the grid already face the far side of the table; toggling this turns them back.
+     * Degrees (0–330, in steps of [Limits.ROTATION_STEP]) the seat is turned from its default
+     * orientation. Seats in the top half of the grid already face the far side of the table;
+     * 180 turns them back.
      */
-    val isFlipped: Boolean = false,
+    val rotation: Int = 0,
     val seatIndex: Int = 0,
     val subCounters: List<SubCounter> = emptyList(),
     /** Time this seat has spent as the active seat, excluding the turn in progress. */
@@ -58,6 +59,11 @@ data class Player(
     val profileId: String? = null,
     /** Commander damage taken, keyed by the dealing seat's player id (MTG extras). */
     val commanderDamage: Map<String, Int> = emptyMap(),
+    /**
+     * Timer mode: time left in this seat's bank, excluding the turn in progress (see
+     * [GameSession.liveClockMillis]); negative in overtime, null when timer mode is off.
+     */
+    val clockMillis: Long? = null,
 ) {
     fun valueOf(target: CounterTarget): Int? = when (target) {
         CounterTarget.Primary -> primaryScore
@@ -104,6 +110,31 @@ data class WinRule(
     val lowestWins: Boolean = false,
 )
 
+@Serializable
+enum class TimeBonus {
+    NONE,
+
+    /** Fischer: the seat gains [TimeControl.bonusSeconds] after each of its turns. */
+    INCREMENT,
+
+    /** Simple delay: the first [TimeControl.bonusSeconds] of each turn don't touch the bank. */
+    DELAY,
+}
+
+/** Timer mode: every seat counts down its own bank, like a chess clock for 1–8 seats. */
+@Serializable
+data class TimeControl(
+    val bankSeconds: Int = 600,
+    val bonus: TimeBonus = TimeBonus.NONE,
+    val bonusSeconds: Int = 0,
+    /** A seat whose bank runs out is out; otherwise its clock just runs into overtime. */
+    val outOnTimeout: Boolean = true,
+) {
+    val bankMillis: Long get() = bankSeconds * 1000L
+    val delayMillis: Long get() = if (bonus == TimeBonus.DELAY) bonusSeconds * 1000L else 0
+    val incrementMillis: Long get() = if (bonus == TimeBonus.INCREMENT) bonusSeconds * 1000L else 0
+}
+
 /** Optional features for one match. With every option off the table behaves like 1.0. */
 @Serializable
 data class MatchOptions(
@@ -120,8 +151,11 @@ data class MatchOptions(
     val sheetMode: Boolean = false,
     /** Commander damage, Monarch, Initiative and Day/Night. */
     val mtgExtras: Boolean = false,
+    /** Timer mode (needs [turnTracking]); null for none. */
+    val timeControl: TimeControl? = null,
 ) {
-    val usesClock: Boolean get() = matchClock || (turnTracking && (seatTimers || turnLimitSeconds != null))
+    val usesClock: Boolean
+        get() = matchClock || (turnTracking && (seatTimers || turnLimitSeconds != null || timeControl != null))
 }
 
 /**
@@ -168,6 +202,14 @@ data class GameSession(
     val dayNight: DayNight? = null,
 ) {
     fun player(id: String): Player? = players.firstOrNull { it.id == id }
+
+    /** Timer mode: [player]'s bank right now, counting the turn in progress; null when off. */
+    fun liveClockMillis(player: Player, now: Long): Long? {
+        val bank = player.clockMillis ?: return null
+        val control = options.timeControl ?: return bank
+        if (player.id != activePlayerId) return bank
+        return bank - (timing.liveTurnMillis(now) - control.delayMillis).coerceAtLeast(0)
+    }
 }
 
 /** A reusable match setup: seats, starting score, counters and options. */
@@ -199,6 +241,12 @@ object Limits {
     const val MAX_NAME_LENGTH = 20
     const val MAX_GAME_NAME_LENGTH = 32
     const val MAX_TURN_LIMIT_SECONDS = 99 * 60
+    const val MIN_BANK_SECONDS = 10
+    const val MAX_BANK_SECONDS = 10 * 3600
+    const val MAX_BONUS_SECONDS = 600
+
+    /** Seats turn in steps of this many degrees. */
+    const val ROTATION_STEP = 30
 
     /** MTG: commander damage from a single commander that knocks a player out. */
     const val COMMANDER_LETHAL = 21

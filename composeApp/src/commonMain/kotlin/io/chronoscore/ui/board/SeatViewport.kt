@@ -35,7 +35,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
@@ -67,7 +66,8 @@ import kotlinx.coroutines.delay
 class SeatCallbacks(
     val onAdjust: (CounterTarget, Int) -> Unit,
     val onOpenKeypad: (CounterTarget) -> Unit,
-    val onToggleFlip: () -> Unit,
+    /** Turns the seat one rotation step clockwise. */
+    val onRotate: () -> Unit,
     val onEdit: () -> Unit,
     val onOpenCommander: () -> Unit = {},
 )
@@ -86,13 +86,15 @@ data class SeatStatus(
     val timeLabel: String? = null,
     /** The active seat ran past the turn limit. */
     val overtime: Boolean = false,
+    /** Timer mode: time left in this seat's bank (negative in overtime); null when off. */
+    val clockMillis: Long? = null,
     /** MTG extras: highest commander damage taken from one commander; null when off. */
     val commanderDamage: Int? = null,
 )
 
 /** Colors inside one seat; the Colored style swaps the zinc card for the seat's accent. */
 @Immutable
-private data class SeatPalette(
+internal data class SeatPalette(
     val fill: Color,
     val text: Color,
     val muted: Color,
@@ -104,32 +106,15 @@ private data class SeatPalette(
     val tagText: Color,
 )
 
-private val SeatShape = RoundedCornerShape(10.dp)
-private val COMPACT_WIDTH = 220.dp
-private const val OUT_ALPHA = 0.45f
+internal val SeatShape = RoundedCornerShape(10.dp)
+internal val COMPACT_WIDTH = 220.dp
+internal const val OUT_ALPHA = 0.45f
 
-/** How long the running delta stays beside the name before folding into the log. */
-private const val DELTA_VISIBLE_MS = 1_500L
-
-/**
- * One player's viewport (UI kit · Seat viewport). Left half subtracts, right half adds; the
- * whole card turns 180° when [flipped]. [lastEntry] is the newest log entry if it belongs to
- * this seat's score — shown as a running delta beside the name until the pause ends.
- */
 @Composable
-fun SeatViewport(
-    player: Player,
-    flipped: Boolean,
-    highlighted: Boolean,
-    style: SeatStyle,
-    lastEntry: ScoreHistoryEntry?,
-    callbacks: SeatCallbacks,
-    modifier: Modifier = Modifier,
-    status: SeatStatus = SeatStatus(),
-) {
+internal fun seatPalette(player: Player, style: SeatStyle): SeatPalette {
     val accent = parseHex(player.colorHex)
     val c = ChronoTheme.colors
-    val p = if (style == SeatStyle.COLORED) {
+    return if (style == SeatStyle.COLORED) {
         SeatPalette(
             fill = seatFill(accent), text = Color.White, muted = Color.White.copy(alpha = 0.75f),
             outline = Color.White.copy(alpha = 0.35f), bar = Color.White, chipFill = Color.Black.copy(alpha = 0.12f),
@@ -141,14 +126,36 @@ fun SeatViewport(
             chipFill = Color.Transparent, ring = accent, tagFill = accent, tagText = Color.White,
         )
     }
+}
 
-    BoxWithConstraints(modifier) {
+/** How long the running delta stays beside the name before folding into the log. */
+private const val DELTA_VISIBLE_MS = 1_500L
+
+/**
+ * One player's viewport (UI kit · Seat viewport). Left half subtracts, right half adds; the
+ * whole card turns 180° when [flipped]. [lastEntry] is the newest log entry if it belongs to
+ * this seat's score — shown as a running delta beside the name until the pause ends.
+ * The card is turned by [angle] degrees and shrunk as needed to stay inside its cell.
+ */
+@Composable
+fun SeatViewport(
+    player: Player,
+    angle: Int,
+    highlighted: Boolean,
+    style: SeatStyle,
+    lastEntry: ScoreHistoryEntry?,
+    callbacks: SeatCallbacks,
+    modifier: Modifier = Modifier,
+    status: SeatStatus = SeatStatus(),
+) {
+    val p = seatPalette(player, style)
+
+    BoxWithConstraints(modifier.rotatedToFit(angle)) {
         val compact = maxWidth < COMPACT_WIDTH
         val ring = highlighted || status.active || status.winner
         Column(
             Modifier
                 .fillMaxSize()
-                .rotate(if (flipped) 180f else 0f)
                 .alpha(if (status.out) OUT_ALPHA else 1f)
                 .clip(SeatShape)
                 .background(p.fill)
@@ -171,8 +178,8 @@ fun SeatViewport(
                         contentAlignment = Alignment.CenterEnd,
                     ) { EdgeIcon(ChronoIcons.Plus, p.muted, compact) }
                 }
-                AutoSizeScore(
-                    player.primaryScore, p.text,
+                AutoSizeText(
+                    player.primaryScore.let { if (it < 0) "−${-it}" else it.toString() }, p.text,
                     Modifier.fillMaxSize().padding(horizontal = if (compact) 30.dp else 52.dp),
                 )
             }
@@ -214,7 +221,7 @@ private fun SeatHeader(
         }
         if (!compact) {
             HeaderIcon(ChronoIcons.Keypad, "Enter value", p.muted) { callbacks.onOpenKeypad(CounterTarget.Primary) }
-            HeaderIcon(ChronoIcons.Rotate, "Rotate 180°", p.muted, callbacks.onToggleFlip)
+            HeaderIcon(ChronoIcons.Rotate, "Rotate ${Limits.ROTATION_STEP}°", p.muted, callbacks.onRotate)
         }
         HeaderIcon(ChronoIcons.Edit, "Edit seat", p.muted, callbacks.onEdit)
     }
@@ -234,7 +241,7 @@ private val SeatStatus.hasTags: Boolean
     get() = winner || out || active || monarch || initiative || timeLabel != null
 
 @Composable
-private fun StatusTags(status: SeatStatus, p: SeatPalette, compact: Boolean) {
+internal fun StatusTags(status: SeatStatus, p: SeatPalette, compact: Boolean) {
     if (status.winner) SeatTag(if (compact) "WIN" else "WINNER", p)
     if (status.out) SeatTag("OUT", p, filled = false)
     if (status.active && !status.winner) SeatTag("TURN", p)
@@ -244,7 +251,7 @@ private fun StatusTags(status: SeatStatus, p: SeatPalette, compact: Boolean) {
 }
 
 @Composable
-private fun SeatTag(text: String, p: SeatPalette, filled: Boolean = true) {
+internal fun SeatTag(text: String, p: SeatPalette, filled: Boolean = true) {
     Spacer(Modifier.width(6.dp))
     Text(
         text,
@@ -314,10 +321,10 @@ private fun CounterRow(player: Player, p: SeatPalette, compact: Boolean, status:
     }
 }
 
+/** Display-size figures that fill the box: a score, or a clock in timer mode. */
 @Composable
-private fun AutoSizeScore(score: Int, color: Color, modifier: Modifier) {
+internal fun AutoSizeText(text: String, color: Color, modifier: Modifier) {
     BoxWithConstraints(modifier, contentAlignment = Alignment.Center) {
-        val text = if (score < 0) "−${-score}" else score.toString()
         // Inter Tight Bold figures run ~0.62em wide at display sizes; keep a little headroom.
         val byWidth: Dp = maxWidth / (text.length.coerceAtLeast(2) * 0.68f)
         val byHeight: Dp = maxHeight * 0.78f
@@ -339,7 +346,7 @@ private fun EdgeIcon(icon: ImageVector, tint: Color, compact: Boolean) {
 }
 
 @Composable
-private fun HeaderIcon(icon: ImageVector, description: String, tint: Color, onClick: () -> Unit) {
+internal fun HeaderIcon(icon: ImageVector, description: String, tint: Color, onClick: () -> Unit) {
     Box(
         Modifier.size(MinTouch).clip(ChronoShapes.control).clickable(onClickLabel = description, onClick = onClick),
         contentAlignment = Alignment.Center,

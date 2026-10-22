@@ -246,7 +246,10 @@ class GameEngineTest {
     @Test
     fun flipToggles() {
         val s = engine.newSession(2)
-        assertTrue(s.apply(GameAction.ToggleFlip(s.p0.id)).p0.isFlipped)
-        assertEquals(false, s.apply(GameAction.ToggleFlip(s.p0.id), GameAction.ToggleFlip(s.p0.id)).p0.isFlipped)
+        assertEquals(30, s.apply(GameAction.RotateSeat(s.p0.id, 30)).p0.rotation)
+        assertEquals(330, s.apply(GameAction.RotateSeat(s.p0.id, -30)).p0.rotation)
+        assertEquals(0, s.apply(GameAction.RotateSeat(s.p0.id, 180), GameAction.RotateSeat(s.p0.id, 180)).p0.rotation)
+        // Odd angles snap to the nearest step.
+        assertEquals(60, s.apply(GameAction.RotateSeat(s.p0.id, 50)).p0.rotation)
     }
 }

@@ -8,6 +8,7 @@ import io.chronoscore.model.MatchOptions
 import io.chronoscore.model.Player
 import io.chronoscore.model.ScoreHistoryEntry
 import io.chronoscore.model.SubCounter
+import io.chronoscore.model.TimeBonus
 import io.chronoscore.model.Timing
 import io.chronoscore.model.storedId
 import kotlin.time.Clock
@@ -46,7 +47,7 @@ class GameEngine(
         val now = clock()
         val layout = counters.cleanCounterNames()
         val players = List(count) { seat ->
-            newPlayer(seat, score).copy(subCounters = layout.map { SubCounter(newId(), it) })
+            newPlayer(seat, score, opts).copy(subCounters = layout.map { SubCounter(newId(), it) })
         }
         return GameSession(
             id = newId(),
@@ -57,7 +58,7 @@ class GameEngine(
             gameName = game,
             options = opts,
             activePlayerId = if (opts.turnTracking) players.first().id else null,
-            timing = Timing(runningSince = if (opts.usesClock) now else null),
+            timing = freshTiming(opts, now),
         )
     }
 
@@ -95,7 +96,7 @@ class GameEngine(
             })
         }
 
-        is GameAction.ToggleFlip -> session.updatePlayer(action.playerId) { it.copy(isFlipped = !it.isFlipped) }
+        is GameAction.RotateSeat -> session.updatePlayer(action.playerId) { it.copy(rotation = normalizedRotation(it.rotation + action.degrees)) }
         is GameAction.RenamePlayer -> session.updatePlayer(action.playerId) { it.copy(name = action.name.cleanName(it.name)) }
         is GameAction.SetColor -> session.updatePlayer(action.playerId) { it.copy(colorHex = action.colorHex) }
 
@@ -105,7 +106,7 @@ class GameEngine(
                 val seat = session.players.size
                 val used = session.players.map { it.colorHex }.toSet()
                 val color = Accents.all.firstOrNull { it !in used } ?: Accents.all[seat % Accents.all.size]
-                session.copy(players = session.players + newPlayer(seat, session.startingScore).copy(colorHex = color))
+                session.copy(players = session.players + newPlayer(seat, session.startingScore, session.options).copy(colorHex = color))
             }
         }
 
@@ -151,6 +152,12 @@ class GameEngine(
             if (!session.options.turnTracking || session.player(action.playerId) == null) session
             else handOver(session, action.playerId)
 
+        GameAction.TimeOut -> timeOut(session)
+
+        is GameAction.AdjustClock -> session.updatePlayer(action.playerId) { p ->
+            p.copy(clockMillis = p.clockMillis?.let { (it + action.deltaMillis).coerceIn(-MAX_CLOCK_MILLIS, MAX_CLOCK_MILLIS) })
+        }
+
         is GameAction.SetConceded -> {
             val updated = session.updatePlayer(action.playerId) { it.copy(conceded = action.conceded) }
             // A seat that concedes on its own turn hands the turn on.
@@ -189,12 +196,13 @@ class GameEngine(
                         timeMillis = 0,
                         conceded = false,
                         commanderDamage = emptyMap(),
+                        clockMillis = session.options.timeControl?.bankMillis,
                     )
                 },
                 historyLog = emptyList(),
                 round = 1,
                 activePlayerId = if (session.options.turnTracking) session.players.first().id else null,
-                timing = Timing(runningSince = if (session.options.usesClock) now else null),
+                timing = freshTiming(session.options, now),
                 monarchId = null,
                 initiativeId = null,
                 dayNight = null,
@@ -210,7 +218,7 @@ class GameEngine(
                 p.copy(
                     name = old.name,
                     colorHex = old.colorHex,
-                    isFlipped = old.isFlipped,
+                    rotation = old.rotation,
                     profileId = old.profileId,
                     subCounters = if (action.counters == null) old.subCounters.map { it.copy(value = 0) } else p.subCounters,
                 )
@@ -364,7 +372,27 @@ class GameEngine(
             !options.usesClock && s.timing.isRunning -> s.timing.settled(now).copy(runningSince = null)
             else -> s.timing
         }
-        return s.copy(options = options, timing = timing)
+        val control = options.timeControl
+        val players = when {
+            control == null -> s.players.map { it.copy(clockMillis = null) }
+            // A new or resized bank starts every seat over; bonus changes apply from the next turn.
+            control.bankSeconds != s.options.timeControl?.bankSeconds -> s.players.map { it.copy(clockMillis = control.bankMillis) }
+            else -> s.players
+        }
+        return s.copy(options = options, timing = timing, players = players)
+    }
+
+    /** Timer mode: knocks the active seat out once its bank is empty, if the match says so. */
+    private fun timeOut(session: GameSession): GameSession {
+        val control = session.options.timeControl ?: return session
+        val active = session.activePlayerId?.let(session::player) ?: return session
+        val now = clock()
+        val left = session.liveClockMillis(active, now) ?: return session
+        if (!control.outOnTimeout || left > 0) return session
+        val settled = creditTurn(session, session.timing.settled(now))
+        val flagged = settled.updatePlayer(active.id) { it.copy(clockMillis = 0) }
+        val passed = passTurn(flagged, forward = true, countRound = false)
+        return if (passed.outcome().finished) passed.copy(timing = passed.timing.settled(now).copy(runningSince = null)) else passed
     }
 
     /** Moves the turn one seat (skipping seats that are out) and rolls the round over at the ends. */
@@ -400,28 +428,50 @@ class GameEngine(
 
     private fun creditTurn(session: GameSession, settled: Timing): GameSession {
         val active = session.activePlayerId
+        val control = session.options.timeControl
+        val turn = settled.turnMillis
         val withTime = if (active == null) session
-        else session.updatePlayer(active) { it.copy(timeMillis = it.timeMillis + settled.turnMillis) }
+        else session.updatePlayer(active) { p ->
+            val bank = p.clockMillis
+            val left = if (control == null || bank == null) bank else {
+                val charged = bank - (turn - control.delayMillis).coerceAtLeast(0)
+                // The increment rewards finishing in time; a seat already out of time gets none.
+                if (charged > 0) charged + control.incrementMillis else charged
+            }
+            p.copy(timeMillis = p.timeMillis + turn, clockMillis = left)
+        }
         return withTime.copy(timing = settled.copy(turnMillis = 0))
     }
 
-    private fun newPlayer(seat: Int, score: Int) = Player(
+    private fun newPlayer(seat: Int, score: Int, options: MatchOptions) = Player(
         id = newId(),
         name = "Player ${seat + 1}",
         colorHex = Accents.all[seat % Accents.all.size],
         primaryScore = score,
         seatIndex = seat,
+        clockMillis = options.timeControl?.bankMillis,
     )
+
+    /** Timer mode starts paused, so the first tap on the clock starts the match. */
+    private fun freshTiming(options: MatchOptions, now: Long) =
+        Timing(runningSince = if (options.usesClock && options.timeControl == null) now else null)
 
     companion object {
         const val MAX_COMMANDER_DAMAGE = 99
+        private const val MAX_CLOCK_MILLIS = Limits.MAX_BANK_SECONDS * 1000L
     }
 }
 
-/** Seat timers and the turn limit only make sense with an active seat. */
+/** Seat timers, the turn limit and timer mode only make sense with an active seat. */
 fun MatchOptions.sanitized(): MatchOptions = copy(
     seatTimers = seatTimers && turnTracking,
     turnLimitSeconds = turnLimitSeconds?.takeIf { turnTracking }?.coerceIn(5, Limits.MAX_TURN_LIMIT_SECONDS),
+    timeControl = timeControl?.takeIf { turnTracking }?.let {
+        it.copy(
+            bankSeconds = it.bankSeconds.coerceIn(Limits.MIN_BANK_SECONDS, Limits.MAX_BANK_SECONDS),
+            bonusSeconds = if (it.bonus == TimeBonus.NONE) 0 else it.bonusSeconds.coerceIn(0, Limits.MAX_BONUS_SECONDS),
+        )
+    },
     winRule = winRule.copy(target = winRule.target.coerceIn(Limits.MIN_VALUE, Limits.MAX_VALUE)),
 )
 
@@ -443,6 +493,13 @@ private fun GameSession.withValue(playerId: String, target: CounterTarget, value
     }
 
 private fun Int.clampValue() = coerceIn(Limits.MIN_VALUE, Limits.MAX_VALUE)
+
+/** Snaps [degrees] to a rotation step in 0 until 360. */
+fun normalizedRotation(degrees: Int): Int {
+    val step = Limits.ROTATION_STEP
+    val snapped = kotlin.math.round(degrees.toDouble() / step).toInt() * step
+    return ((snapped % 360) + 360) % 360
+}
 
 private fun String.cleanName(fallback: String): String =
     trim().take(Limits.MAX_NAME_LENGTH).ifEmpty { fallback }

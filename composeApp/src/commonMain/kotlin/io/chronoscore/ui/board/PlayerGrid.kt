@@ -29,6 +29,8 @@ fun PlayerGrid(
     statusFor: (Player) -> SeatStatus,
     centerStrip: @Composable () -> Unit,
     modifier: Modifier = Modifier,
+    /** Timer mode: seats become clock tiles; null shows the usual score seats. */
+    clock: ClockTiles? = null,
 ) {
     Column(modifier.padding(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         grid.rowsOfSeats().forEachIndexed { rowIndex, seats ->
@@ -38,15 +40,26 @@ fun PlayerGrid(
             ) {
                 seats.forEach { seat ->
                     val player = players[seat]
+                    val angle = grid.angleOf(seat, player)
+                    val seatModifier = Modifier.weight(1f).fillMaxHeight()
                     key(player.id) {
-                        SeatViewport(
+                        if (clock != null) ClockTile(
                             player = player,
-                            flipped = grid.defaultFlipped(seat) != player.isFlipped,
+                            angle = angle,
+                            highlighted = player.id == highlightedPlayerId,
+                            style = style,
+                            status = statusFor(player),
+                            callbacks = callbacksFor(player),
+                            tiles = clock,
+                            modifier = seatModifier,
+                        ) else SeatViewport(
+                            player = player,
+                            angle = angle,
                             highlighted = player.id == highlightedPlayerId,
                             style = style,
                             lastEntry = lastEntry?.takeIf { it.playerId == player.id && it.subCounterId == null },
                             callbacks = callbacksFor(player),
-                            modifier = Modifier.weight(1f).fillMaxHeight(),
+                            modifier = seatModifier,
                             status = statusFor(player),
                         )
                     }

@@ -23,8 +23,9 @@ data class Outcome(
 
 fun GameSession.outcome(): Outcome {
     val rule = options.winRule
+    val timedOut = options.timeControl?.outOnTimeout == true
     val eliminated = players.filter { p ->
-        p.conceded || when (rule.mode) {
+        p.conceded || (timedOut && (p.clockMillis ?: 1) <= 0) || when (rule.mode) {
             WinMode.ELIMINATION -> p.primaryScore <= rule.target || (options.mtgExtras && p.isMtgDead())
             else -> false
         }

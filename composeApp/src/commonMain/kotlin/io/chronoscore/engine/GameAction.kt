@@ -14,7 +14,8 @@ sealed interface GameAction {
     data class RemoveSubCounter(val playerId: String, val subCounterId: String) : GameAction
     data class RenameSubCounter(val playerId: String, val subCounterId: String, val name: String) : GameAction
 
-    data class ToggleFlip(val playerId: String) : GameAction
+    /** Turns a seat by [degrees] (snapped to 30° steps; negative turns counter-clockwise). */
+    data class RotateSeat(val playerId: String, val degrees: Int) : GameAction
     data class RenamePlayer(val playerId: String, val name: String) : GameAction
     data class SetColor(val playerId: String, val colorHex: String) : GameAction
     data object AddPlayer : GameAction
@@ -50,6 +51,15 @@ sealed interface GameAction {
     data object PreviousTurn : GameAction
 
     data class SetActivePlayer(val playerId: String) : GameAction
+
+    /**
+     * Timer mode: the active seat's bank ran out. The engine checks the clock itself, so a
+     * late or repeated dispatch does nothing; with "out on time-out" the turn passes on.
+     */
+    data object TimeOut : GameAction
+
+    /** Timer mode: adds (or with a negative value takes) time from a seat's bank. */
+    data class AdjustClock(val playerId: String, val deltaMillis: Long) : GameAction
 
     /** Marks a seat out by hand, or back in. */
     data class SetConceded(val playerId: String, val conceded: Boolean) : GameAction

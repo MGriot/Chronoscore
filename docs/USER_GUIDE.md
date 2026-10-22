@@ -17,7 +17,7 @@ Each player has a **seat**, a card showing their name, their score and any count
 
 - **The left half subtracts and the right half adds.** Tap a half for ±1. Hold it to repeat, and after about a second it switches to steps of ±5.
 - While you count, the **running delta** (for example **−7**) shows next to the name. When you pause, it folds into the match log as one entry, so one undo reverts the whole press.
-- **Seats in the top half are rotated 180°** so they face the players sitting across from the device. To turn a seat by hand, use the rotate button (or *Edit seat → Rotate 180°*).
+- **Seats in the top half are rotated 180°** so they face the players sitting across from the device. To turn a seat by hand, tap its **⟲** rotate button. Each tap turns it 30°, so a seat can face a player at a corner or along the side of the table. *Edit seat* also has **−30° / +30°** and **Flip 180°**. A tilted seat shrinks to stay inside its space.
 - The header buttons are **#** (keypad), **⟲** (rotate) and **✎** (edit seat). On narrow phone seats only ✎ is shown. The other actions are inside the seat editor.
 
 The layout adapts to how many players there are and to the orientation. On a phone, up to 8 seats fit:
@@ -35,6 +35,8 @@ The pill between the two halves of the table holds the shared controls. When the
 | ▦ Edit all seats | Changes a score or counter on many seats at once |
 | ☰ Log | Opens the match log, organized by round |
 | ⚌ Menu (sliders) | Current game, match options, saved matches, appearance and new games |
+
+When the match has a game name, it shows at the left of the hub (for example **CATAN**). Tap it to open the menu.
 
 ## Match options
 
@@ -59,6 +61,25 @@ One seat is active: it gets a ring and a **TURN** tag, and the **turn bar** appe
 - **Seat timers:** each seat's own time on its turns, like a chess clock (needs the turn tracker).
 - **Turn limit:** a countdown per turn (30 s, 1, 2 or 5 min). Past the limit, the time turns rose and counts overtime.
 - **⏸ / ▶** in the turn bar pauses and resumes. The clock also pauses by itself when you leave the app or close the window.
+
+### Timer mode (chess clock for 1–8 seats)
+
+<img src="images/phone-timer.png" width="280" alt="Timer mode with eight seats">
+
+For any game where each player has a fixed amount of thinking time, such as chess, Go, or long board games where turns drag on. Turn on **Timer mode** and each seat becomes a large clock tile that counts down its own time bank.
+
+- **Time per seat:** 1, 3, 5, 10, 15, 30 or 60 minutes.
+- **Bonus per turn:**
+  - **None.**
+  - **Increment:** the seat gains 2, 5, 10 or 30 s after every turn it finishes in time (Fischer).
+  - **Delay:** the first seconds of each turn are free, and only time past the delay comes off the bank.
+- **When time runs out:**
+  - **Seat is out:** the seat is dimmed with *OUT OF TIME* and skipped from then on. The last seat left wins.
+  - **Overtime:** the clock keeps going below zero in red, and nobody is knocked out.
+
+The clock starts paused. Tap the active seat's tile (*TAP TO START*) to start it. After that, **tapping your own tile ends your turn** and starts the next seat's clock, just like pressing a chess clock. Other tiles ignore taps, so a stray touch can't pass the turn. The tile turns red in the last 10 seconds. ⏸ in the turn bar pauses everyone. **Edit seat → −1 min / +1 min** corrects a clock, gives a handicap, or brings back a seat that ran out by mistake. Scores are still in the seat editor (*Set score*).
+
+Timer mode turns the turn tracker on. Seats take turns in seat order, and the turn bar shows the active seat's remaining time.
 
 ### Winning and elimination
 
@@ -97,7 +118,8 @@ Pick a preset under **Menu → New game** to fill in players, starting score, co
 | Magic 1v1 | 2 at 20, Poison, Elimination, MTG extras |
 | Hearts | 4 at 0, Round sheet, Target 100, lowest wins |
 | Race to 10 | 4 at 0, turn tracker, Target 10 |
-| Chess clock | 2 players, turn tracker, match clock, seat timers |
+| Chess clock | 2 players, timer mode: 10 min each, +5 s increment, out on time |
+| Board game timer | 4 players, timer mode: 20 min each, 10 s delay, overtime; match clock |
 
 **Save as preset** stores your own setup. Select a saved preset to delete it.
 
@@ -187,6 +209,7 @@ Nothing is uploaded, and uninstalling the Android app deletes its data, so keep 
 The menu has three sections:
 
 - **Current game:**
+  - **This match's game:** names the game on the table (for example Catan). It's saved right away, shown on the hub and in the match log, and used to group the match in Saved matches. A note confirms where the match is filed.
   - Edit all seats and Counters on every seat.
   - Add seat, and Reset scores (tap it twice to confirm).
   - Match options, Saved matches, and Players & stats.
@@ -195,17 +218,18 @@ The menu has three sections:
   - **Theme:** System, Dark or Light.
 - **New game:**
   - A **preset**, or your own setup.
-  - An optional **game name**, so the match is filed under that game's history.
+  - An optional **game for the new match**. This only names the next match; to rename the current one, use *This match's game* above.
   - The number of players and a starting score (20, 30, 40 or a custom value).
   - **Options** for the new match, and **Save as preset**.
+  - **Start new game** asks for a second tap.
 
-  The match you leave stays in Saved matches.
+  Starting a new game clears the table but never deletes a match. The one you leave stays in Saved matches, so you can continue it.
 
 ## Editing a seat
 
 <img src="images/dialog-editor.png" width="320" alt="Edit seat">
 
-Tap a seat's name or **✎** to rename it, set its score, rotate it, change its color, manage its counters, or remove the seat (tap twice to confirm). Depending on the match options it also has **Give turn**, **Mark as out / Back in**, **Monarch**, **Initiative**, and **Saved player**.
+Tap a seat's name or **✎** to rename it, set its score, turn it (30° steps, or flip 180°), change its color, manage its counters, or remove the seat (tap twice to confirm). Depending on the match options it also has **Give turn**, **Mark as out / Back in**, **Clock −1 min / +1 min** (timer mode), **Monarch**, **Initiative**, and **Saved player**.
 
 ## Desktop
 

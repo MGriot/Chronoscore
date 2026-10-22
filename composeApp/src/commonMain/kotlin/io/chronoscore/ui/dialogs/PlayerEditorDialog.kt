@@ -32,10 +32,13 @@ import io.chronoscore.model.MatchOptions
 import io.chronoscore.model.Player
 import io.chronoscore.model.Profile
 import io.chronoscore.model.SubCounterPresets
+import io.chronoscore.ui.formatDuration
 import io.chronoscore.ui.theme.ChronoIcons
 import io.chronoscore.ui.theme.ChronoShapes
 import io.chronoscore.ui.theme.ChronoTheme
 import io.chronoscore.ui.theme.parseHex
+
+private const val CLOCK_STEP_MS = 60_000L
 
 /** Edit one seat: name, color, counters, direct entry, rotation, removal. */
 @OptIn(ExperimentalLayoutApi::class)
@@ -73,10 +76,18 @@ fun PlayerEditorDialog(
                 commitName()
                 onSetScore()
             }
-            Pill("Rotate 180°", Modifier.weight(1f), leadingIcon = ChronoIcons.Rotate) {
-                dispatch(GameAction.ToggleFlip(player.id))
+            Pill("Flip 180°", Modifier.weight(1f), leadingIcon = ChronoIcons.Rotate) {
+                dispatch(GameAction.RotateSeat(player.id, 180))
                 close()
             }
+        }
+        Row(
+            Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text("Angle ${player.rotation}°", style = ChronoTheme.type.body, color = c.text, modifier = Modifier.weight(1f))
+            Pill("−${Limits.ROTATION_STEP}°", Modifier.weight(1f)) { dispatch(GameAction.RotateSeat(player.id, -Limits.ROTATION_STEP)) }
+            Pill("+${Limits.ROTATION_STEP}°", Modifier.weight(1f)) { dispatch(GameAction.RotateSeat(player.id, Limits.ROTATION_STEP)) }
         }
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -90,6 +101,20 @@ fun PlayerEditorDialog(
                 if (player.conceded) "Back in" else "Mark as out", Modifier.weight(1f),
                 selected = player.conceded,
             ) { dispatch(GameAction.SetConceded(player.id, !player.conceded)) }
+        }
+        player.clockMillis?.let { bank ->
+            // Timer mode: penalties, handicaps, or reviving a seat that ran out by mistake.
+            Row(
+                Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    "Clock " + formatDuration(bank), style = ChronoTheme.type.counter.copy(fontSize = 15.sp),
+                    color = if (bank <= 0) c.negative else c.text, modifier = Modifier.weight(1f),
+                )
+                Pill("−1 min", Modifier.weight(1f)) { dispatch(GameAction.AdjustClock(player.id, -CLOCK_STEP_MS)) }
+                Pill("+1 min", Modifier.weight(1f)) { dispatch(GameAction.AdjustClock(player.id, CLOCK_STEP_MS)) }
+            }
         }
         if (options.mtgExtras) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
