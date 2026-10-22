@@ -244,7 +244,7 @@ class GameEngineTest {
     }
 
     @Test
-    fun flipToggles() {
+    fun rotationSnapsToSteps() {
         val s = engine.newSession(2)
         assertEquals(30, s.apply(GameAction.RotateSeat(s.p0.id, 30)).p0.rotation)
         assertEquals(330, s.apply(GameAction.RotateSeat(s.p0.id, -30)).p0.rotation)

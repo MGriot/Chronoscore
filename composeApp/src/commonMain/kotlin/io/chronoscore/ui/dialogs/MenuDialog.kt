@@ -37,7 +37,6 @@ import io.chronoscore.model.BuiltInPresets
 import io.chronoscore.model.GamePreset
 import io.chronoscore.model.GameSession
 import io.chronoscore.model.Limits
-import io.chronoscore.model.MatchOptions
 import io.chronoscore.ui.theme.ChronoIcons
 import io.chronoscore.ui.theme.ChronoShapes
 import io.chronoscore.ui.theme.ChronoTheme

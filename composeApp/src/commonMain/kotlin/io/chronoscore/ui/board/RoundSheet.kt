@@ -3,12 +3,10 @@ package io.chronoscore.ui.board
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -34,7 +32,6 @@ import io.chronoscore.engine.Outcome
 import io.chronoscore.model.GameSession
 import io.chronoscore.ui.dialogs.Pill
 import io.chronoscore.ui.dialogs.PillStyle
-import io.chronoscore.ui.theme.ChronoShapes
 import io.chronoscore.ui.theme.ChronoTheme
 import io.chronoscore.ui.theme.parseHex
 

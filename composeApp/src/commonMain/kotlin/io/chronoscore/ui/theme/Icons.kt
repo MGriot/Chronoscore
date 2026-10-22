@@ -38,7 +38,6 @@ object ChronoIcons {
     val ArrowRight = icon("ArrowRight", "M5 12h14", "M13 6l6 6-6 6")
     val Library = icon("Library", "M12 3a9 9 0 1 1 0 18a9 9 0 1 1 0-18z", "M12 7.5V12l3 2")
     val Trash = icon("Trash", "M4 7h16", "M10 11v6", "M14 11v6", "M6 7l1 13h10l1-13", "M9 7V4h6v3")
-    val Check = icon("Check", "M5 12.5l4.5 4.5L19 7.5")
     val ChevronLeft = icon("ChevronLeft", "M15 5l-7 7 7 7")
     val ChevronRight = icon("ChevronRight", "M9 5l7 7-7 7")
     val Play = icon("Play", "M8 5.5v13l10.5-6.5z")
