@@ -334,13 +334,12 @@ fun App(viewModel: GameViewModel, files: FileBridge = NoFileBridge) {
 private fun seatStatus(session: GameSession, outcome: Outcome, player: Player, now: Long): SeatStatus {
     val o = session.options
     val active = o.turnTracking && player.id == session.activePlayerId
-    val turn = if (active) session.timing.liveTurnMillis(now) else 0
-    val limit = o.turnLimitSeconds?.let { it * 1000L }
-    val clock = session.liveClockMillis(player, now)
+    val clock = session.turnClock(player, now)
+    // Seat timers show the seat's total time on turns; timer mode and the turn limit show the turn clock.
     val timeLabel = when {
-        clock != null -> formatDuration(clock)
-        o.seatTimers -> formatDuration(player.timeMillis + turn)
-        active && limit != null -> formatDuration(limit - turn)
+        o.timeControl == null && o.seatTimers ->
+            formatDuration(player.timeMillis + if (active) session.timing.liveTurnMillis(now) else 0)
+        o.timeControl != null || o.turnLimitSeconds != null -> clock?.let { formatDuration(it.millis) }
         else -> null
     }
     return SeatStatus(
@@ -350,8 +349,8 @@ private fun seatStatus(session: GameSession, outcome: Outcome, player: Player, n
         monarch = o.mtgExtras && session.monarchId == player.id,
         initiative = o.mtgExtras && session.initiativeId == player.id,
         timeLabel = timeLabel,
-        overtime = if (clock != null) clock < 0 else active && limit != null && turn > limit,
-        clockMillis = clock,
+        overtime = clock?.overtime == true,
+        clockMillis = session.liveClockMillis(player, now),
         commanderDamage = if (o.mtgExtras) player.commanderDamage.values.maxOrNull() ?: 0 else null,
     )
 }
@@ -403,7 +402,9 @@ private fun CenterHub(
     onMenu: () -> Unit,
 ) {
     val c = ChronoTheme.colors
-    Box(Modifier.fillMaxWidth().padding(vertical = 2.dp), contentAlignment = Alignment.Center) {
+    BoxWithConstraints(Modifier.fillMaxWidth().padding(vertical = 2.dp), contentAlignment = Alignment.Center) {
+        // The five buttons need ~250 dp; the name only joins them when it can't push one off.
+        val showName = gameName != null && maxWidth >= 400.dp
         Row(
             Modifier
                 .clip(ChronoShapes.hub)
@@ -414,9 +415,9 @@ private fun CenterHub(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             // The game this match is filed under, so a rename shows on the table.
-            if (gameName != null) {
+            if (showName) {
                 Text(
-                    gameName.uppercase(),
+                    gameName!!.uppercase(),
                     style = ChronoTheme.type.label.copy(fontSize = 11.sp, letterSpacing = 1.sp),
                     color = c.muted, maxLines = 1, overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.widthIn(max = 120.dp).padding(start = 8.dp, end = 4.dp).clickable(onClick = onMenu),

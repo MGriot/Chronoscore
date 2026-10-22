@@ -36,7 +36,7 @@ The pill between the two halves of the table holds the shared controls. When the
 | ☰ Log | Opens the match log, organized by round |
 | ⚌ Menu (sliders) | Current game, match options, saved matches, appearance and new games |
 
-When the match has a game name, it shows at the left of the hub (for example **CATAN**). Tap it to open the menu.
+When the match has a game name and the screen is wide enough (tablets, landscape, desktop), it shows at the left of the hub (for example **CATAN**). Tap it to open the menu. The name always shows in the menu and in the match log title.
 
 ## Match options
 
