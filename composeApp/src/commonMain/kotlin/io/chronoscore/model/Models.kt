@@ -177,7 +177,13 @@ data class Timing(
     fun settled(now: Long): Timing =
         if (runningSince == null) this
         else Timing(liveMatchMillis(now), liveTurnMillis(now), now)
+
+    /** Folds the running segment in and stops the clock. */
+    fun paused(now: Long): Timing = settled(now).copy(runningSince = null)
 }
+
+/** A turn clock reading: [millis] to show, and whether it is past its limit (shown in red). */
+data class TurnClock(val millis: Long, val overtime: Boolean)
 
 @Serializable
 enum class DayNight { DAY, NIGHT }
@@ -209,6 +215,19 @@ data class GameSession(
         val control = options.timeControl ?: return bank
         if (player.id != activePlayerId) return bank
         return bank - (timing.liveTurnMillis(now) - control.delayMillis).coerceAtLeast(0)
+    }
+
+    /**
+     * What [player]'s turn clock reads: the bank in timer mode, otherwise (on its turn only)
+     * the countdown to the turn limit, or the time on this turn. Null for an idle seat
+     * outside timer mode.
+     */
+    fun turnClock(player: Player, now: Long): TurnClock? {
+        liveClockMillis(player, now)?.let { return TurnClock(it, overtime = it < 0) }
+        if (!options.turnTracking || player.id != activePlayerId) return null
+        val turn = timing.liveTurnMillis(now)
+        val limit = options.turnLimitSeconds?.let { it * 1000L } ?: return TurnClock(turn, overtime = false)
+        return TurnClock(limit - turn, overtime = turn > limit)
     }
 }
 

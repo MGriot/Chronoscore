@@ -143,7 +143,7 @@ class GameEngine(
         GameAction.ToggleClock -> {
             val now = clock()
             val t = session.timing
-            session.copy(timing = if (t.isRunning) t.settled(now).copy(runningSince = null) else t.copy(runningSince = now))
+            session.copy(timing = if (t.isRunning) t.paused(now) else t.copy(runningSince = now))
         }
 
         GameAction.NextTurn -> passTurn(session, forward = true)
@@ -369,7 +369,7 @@ class GameEngine(
         }
         val timing = when {
             options.usesClock && !s.options.usesClock && !s.timing.isRunning -> s.timing.copy(runningSince = now)
-            !options.usesClock && s.timing.isRunning -> s.timing.settled(now).copy(runningSince = null)
+            !options.usesClock && s.timing.isRunning -> s.timing.paused(now)
             else -> s.timing
         }
         val control = options.timeControl
@@ -392,7 +392,7 @@ class GameEngine(
         val settled = creditTurn(session, session.timing.settled(now))
         val flagged = settled.updatePlayer(active.id) { it.copy(clockMillis = 0) }
         val passed = passTurn(flagged, forward = true, countRound = false)
-        return if (passed.outcome().finished) passed.copy(timing = passed.timing.settled(now).copy(runningSince = null)) else passed
+        return if (passed.outcome().finished) passed.copy(timing = passed.timing.paused(now)) else passed
     }
 
     /** Moves the turn one seat (skipping seats that are out) and rolls the round over at the ends. */
