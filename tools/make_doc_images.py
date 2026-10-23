@@ -20,7 +20,7 @@ TABLES = {
     "phone_8": "phone-8-players",
     "feature_board_game_timer_phone": "phone-timer",
 }
-DIALOGS = ["keypad", "utilities", "log", "menu", "edit_all", "counters_all", "library", "editor"]
+DIALOGS = ["start", "new_game", "keypad", "utilities", "log", "menu", "edit_all", "counters_all", "library", "editor"]
 
 
 def save(img: Image.Image, name: str, max_width: int):

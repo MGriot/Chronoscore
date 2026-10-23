@@ -6,6 +6,21 @@ For the full illustrated guide, open **[docs/guide/index.html](guide/index.html)
 
 Everything new in 1.1 (turns, timers, win rules, presets, round sheet, MTG extras, stats and backups) is an **optional per-match setting**. With all of it off, the table works exactly like 1.0.
 
+## Opening the app
+
+<p>
+  <img src="images/dialog-start.png" width="280" alt="Start screen: continue the last match, new game or saved matches">
+  <img src="images/dialog-new-game.png" width="280" alt="New game setup opened from the start screen">
+</p>
+
+When Chronoscore opens, it asks what to play before showing the table:
+
+- **Continue** (or tap the *Last match* card) puts your most recent match back on the table, with its game, players, round and when it was last played. Closing the screen does the same.
+- **New game** opens the new-game setup: a preset or your own players, starting score and options. See [Menu and new games](#menu-and-new-games).
+- **Saved matches** lists every match by game, so you can pick an older one to continue.
+
+Starting a new game never deletes the last match. It stays in Saved matches.
+
 ## The table
 
 <p>
@@ -223,6 +238,8 @@ The menu has three sections:
   - The number of players and a starting score (20, 30, 40 or a custom value).
   - **Options** for the new match, and **Save as preset**.
   - **Start new game** asks for a second tap.
+
+  The **New game** button on the start screen opens this same setup on its own.
 
   Starting a new game clears the table but never deletes a match. The one you leave stays in Saved matches, so you can continue it.
 

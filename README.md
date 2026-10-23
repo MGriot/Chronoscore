@@ -61,6 +61,12 @@ New in 1.2:
 - **Timer mode:** a chess clock for 1–8 seats. Each seat counts down its own bank, with an optional Fischer increment or delay. A seat that runs out is either out or plays on in overtime. Tap your tile to end your turn.
 - **Seats turn in 30° steps**, so a seat can face a player at any side or corner of the table.
 - **Game name on the table:** name the current match from the menu. It shows on the hub and in the match log, with a confirmation. Starting a new game asks for a second tap and keeps the old match in Saved matches.
+- **Delete a game** (1.2.1): remove every match filed under a game from Saved matches.
+- **Start screen** (1.2.2): when the app opens, choose to continue the last match, start a new game or pick one from Saved matches.
+
+<p align="center">
+  <img src="docs/images/dialog-start.png" width="300" alt="Start screen: continue, new game or saved matches">
+</p>
 
 See the **[illustrated HTML guide](docs/guide/index.html)** (open it in a browser) or the **[User guide](docs/USER_GUIDE.md)** for a walkthrough with screenshots.
 

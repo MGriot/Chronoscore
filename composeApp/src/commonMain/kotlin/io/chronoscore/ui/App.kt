@@ -58,6 +58,7 @@ import io.chronoscore.ui.dialogs.LibraryDialog
 import io.chronoscore.ui.dialogs.MenuDialog
 import io.chronoscore.ui.dialogs.OptionsDialog
 import io.chronoscore.ui.dialogs.PlayerEditorDialog
+import io.chronoscore.ui.dialogs.StartDialog
 import io.chronoscore.ui.dialogs.StatsDialog
 import io.chronoscore.ui.dialogs.UtilitiesDialog
 import io.chronoscore.ui.dialogs.knownGames
@@ -69,6 +70,8 @@ import io.chronoscore.viewmodel.GameViewModel
 
 private sealed interface OpenDialog {
     data object None : OpenDialog
+    data object Start : OpenDialog
+    data object NewGame : OpenDialog
     data object Utilities : OpenDialog
     data object History : OpenDialog
     data object Menu : OpenDialog
@@ -93,7 +96,9 @@ fun App(viewModel: GameViewModel, files: FileBridge = NoFileBridge) {
     val presets by viewModel.presets.collectAsState()
     val profiles by viewModel.profiles.collectAsState()
     val allSessions by viewModel.allSessions.collectAsState()
-    var dialog by remember { mutableStateOf<OpenDialog>(OpenDialog.None) }
+    var dialog by remember {
+        mutableStateOf(if (viewModel.consumeStartScreen()) OpenDialog.Start else OpenDialog.None)
+    }
     var libraryNotice by remember { mutableStateOf<String?>(null) }
     val dispatch = viewModel::dispatch
     val now = rememberNow(session.timing.isRunning)
@@ -106,7 +111,9 @@ fun App(viewModel: GameViewModel, files: FileBridge = NoFileBridge) {
 
     // The library list is refreshed whenever a dialog that shows saved games opens.
     LaunchedEffect(dialog) {
-        if (dialog == OpenDialog.Menu || dialog == OpenDialog.Library) viewModel.refreshLibrary()
+        if (dialog == OpenDialog.Start || dialog == OpenDialog.Menu || dialog == OpenDialog.NewGame || dialog == OpenDialog.Library) {
+            viewModel.refreshLibrary()
+        }
         if (dialog == OpenDialog.Stats) viewModel.refreshStats()
         if (dialog != OpenDialog.Library) libraryNotice = null
     }
@@ -175,6 +182,13 @@ fun App(viewModel: GameViewModel, files: FileBridge = NoFileBridge) {
         val dismiss = { dialog = OpenDialog.None }
         when (val d = dialog) {
             OpenDialog.None -> Unit
+            OpenDialog.Start -> StartDialog(
+                session = session,
+                summary = library.firstOrNull { it.id == session.id },
+                onContinue = dismiss,
+                onNewGame = { dialog = OpenDialog.NewGame },
+                onSavedMatches = { dialog = OpenDialog.Library },
+            )
             OpenDialog.Utilities -> UtilitiesDialog(
                 state = utility,
                 onRoll = viewModel::roll,
@@ -193,7 +207,7 @@ fun App(viewModel: GameViewModel, files: FileBridge = NoFileBridge) {
                 onOpenLibrary = { dialog = OpenDialog.Library },
                 onDismiss = dismiss,
             )
-            OpenDialog.Menu -> MenuDialog(
+            OpenDialog.Menu, OpenDialog.NewGame -> MenuDialog(
                 session = session,
                 themeMode = themeMode,
                 seatStyle = seatStyle,
@@ -210,6 +224,7 @@ fun App(viewModel: GameViewModel, files: FileBridge = NoFileBridge) {
                 onStats = { dialog = OpenDialog.Stats },
                 onSavePreset = viewModel::savePreset,
                 onDeletePreset = viewModel::deletePreset,
+                newGameOnly = d == OpenDialog.NewGame,
             )
             OpenDialog.Options -> OptionsDialog(
                 options = session.options,

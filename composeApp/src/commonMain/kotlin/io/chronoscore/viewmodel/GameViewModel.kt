@@ -86,6 +86,12 @@ class GameViewModel(
 
     private var highlightJob: Job? = null
 
+    // Lives here, not in the UI, so an Android rotation doesn't show the start screen again.
+    private var startPending = repository != null
+
+    /** True once per launch: the UI then asks whether to continue the last match or start another. */
+    fun consumeStartScreen(): Boolean = startPending.also { startPending = false }
+
     init {
         if (repository != null) {
             viewModelScope.launch {

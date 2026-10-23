@@ -67,6 +67,8 @@ fun MenuDialog(
     onStats: () -> Unit = {},
     onSavePreset: (GamePreset) -> Unit = {},
     onDeletePreset: (String) -> Unit = {},
+    /** Only the New game section, for the start screen. */
+    newGameOnly: Boolean = false,
 ) {
     var playerCount by remember { mutableIntStateOf(session.players.size) }
     var startingScore by remember { mutableIntStateOf(session.startingScore) }
@@ -83,80 +85,82 @@ fun MenuDialog(
     var showOptions by remember { mutableStateOf(false) }
     var presetSaved by remember { mutableStateOf(false) }
 
-    DialogFrame("Menu", onDismiss, maxWidth = 420.dp) {
-        SectionLabel("Current game")
-        // Applies to the match on the table right away; the New game section below is separate.
-        GamePicker(
-            value = currentGame,
-            onValueChange = {
-                currentGame = it
-                currentGameChanged = true
-                dispatch(GameAction.SetGameName(it.ifBlank { null }))
-            },
-            knownGames = knownGames,
-            label = "This match's game",
-        )
-        if (currentGameChanged) {
-            val name = currentGame.trim()
-            Note(
-                if (name.isEmpty()) "Saved. This match is now filed under \"No game\"."
-                else "Saved. This match is now filed under \"$name\" in Saved matches.",
+    DialogFrame(if (newGameOnly) "New game" else "Menu", onDismiss, maxWidth = 420.dp) {
+        if (!newGameOnly) {
+            SectionLabel("Current game")
+            // Applies to the match on the table right away; the New game section below is separate.
+            GamePicker(
+                value = currentGame,
+                onValueChange = {
+                    currentGame = it
+                    currentGameChanged = true
+                    dispatch(GameAction.SetGameName(it.ifBlank { null }))
+                },
+                knownGames = knownGames,
+                label = "This match's game",
             )
-        }
-        Pill(
-            "Edit all seats", Modifier.fillMaxWidth(), style = PillStyle.PRIMARY,
-            leadingIcon = ChronoIcons.Grid, trailingIcon = ChronoIcons.ArrowRight, textAlign = TextAlign.Start,
-            onClick = onEditAllSeats,
-        )
-        Pill(
-            "Counters on every seat", Modifier.fillMaxWidth(),
-            leadingIcon = ChronoIcons.Plus, trailingIcon = ChronoIcons.ArrowRight, textAlign = TextAlign.Start,
-            onClick = onCountersAllSeats,
-        )
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Pill("Add seat", Modifier.weight(1f), enabled = session.players.size < Limits.MAX_PLAYERS) {
-                dispatch(GameAction.AddPlayer)
+            if (currentGameChanged) {
+                val name = currentGame.trim()
+                Note(
+                    if (name.isEmpty()) "Saved. This match is now filed under \"No game\"."
+                    else "Saved. This match is now filed under \"$name\" in Saved matches.",
+                )
             }
             Pill(
-                if (confirmReset) "Tap to confirm" else "Reset scores", Modifier.weight(1f),
-                style = if (confirmReset) PillStyle.DESTRUCTIVE else PillStyle.SECONDARY,
-            ) {
-                if (confirmReset) {
-                    dispatch(GameAction.ResetScores)
-                    onDismiss()
-                } else confirmReset = true
+                "Edit all seats", Modifier.fillMaxWidth(), style = PillStyle.PRIMARY,
+                leadingIcon = ChronoIcons.Grid, trailingIcon = ChronoIcons.ArrowRight, textAlign = TextAlign.Start,
+                onClick = onEditAllSeats,
+            )
+            Pill(
+                "Counters on every seat", Modifier.fillMaxWidth(),
+                leadingIcon = ChronoIcons.Plus, trailingIcon = ChronoIcons.ArrowRight, textAlign = TextAlign.Start,
+                onClick = onCountersAllSeats,
+            )
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Pill("Add seat", Modifier.weight(1f), enabled = session.players.size < Limits.MAX_PLAYERS) {
+                    dispatch(GameAction.AddPlayer)
+                }
+                Pill(
+                    if (confirmReset) "Tap to confirm" else "Reset scores", Modifier.weight(1f),
+                    style = if (confirmReset) PillStyle.DESTRUCTIVE else PillStyle.SECONDARY,
+                ) {
+                    if (confirmReset) {
+                        dispatch(GameAction.ResetScores)
+                        onDismiss()
+                    } else confirmReset = true
+                }
             }
-        }
-        Pill(
-            "Match options · ${session.options.summary()}", Modifier.fillMaxWidth(),
-            leadingIcon = ChronoIcons.Options, trailingIcon = ChronoIcons.ArrowRight, textAlign = TextAlign.Start,
-            onClick = onMatchOptions,
-        )
-        Pill(
-            "Saved matches", Modifier.fillMaxWidth(),
-            leadingIcon = ChronoIcons.Library, trailingIcon = ChronoIcons.ArrowRight, textAlign = TextAlign.Start,
-            onClick = onOpenLibrary,
-        )
-        Pill(
-            "Players & stats", Modifier.fillMaxWidth(),
-            leadingIcon = ChronoIcons.Person, trailingIcon = ChronoIcons.ArrowRight, textAlign = TextAlign.Start,
-            onClick = onStats,
-        )
+            Pill(
+                "Match options · ${session.options.summary()}", Modifier.fillMaxWidth(),
+                leadingIcon = ChronoIcons.Options, trailingIcon = ChronoIcons.ArrowRight, textAlign = TextAlign.Start,
+                onClick = onMatchOptions,
+            )
+            Pill(
+                "Saved matches", Modifier.fillMaxWidth(),
+                leadingIcon = ChronoIcons.Library, trailingIcon = ChronoIcons.ArrowRight, textAlign = TextAlign.Start,
+                onClick = onOpenLibrary,
+            )
+            Pill(
+                "Players & stats", Modifier.fillMaxWidth(),
+                leadingIcon = ChronoIcons.Person, trailingIcon = ChronoIcons.ArrowRight, textAlign = TextAlign.Start,
+                onClick = onStats,
+            )
 
-        SectionLabel("Appearance", Modifier.padding(top = 8.dp))
-        Text("Seat style", style = ChronoTheme.type.body, color = ChronoTheme.colors.text)
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            SeatStylePreview(SeatStyle.NEUTRAL, seatStyle == SeatStyle.NEUTRAL, Modifier.weight(1f)) { onSeatStyle(SeatStyle.NEUTRAL) }
-            SeatStylePreview(SeatStyle.COLORED, seatStyle == SeatStyle.COLORED, Modifier.weight(1f)) { onSeatStyle(SeatStyle.COLORED) }
-        }
-        Text("Theme", style = ChronoTheme.type.body, color = ChronoTheme.colors.text)
-        Segmented(
-            options = listOf("System", "Dark", "Light"),
-            selectedIndex = themeMode.ordinal,
-            onSelect = { onThemeMode(ThemeMode.entries[it]) },
-        )
+            SectionLabel("Appearance", Modifier.padding(top = 8.dp))
+            Text("Seat style", style = ChronoTheme.type.body, color = ChronoTheme.colors.text)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                SeatStylePreview(SeatStyle.NEUTRAL, seatStyle == SeatStyle.NEUTRAL, Modifier.weight(1f)) { onSeatStyle(SeatStyle.NEUTRAL) }
+                SeatStylePreview(SeatStyle.COLORED, seatStyle == SeatStyle.COLORED, Modifier.weight(1f)) { onSeatStyle(SeatStyle.COLORED) }
+            }
+            Text("Theme", style = ChronoTheme.type.body, color = ChronoTheme.colors.text)
+            Segmented(
+                options = listOf("System", "Dark", "Light"),
+                selectedIndex = themeMode.ordinal,
+                onSelect = { onThemeMode(ThemeMode.entries[it]) },
+            )
 
-        SectionLabel("New game", Modifier.padding(top = 8.dp))
+            SectionLabel("New game", Modifier.padding(top = 8.dp))
+        }
         if (presets.isNotEmpty()) {
             Text("Preset", style = ChronoTheme.type.body, color = ChronoTheme.colors.text)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {

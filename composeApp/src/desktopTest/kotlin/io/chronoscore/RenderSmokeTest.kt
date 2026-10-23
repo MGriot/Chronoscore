@@ -17,6 +17,7 @@ import io.chronoscore.ui.App
 import io.chronoscore.ui.dialogs.CommanderDialog
 import io.chronoscore.ui.dialogs.CountersAllSeatsDialog
 import io.chronoscore.ui.dialogs.OptionsDialog
+import io.chronoscore.ui.dialogs.StartDialog
 import io.chronoscore.ui.dialogs.StatsDialog
 import io.chronoscore.ui.dialogs.EditAllSeatsDialog
 import io.chronoscore.ui.dialogs.HistoryDialog
@@ -113,6 +114,13 @@ class RenderSmokeTest {
             "log" to { HistoryDialog(session, {}, {}, {}, {}) },
             "menu" to {
                 MenuDialog(session, ThemeMode.DARK, SeatStyle.NEUTRAL, listOf("Commander", "Catan"), noop, {}, {}, {}, {}, {}, {})
+            },
+            "start" to { StartDialog(session, summaries[0], {}, {}, {}) },
+            "new_game" to {
+                MenuDialog(
+                    session, ThemeMode.DARK, SeatStyle.NEUTRAL, listOf("Commander", "Catan"), noop, {}, {}, {}, {}, {}, {},
+                    presets = BuiltInPresets.all, newGameOnly = true,
+                )
             },
             "edit_all" to { EditAllSeatsDialog(session, noop) {} },
             "counters_all" to { CountersAllSeatsDialog(session, noop) {} },

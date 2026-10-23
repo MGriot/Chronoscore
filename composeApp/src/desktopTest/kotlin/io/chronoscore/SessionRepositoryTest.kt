@@ -29,7 +29,9 @@ import javax.swing.SwingUtilities
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class SessionRepositoryTest {
 
@@ -348,5 +350,14 @@ class SessionRepositoryTest {
             assertNull(repo.load(catan.id))
             assertNull(repo.load(commander.id))
         }
+    }
+
+    @Test
+    fun startScreenShowsOncePerLaunch() {
+        val vm = GameViewModel(SessionRepository(openDesktopDriver(tempDbFile())), Dispatchers.Unconfined)
+        assertTrue(vm.consumeStartScreen())
+        assertFalse(vm.consumeStartScreen())
+        // No database (renders, previews): nothing to continue, so no start screen.
+        assertFalse(GameViewModel(null, Dispatchers.Unconfined).consumeStartScreen())
     }
 }
