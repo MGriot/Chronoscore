@@ -52,10 +52,14 @@ fun LibraryDialog(
     /** Result of the last export or import, shown under the buttons. */
     notice: String? = null,
     onStats: () -> Unit = {},
+    /** Deletes every match of the named game, the current one included. */
+    onDeleteGame: (String) -> Unit = {},
 ) {
     val c = ChronoTheme.colors
-    var game by remember { mutableStateOf(current.gameName.orEmpty()) }
+    // Keyed on the match: deleting its game replaces the current match.
+    var game by remember(current.id) { mutableStateOf(current.gameName.orEmpty()) }
     var confirmDelete by remember { mutableStateOf<String?>(null) }
+    var confirmGame by remember { mutableStateOf<String?>(null) }
     val games = knownGames(summaries)
 
     DialogFrame("Saved matches", onDismiss, maxWidth = 460.dp) {
@@ -89,10 +93,35 @@ fun LibraryDialog(
 
         groups.forEach { group ->
             val name = group.first().gameName
-            SectionLabel(
-                (name ?: "No game") + "  ·  ${group.size} " + if (group.size == 1) "match" else "matches",
-                Modifier.padding(top = 8.dp),
-            )
+            val key = name?.lowercase()
+            val confirmingGame = key != null && confirmGame == key
+            Row(
+                Modifier.fillMaxWidth().padding(top = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                SectionLabel(
+                    (name ?: "No game") + "  ·  ${group.size} " + if (group.size == 1) "match" else "matches",
+                    Modifier.weight(1f),
+                )
+                if (name != null) {
+                    val onDeleteThisGame = {
+                        if (confirmingGame) {
+                            onDeleteGame(name)
+                            confirmGame = null
+                        } else {
+                            confirmGame = key
+                            confirmDelete = null
+                        }
+                    }
+                    if (confirmingGame) Pill("Delete game", style = PillStyle.DESTRUCTIVE, onClick = onDeleteThisGame)
+                    else IconTap(ChronoIcons.Trash, "Delete game", tint = c.muted, onClick = onDeleteThisGame)
+                }
+            }
+            if (confirmingGame) {
+                val matches = if (group.size == 1) "1 match" else "${group.size} matches"
+                Note("Deletes $matches for good" + if (group.any { it.id == current.id }) ", including the one on the table." else ".")
+            }
             group.forEach { s ->
                 MatchRow(
                     summary = s,
@@ -103,7 +132,10 @@ fun LibraryDialog(
                         if (confirmDelete == s.id) {
                             onDelete(s.id)
                             confirmDelete = null
-                        } else confirmDelete = s.id
+                        } else {
+                            confirmDelete = s.id
+                            confirmGame = null
+                        }
                     },
                 )
             }

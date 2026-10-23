@@ -122,6 +122,15 @@ class GameViewModel(
         }
     }
 
+    /** Deletes every match of a game. If the table's match was one, continues the latest remaining match or starts fresh. */
+    fun deleteGame(gameName: String) {
+        val repo = repository ?: return
+        flush() // the current match's game may have just been edited
+        val removed = repo.deleteGame(gameName)
+        if (_session.value.id in removed) _session.value = repo.loadLatest() ?: engine.newSession()
+        refreshLibrary()
+    }
+
     fun refreshLibrary() {
         val repo = repository ?: return
         viewModelScope.launch {

@@ -11,6 +11,7 @@ import io.chronoscore.data.BackupCodec
 import io.chronoscore.model.CounterTarget
 import io.chronoscore.model.DayNight
 import io.chronoscore.model.GamePreset
+import io.chronoscore.model.GameSession
 import io.chronoscore.model.MatchOptions
 import io.chronoscore.model.Profile
 import io.chronoscore.model.TimeBonus
@@ -24,6 +25,7 @@ import kotlinx.coroutines.Dispatchers
 import java.io.File
 import java.sql.DriverManager
 import java.util.Properties
+import javax.swing.SwingUtilities
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -114,6 +116,21 @@ class SessionRepositoryTest {
         repo.delete(session.id)
         assertEquals(0L, repo.childRowCount(session.id))
         assertNull(repo.loadLatest())
+    }
+
+    @Test
+    fun deleteGameRemovesEveryMatchOfThatGame() {
+        val catan = sampleSession("Catan")
+        val catanLower = engine.newSession(2, 10, "catan")
+        val commander = sampleSession()
+        val unnamed = engine.newSession(2, 20)
+        listOf(catan, catanLower, commander, unnamed).forEach(repo::save)
+
+        assertEquals(setOf(catan.id, catanLower.id), repo.deleteGame("CATAN").toSet())
+        assertEquals(setOf(commander.id, unnamed.id), repo.summaries().map { it.id }.toSet())
+        assertEquals(0L, repo.childRowCount(catan.id))
+        assertEquals(0L, repo.childRowCount(catanLower.id))
+        assertEquals(emptyList(), repo.deleteGame("Catan"))
     }
 
     @Test
@@ -298,6 +315,38 @@ class SessionRepositoryTest {
             assertEquals(setOf("Catan", "Commander"), repo.summaries().mapNotNull { it.gameName }.toSet())
             assertEquals("LIGHT", repo.setting("theme"))
             assertEquals("COLORED", repo.setting("seat_style"))
+        }
+    }
+
+    @Test
+    fun viewModelDeletingTheCurrentGameMovesTheTable() {
+        val file = tempDbFile()
+        lateinit var commander: GameSession
+        lateinit var catan: GameSession
+        lateinit var fresh: GameSession
+        // On the UI thread, like the app: the view model's coroutines then can't interleave with the deletes.
+        SwingUtilities.invokeAndWait {
+            val vm = GameViewModel(SessionRepository(openDesktopDriver(file)), Dispatchers.Unconfined)
+            vm.dispatch(GameAction.SetGameName("Commander"))
+            commander = vm.session.value
+            vm.dispatch(GameAction.NewGame(2, 10, "Catan"))
+            catan = vm.session.value
+
+            // The latest remaining match comes back to the table.
+            vm.deleteGame("Catan")
+            assertEquals(commander.id, vm.session.value.id)
+
+            // With nothing left, a fresh match starts.
+            vm.deleteGame("commander")
+            fresh = vm.session.value
+            assertNull(fresh.gameName)
+            vm.flush()
+        }
+
+        SessionRepository(openDesktopDriver(file)).use { repo ->
+            assertEquals(listOf(fresh.id), repo.summaries().map { it.id })
+            assertNull(repo.load(catan.id))
+            assertNull(repo.load(commander.id))
         }
     }
 }

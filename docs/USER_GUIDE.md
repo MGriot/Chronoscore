@@ -183,6 +183,7 @@ Every match is saved automatically and kept until you delete it. Each match has 
 - Matches are **grouped by game** and sorted with the most recently played first.
 - **Continue** brings a match back to the table exactly as you left it.
 - The 🗑 button deletes a match. You have to tap it a second time to confirm.
+- The 🗑 next to a game's name deletes the whole game: every match filed under it, for good (tap **Delete game** to confirm). If the match on the table is one of them, your most recent remaining match comes back to the table, or a new match starts. Presets with that game name are kept.
 - **This match belongs to** files the current match under a game. You can type a name or tap a game you've played before.
 
 ### Backup, import and CSV

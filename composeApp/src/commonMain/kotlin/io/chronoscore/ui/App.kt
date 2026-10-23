@@ -230,6 +230,7 @@ fun App(viewModel: GameViewModel, files: FileBridge = NoFileBridge) {
                 onSetGame = { dispatch(GameAction.SetGameName(it)) },
                 onOpen = viewModel::openSession,
                 onDelete = viewModel::deleteSession,
+                onDeleteGame = viewModel::deleteGame,
                 onDismiss = dismiss,
                 filesAvailable = files.available,
                 onExportBackup = {

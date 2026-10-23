@@ -83,6 +83,14 @@ class SessionRepository(
 
     fun delete(sessionId: String) = queries.deleteSession(sessionId)
 
+    /** Deletes every match filed under [gameName] (case-insensitive, like the library groups). Returns the ids removed. */
+    fun deleteGame(gameName: String): List<String> = queries.transactionWithResult {
+        val ids = queries.sessionSummaries().executeAsList()
+            .filter { it.game_name.equals(gameName, ignoreCase = true) }.map { it.id }
+        ids.forEach(queries::deleteSession)
+        ids
+    }
+
     /** Child rows still attached to a session (used to verify cascade deletes). */
     fun childRowCount(sessionId: String): Long = queries.countChildRows(sessionId).executeAsOne()
 
