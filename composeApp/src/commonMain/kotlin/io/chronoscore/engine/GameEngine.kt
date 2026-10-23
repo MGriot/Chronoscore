@@ -51,7 +51,6 @@ class GameEngine(
         }
         return GameSession(
             id = newId(),
-            title = game ?: "Match",
             players = players,
             startingScore = score,
             timestamp = now,
@@ -135,7 +134,7 @@ class GameEngine(
 
         is GameAction.SetGameName -> {
             val game = action.gameName.cleanGameName()
-            session.copy(gameName = game, title = game ?: "Match")
+            session.copy(gameName = game)
         }
 
         is GameAction.SetOptions -> setOptions(session, action.options.sanitized())

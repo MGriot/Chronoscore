@@ -101,10 +101,10 @@ class RenderSmokeTest {
         val vm = kitTable()
         val session = vm.session.value
         val summaries = listOf(
-            SessionSummary(session.id, "Commander", "Commander", 2, 1_700_000_000_000, 1_700_000_900_000, session.players.map { it.name }, 3),
-            SessionSummary("b", "Commander", "Commander", 5, 1_699_000_000_000, 1_699_000_500_000, listOf("Mara", "Jonas"), 41),
-            SessionSummary("c", "Catan", "Catan", 9, 1_698_000_000_000, 1_698_000_800_000, listOf("Ana", "Ben", "Cy"), 77),
-            SessionSummary("d", "Match", null, 1, 1_697_000_000_000, 1_697_000_100_000, listOf("Player 1"), 2),
+            SessionSummary(session.id, "Commander", 2, 1_700_000_000_000, 1_700_000_900_000, session.players.map { it.name }, 3),
+            SessionSummary("b", "Commander", 5, 1_699_000_000_000, 1_699_000_500_000, listOf("Mara", "Jonas"), 41),
+            SessionSummary("c", "Catan", 9, 1_698_000_000_000, 1_698_000_800_000, listOf("Ana", "Ben", "Cy"), 77),
+            SessionSummary("d", null, 1, 1_697_000_000_000, 1_697_000_100_000, listOf("Player 1"), 2),
         )
         val noop: (GameAction) -> Unit = {}
         val dialogs: Map<String, @Composable () -> Unit> = mapOf(

@@ -71,7 +71,6 @@ class SessionRepository(
         return queries.sessionSummaries().executeAsList().map { r ->
             SessionSummary(
                 id = r.id,
-                title = r.title,
                 gameName = r.game_name,
                 round = r.round.toInt(),
                 createdAt = r.timestamp,
@@ -152,7 +151,6 @@ class SessionRepository(
         val state = s.state_json.decodeOr(SessionState()) { ChronoJson.decodeFromString(SessionState.serializer(), it) }
         return GameSession(
             id = s.id,
-            title = s.title,
             players = players,
             historyLog = history,
             round = s.round.toInt(),

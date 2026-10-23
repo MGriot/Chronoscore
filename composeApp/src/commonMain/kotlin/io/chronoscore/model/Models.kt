@@ -191,7 +191,6 @@ enum class DayNight { DAY, NIGHT }
 @Serializable
 data class GameSession(
     val id: String,
-    val title: String,
     val players: List<Player>,
     val historyLog: List<ScoreHistoryEntry> = emptyList(),
     val round: Int = 1,
@@ -207,6 +206,9 @@ data class GameSession(
     val initiativeId: String? = null,
     val dayNight: DayNight? = null,
 ) {
+    /** Display name: the game, or "Match" when none is set. */
+    val title: String get() = gameName ?: "Match"
+
     fun player(id: String): Player? = players.firstOrNull { it.id == id }
 
     /** Timer mode: [player]'s bank right now, counting the turn in progress; null when off. */
@@ -291,7 +293,6 @@ object Accents {
 /** Lightweight row for the saved-matches library. */
 data class SessionSummary(
     val id: String,
-    val title: String,
     val gameName: String?,
     val round: Int,
     val createdAt: Long,

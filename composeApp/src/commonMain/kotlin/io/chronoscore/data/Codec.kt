@@ -141,7 +141,7 @@ fun matchCsv(session: GameSession, formatTime: (Long) -> String): String {
     }
     val outcome = session.outcome()
     return buildString {
-        appendCsvRow("Match", session.gameName ?: session.title)
+        appendCsvRow("Match", session.title)
         appendCsvRow("Started", formatTime(session.timestamp))
         appendCsvRow("Rounds", session.round.toString())
         append(CRLF)
