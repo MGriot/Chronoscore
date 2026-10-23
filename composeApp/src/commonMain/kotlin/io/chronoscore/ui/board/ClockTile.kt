@@ -3,35 +3,24 @@ package io.chronoscore.ui.board
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import io.chronoscore.model.Limits
 import io.chronoscore.model.Player
 import io.chronoscore.model.TimeBonus
 import io.chronoscore.model.TimeControl
 import io.chronoscore.ui.formatDuration
-import io.chronoscore.ui.theme.ChronoIcons
 import io.chronoscore.ui.theme.ChronoTheme
 import io.chronoscore.viewmodel.SeatStyle
 
@@ -87,7 +76,8 @@ fun ClockTile(
                     else Modifier,
                 ),
         ) {
-            ClockHeader(player, p, compact, highlighted, status, callbacks)
+            // The clock is the tile's figure, so the tags leave the time label out.
+            SeatHeader(player, p, compact, highlighted, status.copy(timeLabel = null), lastEntry = null, callbacks, showKeypad = false)
             AutoSizeText(
                 formatDuration(millis),
                 if (low && style == SeatStyle.NEUTRAL) c.negative else p.text,
@@ -110,50 +100,6 @@ fun ClockTile(
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.align(Alignment.CenterHorizontally).padding(bottom = if (compact) 8.dp else 12.dp),
             )
-        }
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun ClockHeader(
-    player: Player,
-    p: SeatPalette,
-    compact: Boolean,
-    highlighted: Boolean,
-    status: SeatStatus,
-    callbacks: SeatCallbacks,
-) {
-    // The clock is the tile's figure, so the status tags leave the time label out.
-    val tags = status.copy(timeLabel = null)
-    Row(
-        Modifier.fillMaxWidth().padding(start = 12.dp, end = 2.dp, top = 2.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Box(Modifier.size(width = 4.dp, height = 18.dp).background(p.bar))
-        Spacer(Modifier.width(8.dp))
-        Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                player.name.uppercase(),
-                style = ChronoTheme.type.label.copy(fontWeight = FontWeight.SemiBold, letterSpacing = if (compact) 0.5.sp else 1.sp),
-                color = p.text,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f, fill = false).clickable(onClick = callbacks.onEdit),
-            )
-            if (highlighted) SeatTag(if (compact) "1ST" else "FIRST", p)
-            if (!compact) StatusTags(tags, p, compact = false)
-        }
-        if (!compact) HeaderIcon(ChronoIcons.Rotate, "Rotate ${Limits.ROTATION_STEP}°", p.muted, callbacks.onRotate)
-        HeaderIcon(ChronoIcons.Edit, "Edit seat", p.muted, callbacks.onEdit)
-    }
-    if (compact) {
-        FlowRow(
-            Modifier.fillMaxWidth().padding(start = 18.dp, end = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-            itemVerticalAlignment = Alignment.CenterVertically,
-        ) {
-            StatusTags(tags, p, compact = true)
         }
     }
 }

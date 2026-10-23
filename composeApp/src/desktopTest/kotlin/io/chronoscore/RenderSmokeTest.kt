@@ -54,6 +54,9 @@ class RenderSmokeTest {
         vm.dispatch(GameAction.AddSubCounter(first, "Commander"))
     }
 
+    /** A view model with no database, for rendering. */
+    private fun offlineVm() = GameViewModel(null, Dispatchers.Unconfined, GameEngine())
+
     private fun ImageComposeScene.snapshot(name: String) {
         val bytes = render().encodeToData(EncodedImageFormat.PNG)!!.bytes
         File(outDir, "$name.png").writeBytes(bytes)
@@ -127,7 +130,7 @@ class RenderSmokeTest {
     }
 
     /** A Commander pod using the 1.1 options: turns, seat timers, elimination and MTG extras. */
-    private fun commanderTable() = GameViewModel(null, Dispatchers.Unconfined, GameEngine()).also { vm ->
+    private fun commanderTable() = offlineVm().also { vm ->
         val preset = BuiltInPresets.all.first { it.name == "Commander" }
         vm.dispatch(
             GameAction.NewGame(4, 40, "Commander", preset.counters, preset.options.copy(seatTimers = true, matchClock = true, turnLimitSeconds = 120)),
@@ -153,7 +156,7 @@ class RenderSmokeTest {
         vm.dispatch(GameAction.SetConceded(ids[3], true))
         ImageComposeScene(420, 880, Density(1.5f)) { App(vm) }.use { it.snapshot("feature_winner_phone") }
 
-        val hearts = GameViewModel(null, Dispatchers.Unconfined, GameEngine()).also { h ->
+        val hearts = offlineVm().also { h ->
             val preset = BuiltInPresets.all.first { it.name == "Hearts" }
             h.dispatch(GameAction.NewGame(4, 0, "Hearts", preset.counters, preset.options.copy(turnTracking = true)))
             val p = h.session.value.players.map { it.id }
@@ -167,7 +170,7 @@ class RenderSmokeTest {
         ImageComposeScene(1280, 800, Density(1.5f)) { App(hearts) }.use { it.snapshot("feature_sheet_desktop") }
         // Timer mode: a two-seat chess clock and an eight-seat board game timer.
         listOf("Chess clock" to 2, "Board game timer" to 8).forEach { (name, seats) ->
-            val timer = GameViewModel(null, Dispatchers.Unconfined, GameEngine()).also { t ->
+            val timer = offlineVm().also { t ->
                 val preset = BuiltInPresets.all.first { it.name == name }
                 t.dispatch(GameAction.NewGame(seats, 0, null, preset.counters, preset.options))
                 t.dispatch(GameAction.AdjustClock(t.session.value.players[1].id, -95_000))
@@ -179,7 +182,7 @@ class RenderSmokeTest {
         }
 
         // Seats turned in 30° steps still fit their cells.
-        val angled = GameViewModel(null, Dispatchers.Unconfined, GameEngine()).also { a ->
+        val angled = offlineVm().also { a ->
             a.dispatch(GameAction.NewGame(4, 20))
             a.session.value.players.forEachIndexed { i, p -> a.dispatch(GameAction.RotateSeat(p.id, 30 * (i + 1))) }
         }

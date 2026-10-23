@@ -189,9 +189,10 @@ fun SeatViewport(
     }
 }
 
+/** Color bar, name, status tags and header buttons; shared by score seats and clock tiles. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun SeatHeader(
+internal fun SeatHeader(
     player: Player,
     p: SeatPalette,
     compact: Boolean,
@@ -199,6 +200,7 @@ private fun SeatHeader(
     status: SeatStatus,
     lastEntry: ScoreHistoryEntry?,
     callbacks: SeatCallbacks,
+    showKeypad: Boolean = true,
 ) {
     Row(
         Modifier.fillMaxWidth().padding(start = 12.dp, end = 2.dp, top = 2.dp),
@@ -220,7 +222,7 @@ private fun SeatHeader(
             if (!compact) StatusTags(status, p, compact = false)
         }
         if (!compact) {
-            HeaderIcon(ChronoIcons.Keypad, "Enter value", p.muted) { callbacks.onOpenKeypad(CounterTarget.Primary) }
+            if (showKeypad) HeaderIcon(ChronoIcons.Keypad, "Enter value", p.muted) { callbacks.onOpenKeypad(CounterTarget.Primary) }
             HeaderIcon(ChronoIcons.Rotate, "Rotate ${Limits.ROTATION_STEP}°", p.muted, callbacks.onRotate)
         }
         HeaderIcon(ChronoIcons.Edit, "Edit seat", p.muted, callbacks.onEdit)
