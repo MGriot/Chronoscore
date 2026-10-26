@@ -4,6 +4,7 @@ import io.chronoscore.model.CounterTarget
 import io.chronoscore.model.DayNight
 import io.chronoscore.model.MatchOptions
 import io.chronoscore.model.Profile
+import io.chronoscore.model.TeamMember
 
 sealed interface GameAction {
     /** Commander targets also take the same amount off the seat's life, as one undo step. */
@@ -67,12 +68,27 @@ sealed interface GameAction {
     /** Links a seat to a saved player (taking its name and color), or unlinks it with null. */
     data class SetProfile(val playerId: String, val profile: Profile?) : GameAction
 
+    /** Makes a seat a team of [members] sharing its score; an empty list makes it a single player again. */
+    data class SetTeamMembers(val playerId: String, val members: List<TeamMember>) : GameAction
+
     /** Round sheet: sets a seat's points for [round]; the change is logged in that round. */
     data class SetRoundPoints(val playerId: String, val round: Int, val points: Int) : GameAction
+
+    /** Round sheet: sets several seats' points for [round] at once (a hand calculator); one Undo reverts it. */
+    data class SetRoundPointsBatch(val round: Int, val points: Map<String, Int>) : GameAction
 
     data class SetMonarch(val playerId: String?) : GameAction
     data class SetInitiative(val playerId: String?) : GameAction
     data class SetDayNight(val dayNight: DayNight?) : GameAction
+
+    /**
+     * Darts mode: the active seat throws one dart ([segment] 1–20, 25 for the bull, 0 for a
+     * miss). After the third dart, a bust or a win, the turn passes on by itself.
+     */
+    data class ThrowDart(val segment: Int, val multiplier: Int = 1) : GameAction
+
+    /** Darts mode: ends the active seat's visit early; the darts not thrown count as misses. */
+    data object EndVisit : GameAction
 
     data object NextRound : GameAction
     data object Undo : GameAction
@@ -81,6 +97,7 @@ sealed interface GameAction {
     /**
      * Starts a fresh match. [counters] null keeps each carried-over seat's counter layout;
      * otherwise every seat gets exactly these counters. [options] null keeps the current ones.
+     * [teamSize] makes every seat a team of that many players; null keeps seats as they were.
      */
     data class NewGame(
         val playerCount: Int,
@@ -88,6 +105,7 @@ sealed interface GameAction {
         val gameName: String? = null,
         val counters: List<String>? = null,
         val options: MatchOptions? = null,
+        val teamSize: Int? = null,
     ) : GameAction
 }
 

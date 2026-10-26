@@ -37,6 +37,13 @@ data class SubCounter(
     val value: Int = 0,
 )
 
+/** One person playing in a team seat; [profileId] links them to a saved player for stats. */
+@Serializable
+data class TeamMember(
+    val name: String,
+    val profileId: String? = null,
+)
+
 @Serializable
 data class Player(
     val id: String,
@@ -64,7 +71,11 @@ data class Player(
      * [GameSession.liveClockMillis]); negative in overtime, null when timer mode is off.
      */
     val clockMillis: Long? = null,
+    /** Team seat: the people sharing this seat's score; empty for a single player. */
+    val members: List<TeamMember> = emptyList(),
 ) {
+    val isTeam: Boolean get() = members.isNotEmpty()
+
     fun valueOf(target: CounterTarget): Int? = when (target) {
         CounterTarget.Primary -> primaryScore
         is CounterTarget.Sub -> subCounters.firstOrNull { it.id == target.subCounterId }?.value
@@ -99,6 +110,9 @@ enum class WinMode {
 
     /** A seat at or below [WinRule.target] is out; the last seat standing wins. */
     ELIMINATION,
+
+    /** A seat at or above [WinRule.target] is out (e.g. Scala 40 penalties); the last seat standing wins. */
+    ELIMINATION_ABOVE,
 }
 
 @Serializable
@@ -135,6 +149,70 @@ data class TimeControl(
     val incrementMillis: Long get() = if (bonus == TimeBonus.INCREMENT) bonusSeconds * 1000L else 0
 }
 
+@Serializable
+enum class DartsGame {
+    /** Count down from [DartsRules.start] to exactly 0. */
+    X01,
+
+    /** Close 15–20 and the bull with three marks each; score on numbers the others still have open. */
+    CRICKET,
+
+    /** Hit 1 to 20 in order, then the bull; the first to hit the bull wins. */
+    AROUND_THE_CLOCK,
+
+    /** Visit n aims at number n; single, double and treble of it in one visit wins outright. */
+    SHANGHAI,
+}
+
+@Serializable
+data class DartsRules(
+    val game: DartsGame = DartsGame.X01,
+    /** X01: starting score (301, 501, 701). */
+    val start: Int = 501,
+    /** X01: the last dart must be a double (the bull's eye counts). */
+    val doubleOut: Boolean = true,
+    /** X01: scoring starts with a double. */
+    val doubleIn: Boolean = false,
+    /** Shanghai: visits per player (7 or 20). */
+    val rounds: Int = 7,
+)
+
+/**
+ * One dart thrown in darts mode. [segment] is 1–20, 25 for the bull, or 0 for a miss;
+ * [multiplier] is 1–3 (the bull only 1 or 2). [visit] numbers the visits of the match.
+ */
+@Serializable
+data class Dart(
+    val id: String,
+    val playerId: String,
+    val visit: Int,
+    val round: Int,
+    val segment: Int,
+    val multiplier: Int = 1,
+) {
+    val points: Int get() = segment * multiplier
+    val isDouble: Boolean get() = multiplier == 2 && segment > 0
+}
+
+/** Round sheet: a calculator that works out a hand's points from what happened in it. */
+@Serializable
+enum class HandCalc {
+    /** Cards, denari, settebello, primiera (one point each) plus one per scopa. */
+    SCOPA,
+
+    /** Burrachi, closing, the pozzetto, and the cards on the table minus those in hand. */
+    BURRACO,
+
+    /** 120 card points; whoever takes 61 wins the hand. */
+    BRISCOLA,
+
+    /** The side closest to the jack scores its bocce closer than the other side's best. */
+    BOCCE,
+
+    /** Penalty points left in hand; 100 for not having opened. */
+    SCALA40,
+}
+
 /** Optional features for one match. With every option off the table behaves like 1.0. */
 @Serializable
 data class MatchOptions(
@@ -153,6 +231,10 @@ data class MatchOptions(
     val mtgExtras: Boolean = false,
     /** Timer mode (needs [turnTracking]); null for none. */
     val timeControl: TimeControl? = null,
+    /** Darts mode: scores come from the darts thrown, entered one at a time; null for none. */
+    val darts: DartsRules? = null,
+    /** Round sheet: works out each hand's points (needs [sheetMode]); null to type them in. */
+    val handCalculator: HandCalc? = null,
 ) {
     val usesClock: Boolean
         get() = matchClock || (turnTracking && (seatTimers || turnLimitSeconds != null || timeControl != null))
@@ -205,6 +287,8 @@ data class GameSession(
     val monarchId: String? = null,
     val initiativeId: String? = null,
     val dayNight: DayNight? = null,
+    /** Darts mode: every dart thrown, in order; seat scores are derived from these. */
+    val darts: List<Dart> = emptyList(),
 ) {
     /** Display name: the game, or "Match" when none is set. */
     val title: String get() = gameName ?: "Match"
@@ -243,6 +327,8 @@ data class GamePreset(
     val startingScore: Int = 20,
     val counters: List<String> = emptyList(),
     val options: MatchOptions = MatchOptions(),
+    /** Players per seat for team games (e.g. 2 for Scopone); null for one player per seat. */
+    val teamSize: Int? = null,
 )
 
 /** A saved player, reused across matches so stats can follow them. */
@@ -257,6 +343,7 @@ object Limits {
     const val MIN_PLAYERS = 1
     const val MAX_PLAYERS = 8
     const val MAX_SUB_COUNTERS = 4
+    const val MAX_TEAM_MEMBERS = 4
     const val MAX_VALUE = 99_999
     const val MIN_VALUE = -99_999
     const val MAX_NAME_LENGTH = 20

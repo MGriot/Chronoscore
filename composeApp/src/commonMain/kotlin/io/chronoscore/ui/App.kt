@@ -38,6 +38,7 @@ import io.chronoscore.model.GameSession
 import io.chronoscore.model.Limits
 import io.chronoscore.model.Player
 import io.chronoscore.ui.board.ClockTiles
+import io.chronoscore.ui.board.DartsBoard
 import io.chronoscore.ui.board.PlayerGrid
 import io.chronoscore.ui.board.ResultBanner
 import io.chronoscore.ui.board.RoundSheet
@@ -51,6 +52,7 @@ import io.chronoscore.ui.board.showsTurnBar
 import io.chronoscore.ui.dialogs.CommanderDialog
 import io.chronoscore.ui.dialogs.CountersAllSeatsDialog
 import io.chronoscore.ui.dialogs.EditAllSeatsDialog
+import io.chronoscore.ui.dialogs.HandDialog
 import io.chronoscore.ui.dialogs.HistoryDialog
 import io.chronoscore.ui.dialogs.IconTap
 import io.chronoscore.ui.dialogs.KeypadDialog
@@ -83,7 +85,8 @@ private sealed interface OpenDialog {
     data class Keypad(val playerId: String, val target: CounterTarget, val rotated: Boolean) : OpenDialog
     data class Editor(val playerId: String, val rotated: Boolean) : OpenDialog
     data class Commander(val playerId: String, val rotated: Boolean) : OpenDialog
-    data class RoundPoints(val playerId: String, val round: Int) : OpenDialog
+    /** [manual] types one seat's points even when the match has a hand calculator. */
+    data class RoundPoints(val playerId: String, val round: Int, val manual: Boolean = false) : OpenDialog
 }
 
 @Composable
@@ -135,7 +138,19 @@ fun App(viewModel: GameViewModel, files: FileBridge = NoFileBridge) {
                 )
             }
 
-            if (session.options.sheetMode) {
+            if (session.options.darts != null) {
+                Column(Modifier.fillMaxSize().padding(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    strip()
+                    DartsBoard(
+                        session = session,
+                        outcome = outcome,
+                        onThrow = { segment, multiplier -> dispatch(GameAction.ThrowDart(segment, multiplier)) },
+                        onUndo = { dispatch(GameAction.Undo) },
+                        onEditSeat = { id -> dialog = OpenDialog.Editor(id, rotated = false) },
+                        modifier = Modifier.weight(1f).fillMaxWidth(),
+                    )
+                }
+            } else if (session.options.sheetMode) {
                 Column(Modifier.fillMaxSize().padding(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     strip()
                     RoundSheet(
@@ -301,8 +316,24 @@ fun App(viewModel: GameViewModel, files: FileBridge = NoFileBridge) {
             }
             is OpenDialog.RoundPoints -> {
                 val player = session.player(d.playerId)
+                val calc = session.options.handCalculator
                 if (player == null) {
                     LaunchedEffect(Unit) { dialog = OpenDialog.None }
+                } else if (calc != null && !d.manual) {
+                    HandDialog(
+                        players = session.players,
+                        round = d.round,
+                        calc = calc,
+                        onApply = { points ->
+                            dispatch(GameAction.SetRoundPointsBatch(d.round, points))
+                            // Scoring the current hand moves the sheet on to the next one.
+                            val after = viewModel.session.value
+                            if (d.round == after.round && !after.outcome().finished) dispatch(GameAction.NextRound)
+                            dismiss()
+                        },
+                        onManual = { dialog = d.copy(manual = true) },
+                        onDismiss = dismiss,
+                    )
                 } else {
                     val current = session.roundPoints()[d.round to d.playerId] ?: 0
                     KeypadDialog(
@@ -390,13 +421,14 @@ private fun CenterStrip(
                 session = session,
                 now = now,
                 onPrevious = { dispatch(GameAction.PreviousTurn) },
-                onNext = { dispatch(GameAction.NextTurn) },
+                // In darts, Next ends the visit, so darts not thrown count as misses.
+                onNext = { dispatch(if (session.options.darts != null) GameAction.EndVisit else GameAction.NextTurn) },
                 onToggleClock = { dispatch(GameAction.ToggleClock) },
             )
         }
         CenterHub(
             gameName = session.gameName,
-            canUndo = session.historyLog.isNotEmpty(),
+            canUndo = session.historyLog.isNotEmpty() || session.darts.isNotEmpty(),
             onUndo = { dispatch(GameAction.Undo) },
             onDice = onDice,
             onEditAll = onEditAll,

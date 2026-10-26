@@ -81,6 +81,13 @@ fun RoundSheet(
                         color = c.text, maxLines = 1, overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.padding(top = 4.dp),
                     )
+                    if (p.isTeam) {
+                        Text(
+                            p.members.joinToString(" · ") { it.name },
+                            style = ChronoTheme.type.label.copy(fontSize = 9.sp, letterSpacing = 0.sp),
+                            color = c.muted, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                     val tag = when (p.id) {
                         in outcome.winners -> "WINNER"
                         in outcome.eliminated -> "OUT"

@@ -34,17 +34,22 @@ fun computeStats(sessions: List<GameSession>, profiles: List<Profile>, game: Str
         .filter { game == null || it.gameName.equals(game, ignoreCase = true) }
         .flatMap { s ->
             val outcome = s.outcome()
-            s.players.map { p ->
-                val profile = p.profileId?.let(byId::get)
-                Row(
-                    key = profile?.id ?: ("name:" + p.name.lowercase()),
-                    name = profile?.name ?: p.name,
-                    color = profile?.colorHex ?: p.colorHex,
-                    isProfile = profile != null,
-                    score = p.primaryScore,
-                    won = if (outcome.finished) p.id in outcome.winners else null,
-                    time = p.timeMillis,
-                )
+            s.players.flatMap { p ->
+                val won = if (outcome.finished) p.id in outcome.winners else null
+                // A team seat counts once for each member, with the team's score and result.
+                val people = if (p.isTeam) p.members.map { it.name to it.profileId } else listOf(p.name to p.profileId)
+                people.map { (name, profileId) ->
+                    val profile = profileId?.let(byId::get)
+                    Row(
+                        key = profile?.id ?: ("name:" + name.lowercase()),
+                        name = profile?.name ?: name,
+                        color = profile?.colorHex ?: p.colorHex,
+                        isProfile = profile != null,
+                        score = p.primaryScore,
+                        won = won,
+                        time = p.timeMillis,
+                    )
+                }
             }
         }
 

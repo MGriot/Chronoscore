@@ -217,6 +217,17 @@ internal fun SeatHeader(
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f, fill = false).clickable(onClick = callbacks.onEdit),
             )
+            if (player.isTeam && !compact) {
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    player.members.joinToString(" · ") { it.name },
+                    style = ChronoTheme.type.label.copy(fontSize = 11.sp, letterSpacing = 0.sp),
+                    color = p.muted,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false).clickable(onClick = callbacks.onEdit),
+                )
+            }
             RunningDelta(lastEntry, p)
             if (highlighted) SeatTag(if (compact) "1ST" else "FIRST", p)
             if (!compact) StatusTags(status, p, compact = false)

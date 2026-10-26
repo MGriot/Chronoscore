@@ -27,12 +27,17 @@ fun GameSession.outcome(): Outcome {
     val eliminated = players.filter { p ->
         p.conceded || (timedOut && (p.clockMillis ?: 1) <= 0) || when (rule.mode) {
             WinMode.ELIMINATION -> p.primaryScore <= rule.target || (options.mtgExtras && p.isMtgDead())
+            WinMode.ELIMINATION_ABOVE -> p.primaryScore >= rule.target
             else -> false
         }
     }.map { it.id }.toSet()
     val alive = players.filter { it.id !in eliminated }
 
-    if (rule.mode == WinMode.TARGET_SCORE) {
+    // Darts mode: the darts decide; the win rule is not used.
+    if (options.darts != null) {
+        val darts = dartsState()
+        if (darts.finished) return Outcome(eliminated, darts.winners, finished = true)
+    } else if (rule.mode == WinMode.TARGET_SCORE) {
         val ascending = rule.target >= startingScore
         val reached = alive.any { if (ascending) it.primaryScore >= rule.target else it.primaryScore <= rule.target }
         if (reached || (players.size > 1 && alive.size <= 1)) {

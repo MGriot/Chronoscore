@@ -19,8 +19,11 @@ TABLES = {
     "kit_table_colored": "phone-colored",
     "phone_8": "phone-8-players",
     "feature_board_game_timer_phone": "phone-timer",
+    "feature_darts_501_phone": "phone-darts",
+    "feature_darts_cricket_phone": "phone-cricket",
+    "feature_teams_phone": "phone-teams",
 }
-DIALOGS = ["start", "new_game", "keypad", "utilities", "log", "menu", "edit_all", "counters_all", "library", "editor"]
+DIALOGS = ["start", "new_game", "keypad", "utilities", "log", "menu", "edit_all", "counters_all", "library", "editor", "hand_scopa"]
 
 
 def save(img: Image.Image, name: str, max_width: int):

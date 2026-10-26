@@ -104,7 +104,8 @@ Timer mode turns the turn tracker on. Seats take turns in seat order, and the tu
 | --- | --- |
 | None | No automatic result. When everyone else is marked out (**Edit seat → Mark as out**), the last seat wins. |
 | Target | The match ends when a seat reaches the target. *Highest wins* or *Lowest wins* (e.g. Hearts to 100). |
-| Elimination | Seats at or below the threshold (0 by default) are **OUT**. The last seat standing wins. |
+| Out ≤ (elimination) | Seats at or below the threshold (0 by default) are **OUT**. The last seat standing wins. |
+| Out ≥ | For penalty points: seats at or above the threshold (101 by default, as in Scala 40) are **OUT**. The last seat standing wins. |
 
 Seats that are out are dimmed but stay editable. Results are worked out from the scores, so **Undo brings an eliminated seat back**.
 
@@ -113,6 +114,41 @@ Seats that are out are dimmed but stay editable. Results are worked out from the
 <img src="images/phone-sheet.png" width="280" alt="Round sheet">
 
 A scorepad instead of seat cards: one column per seat, one row per round, totals at the bottom. Tap a cell to enter that seat's points for the round (earlier rounds too). **Next round →** adds a row.
+
+#### Hand calculators
+
+<img src="images/dialog-hand-scopa.png" width="320" alt="Scopa hand calculator">
+
+With a **Hand calculator** chosen (Match options → Layout & games, or set by the card and bocce presets), tapping a round opens a calculator for the whole hand. It shows each seat's points before you **Apply**; applying the current round moves the sheet on to the next one, and one Undo reverts the whole hand. **Type points** goes back to the plain keypad.
+
+| Calculator | You enter | Points |
+| --- | --- | --- |
+| Scopa | Cards, denari and scope per side; who took the settebello and the primiera | 1 each for most cards, most denari (a tie scores nobody), settebello, primiera; +1 per scopa |
+| Burraco | Clean and dirty burrachi, cards on the table and in hand, pozzetto taken, who closed | +200 / +100 per burraco, +100 for closing, −100 without the pozzetto, + table − hand |
+| Briscola | One side's card points | 61 of 120 wins the hand (1 point); 60–60 is a draw |
+| Bocce | The side closest to the jack and how many bocce | Only that side scores |
+| Scala 40 | Who closed; for the others, opened or not and the cards in hand | 0 for closing, 100 for not opening, else the cards in hand |
+
+Card values are listed in each calculator: Burraco jolly 30, pinella 20, ace 15, 8–K 10, 3–7 5; Scala 40 ace 11, faces 10, numbers face value, jolly 25; primiera 7 = 21, 6 = 18, ace = 16, 5 = 15, 4 = 14, 3 = 13, 2 = 12, faces 10.
+
+### Darts
+
+<img src="images/phone-darts.png" width="280" alt="Darts 501">
+
+Choose a game under **Match options → Darts** (or a darts preset). Seat scores sit on top, the visit in progress below them, and a keypad at the bottom: pick **Single / Double / Treble**, then the number (the ring goes back to Single after each dart). **25** is the single bull; with Double it is the bull's eye (50). After three darts, a bust or a win the turn passes by itself; **Next** in the turn bar ends a visit early, counting the darts not thrown as misses. **Undo** takes back one dart, and a bust or a win with it.
+
+| Game | Rules |
+| --- | --- |
+| X01 (301, 501, 701) | Count down to exactly 0. With *double out* the last dart must be a double (or the bull's eye); going below 0, or to 1, is a bust and the visit doesn't count. *Double in* starts scoring with a double. The active seat shows a checkout, e.g. *T20 T20 Bull* for 170. |
+| Cricket | Three marks close 15–20 or the bull (a treble closes in one). Extra marks score the number while an opponent still has it open. Close everything without trailing on points to win. |
+| Around the Clock | Hit 1 to 20 in order, then the bull. Any ring counts as one hit. First to the bull wins. |
+| Shanghai | Round n aims at n; doubles and trebles multiply. Single, double and treble of n in one visit wins outright; otherwise the highest score after 7 (or 20) rounds wins. |
+
+Changing the darts settings starts the scores over.
+
+### Teams
+
+A seat can be a team whose members share its score: choose **Teams of 2** (or 3) under **Menu → New game**, or **Edit seat → Make this seat a team**. Add members by name or from your saved players, and remove them in the same place (remove all of them to make it a single seat again). Member names show under the team name, and **Players & stats** counts a team's result for each member.
 
 ### Magic: The Gathering extras
 
@@ -135,6 +171,12 @@ Pick a preset under **Menu → New game** to fill in players, starting score, co
 | Race to 10 | 4 at 0, turn tracker, Target 10 |
 | Chess clock | 2 players, timer mode: 10 min each, +5 s increment, out on time |
 | Board game timer | 4 players, timer mode: 20 min each, 10 s delay, overtime; match clock |
+| Bocce · Raffa / Pétanque | 2 sides, Round sheet with the bocce calculator, Target 12 / 13 |
+| Briscola | 2 sides, Round sheet with the Briscola calculator, Target 2 hands |
+| Scopa / Scopone | 2 players / 2 teams of 2, Round sheet with the Scopa calculator, Target 11 |
+| Scala 40 | 4 players, Round sheet with the Scala 40 calculator, out at 101 |
+| Burraco | 2 teams of 2, Round sheet with the Burraco calculator, Target 2005 |
+| Darts 501 / 301, Cricket, Around the Clock, Shanghai | 2 players, darts board |
 
 **Save as preset** stores your own setup. Select a saved preset to delete it.
 

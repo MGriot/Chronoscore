@@ -32,6 +32,7 @@ import io.chronoscore.model.MatchOptions
 import io.chronoscore.model.Player
 import io.chronoscore.model.Profile
 import io.chronoscore.model.SubCounterPresets
+import io.chronoscore.model.TeamMember
 import io.chronoscore.ui.formatDuration
 import io.chronoscore.ui.theme.ChronoIcons
 import io.chronoscore.ui.theme.ChronoShapes
@@ -127,28 +128,8 @@ fun PlayerEditorDialog(
             }
         }
 
-        SectionLabel("Saved player")
-        val linked = profiles.firstOrNull { it.id == player.profileId }
-        if (linked != null) {
-            Note("Stats for this seat count toward ${linked.name}.")
-            Pill("Unlink from ${linked.name}", Modifier.fillMaxWidth()) { dispatch(GameAction.SetProfile(player.id, null)) }
-        } else {
-            Pill("Save ${name.trim().ifEmpty { player.name }} as a player", Modifier.fillMaxWidth(), leadingIcon = ChronoIcons.Person) {
-                commitName()
-                onSaveProfile()
-            }
-        }
-        val others = profiles.filter { it.id != player.profileId }
-        if (others.isNotEmpty()) {
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                others.forEach { profile ->
-                    Pill(profile.name, accent = parseHex(profile.colorHex)) {
-                        name = profile.name
-                        dispatch(GameAction.SetProfile(player.id, profile))
-                    }
-                }
-            }
-        }
+        if (player.isTeam) TeamEditor(player, profiles, dispatch)
+        else SavedPlayer(player, name, profiles, dispatch, commitName, onSaveProfile) { name = it }
 
         SectionLabel("Seat color")
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -208,6 +189,95 @@ fun PlayerEditorDialog(
             Pill("Done", Modifier.weight(1f), style = PillStyle.PRIMARY, onClick = close)
         }
     }
+}
+
+/** A single-player seat: link it to a saved player, or turn it into a team. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun SavedPlayer(
+    player: Player,
+    name: String,
+    profiles: List<Profile>,
+    dispatch: (GameAction) -> Unit,
+    commitName: () -> Unit,
+    onSaveProfile: () -> Unit,
+    onName: (String) -> Unit,
+) {
+    SectionLabel("Saved player")
+    val linked = profiles.firstOrNull { it.id == player.profileId }
+    if (linked != null) {
+        Note("Stats for this seat count toward ${linked.name}.")
+        Pill("Unlink from ${linked.name}", Modifier.fillMaxWidth()) { dispatch(GameAction.SetProfile(player.id, null)) }
+    } else {
+        Pill("Save ${name.trim().ifEmpty { player.name }} as a player", Modifier.fillMaxWidth(), leadingIcon = ChronoIcons.Person) {
+            commitName()
+            onSaveProfile()
+        }
+    }
+    val others = profiles.filter { it.id != player.profileId }
+    if (others.isNotEmpty()) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            others.forEach { profile ->
+                Pill(profile.name, accent = parseHex(profile.colorHex)) {
+                    onName(profile.name)
+                    dispatch(GameAction.SetProfile(player.id, profile))
+                }
+            }
+        }
+    }
+
+    Pill("Make this seat a team", Modifier.fillMaxWidth(), leadingIcon = ChronoIcons.Plus) {
+        commitName()
+        // The current player becomes the first member; the seat name becomes the team name.
+        dispatch(GameAction.SetTeamMembers(player.id, listOf(TeamMember(name.trim().ifEmpty { player.name }, player.profileId))))
+        dispatch(GameAction.SetProfile(player.id, null))
+    }
+}
+
+/** A team seat: its members share the score, and stats count for each of them. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun TeamEditor(player: Player, profiles: List<Profile>, dispatch: (GameAction) -> Unit) {
+    val c = ChronoTheme.colors
+    var newMember by remember(player.id) { mutableStateOf("") }
+    val set = { members: List<TeamMember> -> dispatch(GameAction.SetTeamMembers(player.id, members)) }
+
+    SectionLabel("Team · ${player.members.size} / ${Limits.MAX_TEAM_MEMBERS}")
+    player.members.forEachIndexed { index, member ->
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(member.name, style = ChronoTheme.type.body, color = c.text, modifier = Modifier.weight(1f))
+            if (member.profileId != null) Text("saved", style = ChronoTheme.type.body.copy(fontSize = 13.sp), color = c.muted)
+            IconTap(ChronoIcons.Trash, "Remove ${member.name}", tint = c.muted) {
+                set(player.members.filterIndexed { i, _ -> i != index })
+            }
+        }
+    }
+    if (player.members.size < Limits.MAX_TEAM_MEMBERS) {
+        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            ChronoTextField(
+                value = newMember,
+                onValueChange = { newMember = it },
+                placeholder = "Add a member",
+                maxLength = Limits.MAX_NAME_LENGTH,
+                showCounter = false,
+                modifier = Modifier.weight(1f),
+            )
+            Pill("Add", enabled = newMember.isNotBlank()) {
+                set(player.members + TeamMember(newMember))
+                newMember = ""
+            }
+        }
+        val linked = player.members.mapNotNull { it.profileId }.toSet()
+        val others = profiles.filter { it.id !in linked }
+        if (others.isNotEmpty()) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                others.forEach { profile ->
+                    Pill(profile.name, accent = parseHex(profile.colorHex)) { set(player.members + TeamMember(profile.name, profile.id)) }
+                }
+            }
+        }
+    }
+    Note("Members share this seat's score. Stats count the result for each of them. Remove every member to make it a single seat again.")
 }
 
 /** Rounded color swatch; the selected one takes a text-colored ring with a gap. */

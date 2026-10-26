@@ -2,6 +2,8 @@ package io.chronoscore.ui.dialogs
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -17,6 +19,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.chronoscore.engine.sanitized
+import io.chronoscore.model.DartsGame
+import io.chronoscore.model.DartsRules
+import io.chronoscore.model.HandCalc
 import io.chronoscore.model.MatchOptions
 import io.chronoscore.model.TimeBonus
 import io.chronoscore.model.TimeControl
@@ -40,6 +45,7 @@ fun OptionsDialog(options: MatchOptions, onChange: (MatchOptions) -> Unit, onDis
 }
 
 /** Toggles for the optional features; shared by Match options and New game. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun OptionsEditor(options: MatchOptions, onChange: (MatchOptions) -> Unit) {
     val set = { o: MatchOptions -> onChange(o.sanitized()) }
@@ -68,16 +74,21 @@ fun OptionsEditor(options: MatchOptions, onChange: (MatchOptions) -> Unit) {
 
     TimerModeEditor(options, set)
 
+    DartsEditor(options, set)
+    // Darts decide the result themselves.
+    if (options.darts != null) return
+
     SectionLabel("Winning", Modifier.padding(top = 8.dp))
     val rule = options.winRule
     Segmented(
-        options = listOf("None", "Target", "Elimination"),
+        options = listOf("None", "Target", "Out ≤", "Out ≥"),
         selectedIndex = rule.mode.ordinal,
         onSelect = { i ->
             val mode = WinMode.entries[i]
             val target = when {
                 mode == rule.mode -> rule.target
                 mode == WinMode.TARGET_SCORE -> 10
+                mode == WinMode.ELIMINATION_ABOVE -> 101
                 else -> 0
             }
             set(options.copy(winRule = rule.copy(mode = mode, target = target)))
@@ -98,11 +109,25 @@ fun OptionsEditor(options: MatchOptions, onChange: (MatchOptions) -> Unit) {
             NumberField("Out at or below", rule.target) { set(options.copy(winRule = rule.copy(target = it))) }
             Note("Seats at or below this score are out. The last seat standing wins.")
         }
+        WinMode.ELIMINATION_ABOVE -> {
+            NumberField("Out at or above", rule.target) { set(options.copy(winRule = rule.copy(target = it))) }
+            Note("Penalty points: seats at or above this score are out (Scala 40 plays to 101). The last seat standing wins.")
+        }
     }
 
     SectionLabel("Layout & games", Modifier.padding(top = 8.dp))
     SwitchRow("Round sheet", "A scorepad: enter each seat's points per round, totals add up.", options.sheetMode) {
         set(options.copy(sheetMode = it))
+    }
+    if (options.sheetMode) {
+        Text("Hand calculator", style = ChronoTheme.type.body, color = ChronoTheme.colors.text)
+        val calcs = listOf<HandCalc?>(null) + HandCalc.entries
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            calcs.forEach { calc ->
+                Pill(calc?.title ?: "Off", selected = options.handCalculator == calc) { set(options.copy(handCalculator = calc)) }
+            }
+        }
+        Note("Tapping a round works out the hand's points from what happened in it: scope and settebello, burrachi, card points, bocce or penalties.")
     }
     SwitchRow(
         "Magic: The Gathering extras",
@@ -122,9 +147,20 @@ fun MatchOptions.summary(): String {
         when (winRule.mode) {
             WinMode.TARGET_SCORE -> add("Target ${winRule.target}" + if (winRule.lowestWins) " (low wins)" else "")
             WinMode.ELIMINATION -> add("Elimination")
+            WinMode.ELIMINATION_ABOVE -> add("Out at ${winRule.target}")
             WinMode.NONE -> Unit
         }
-        if (sheetMode) add("Round sheet")
+        darts?.let { d ->
+            add(
+                when (d.game) {
+                    DartsGame.X01 -> "${d.start}" + if (d.doubleOut) " double out" else ""
+                    DartsGame.CRICKET -> "Cricket"
+                    DartsGame.AROUND_THE_CLOCK -> "Around the Clock"
+                    DartsGame.SHANGHAI -> "Shanghai ${d.rounds}"
+                },
+            )
+        }
+        if (sheetMode) add(handCalculator?.let { "${it.title} sheet" } ?: "Round sheet")
         if (mtgExtras) add("MTG")
     }
     return if (parts.isEmpty()) "Off" else parts.joinToString(" · ")
@@ -181,6 +217,59 @@ private fun TimerModeEditor(options: MatchOptions, set: (MatchOptions) -> Unit) 
         else " A seat that runs out keeps playing, with its overtime shown in red.",
     )
 }
+
+/** Darts mode: the game, and its rules. Changing them starts the scores over. */
+@Composable
+private fun DartsEditor(options: MatchOptions, set: (MatchOptions) -> Unit) {
+    val darts = options.darts
+    SectionLabel("Darts", Modifier.padding(top = 8.dp))
+    Segmented(
+        options = listOf("Off") + DartsGames.map { it.second },
+        selectedIndex = darts?.let { d -> DartsGames.indexOfFirst { it.first == d.game } + 1 } ?: 0,
+        onSelect = { i ->
+            set(options.copy(darts = if (i == 0) null else (darts ?: DartsRules()).copy(game = DartsGames[i - 1].first)))
+        },
+    )
+    if (darts == null) {
+        Note("Enter every dart on a board keypad: X01 with double-out, Cricket, Around the Clock or Shanghai.")
+        return
+    }
+    val update = { d: DartsRules -> set(options.copy(darts = d)) }
+    when (darts.game) {
+        DartsGame.X01 -> {
+            Segmented(
+                options = X01Starts.map { "$it" },
+                selectedIndex = X01Starts.indexOf(darts.start).coerceAtLeast(0),
+                onSelect = { update(darts.copy(start = X01Starts[it])) },
+            )
+            SwitchRow("Double out", "The last dart must be a double or the bull's eye.", darts.doubleOut) { update(darts.copy(doubleOut = it)) }
+            SwitchRow("Double in", "Scoring starts with a double.", darts.doubleIn) { update(darts.copy(doubleIn = it)) }
+        }
+        DartsGame.SHANGHAI -> Segmented(
+            options = ShanghaiRounds.map { "$it rounds" },
+            selectedIndex = ShanghaiRounds.indexOf(darts.rounds).coerceAtLeast(0),
+            onSelect = { update(darts.copy(rounds = ShanghaiRounds[it])) },
+        )
+        else -> Unit
+    }
+    Note(
+        when (darts.game) {
+            DartsGame.X01 -> "Count down to exactly 0. Going below 0 (or to 1 with double out) is a bust: the visit doesn't count."
+            DartsGame.CRICKET -> "Three marks close a number (a treble does it in one). Extra marks score while an opponent still has it open."
+            DartsGame.AROUND_THE_CLOCK -> "Hit 1 to 20 in order, then the bull. Any ring counts as one hit."
+            DartsGame.SHANGHAI -> "Round n aims at n; doubles and trebles multiply. Single, double and treble of it in one visit wins outright."
+        } + " Changing the darts settings starts the scores over.",
+    )
+}
+
+private val DartsGames = listOf(
+    DartsGame.X01 to "X01",
+    DartsGame.CRICKET to "Cricket",
+    DartsGame.AROUND_THE_CLOCK to "Clock",
+    DartsGame.SHANGHAI to "Shanghai",
+)
+private val X01Starts = listOf(301, 501, 701)
+private val ShanghaiRounds = listOf(7, 20)
 
 private fun formatBank(seconds: Int): String =
     if (seconds % 60 == 0) "${seconds / 60}m" else "${seconds / 60}m${seconds % 60}s"

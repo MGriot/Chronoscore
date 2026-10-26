@@ -14,6 +14,7 @@ import io.chronoscore.model.GamePreset
 import io.chronoscore.model.GameSession
 import io.chronoscore.model.MatchOptions
 import io.chronoscore.model.Profile
+import io.chronoscore.model.TeamMember
 import io.chronoscore.model.TimeBonus
 import io.chronoscore.model.TimeControl
 import io.chronoscore.model.WinMode
@@ -204,6 +205,17 @@ class SessionRepositoryTest {
         }
         repo.save(s)
         assertEquals(s, repo.load(s.id))
+    }
+
+    @Test
+    fun teamsRoundTrip() {
+        val options = MatchOptions(sheetMode = true, winRule = WinRule(WinMode.ELIMINATION_ABOVE, 101))
+        val s = engine.reduce(engine.newSession(2, 0, "Scopone", options), GameAction.NewGame(2, 0, "Scopone", teamSize = 2)).let { s ->
+            engine.reduce(s, GameAction.SetTeamMembers(s.players[0].id, listOf(TeamMember("Anna", "pr"), TeamMember("Marco"))))
+        }
+        repo.save(s)
+        assertEquals(s, repo.load(s.id))
+        assertEquals(listOf("Anna", "Marco"), repo.load(s.id)!!.players[0].members.map { it.name })
     }
 
     @Test

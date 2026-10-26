@@ -46,6 +46,7 @@ import io.chronoscore.viewmodel.SeatStyle
 import io.chronoscore.viewmodel.ThemeMode
 
 private val ScorePresets = listOf(20, 30, 40)
+private val TeamSizes = listOf(1, 2, 3)
 
 /** Menu (UI kit · Menu & all seats): current game, saved matches, appearance, new game. */
 @OptIn(ExperimentalLayoutApi::class)
@@ -84,6 +85,7 @@ fun MenuDialog(
     var newOptions by remember { mutableStateOf(session.options) }
     var showOptions by remember { mutableStateOf(false) }
     var presetSaved by remember { mutableStateOf(false) }
+    var teamSize by remember { mutableIntStateOf(session.players.first().members.size.coerceAtLeast(1)) }
 
     DialogFrame(if (newGameOnly) "New game" else "Menu", onDismiss, maxWidth = 420.dp) {
         if (!newGameOnly) {
@@ -173,13 +175,15 @@ fun MenuDialog(
                         gameName = preset.gameName.orEmpty()
                         counters = preset.counters
                         newOptions = preset.options
+                        teamSize = preset.teamSize ?: 1
                         presetSaved = false
                     }
                 }
             }
             presets.firstOrNull { it.id == presetId }?.let { preset ->
                 Note(
-                    "${preset.playerCount} players · start ${preset.startingScore}" +
+                    (preset.teamSize?.takeIf { it > 1 }?.let { "${preset.playerCount} teams of $it" } ?: "${preset.playerCount} players") +
+                        " · start ${preset.startingScore}" +
                         (if (preset.counters.isEmpty()) "" else " · " + preset.counters.joinToString(", ")) +
                         " · " + preset.options.summary(),
                 )
@@ -193,12 +197,18 @@ fun MenuDialog(
         }
         GamePicker(gameName, { gameName = it; confirmNewGame = false }, knownGames, label = "Game for the new match (optional)")
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Players", style = ChronoTheme.type.body, color = ChronoTheme.colors.text, modifier = Modifier.weight(1f))
+            Text(if (teamSize > 1) "Teams" else "Players", style = ChronoTheme.type.body, color = ChronoTheme.colors.text, modifier = Modifier.weight(1f))
             Stepper(
                 "$playerCount", onDecrement = { playerCount-- }, onIncrement = { playerCount++ },
                 decrementEnabled = playerCount > Limits.MIN_PLAYERS, incrementEnabled = playerCount < Limits.MAX_PLAYERS,
             )
         }
+        // A team seat shares one score between its members (Scopone, Burraco in pairs, bocce teams).
+        Segmented(
+            options = TeamSizes.map { if (it == 1) "One per seat" else "Teams of $it" },
+            selectedIndex = TeamSizes.indexOf(teamSize).coerceAtLeast(0),
+            onSelect = { teamSize = TeamSizes[it]; presetSaved = false },
+        )
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             ScorePresets.forEach { s ->
                 Pill("Start $s", Modifier.weight(1f), selected = customScore.isEmpty() && startingScore == s) {
@@ -228,7 +238,7 @@ fun MenuDialog(
             style = PillStyle.PRIMARY,
         ) {
             if (confirmNewGame) {
-                dispatch(GameAction.NewGame(playerCount, startingScore, gameName.ifBlank { null }, counters, newOptions))
+                dispatch(GameAction.NewGame(playerCount, startingScore, gameName.ifBlank { null }, counters, newOptions, teamSize))
                 onDismiss()
             } else confirmNewGame = true
         }
@@ -242,6 +252,7 @@ fun MenuDialog(
                     startingScore = startingScore,
                     counters = counters ?: session.players.first().subCounters.map { it.name },
                     options = newOptions,
+                    teamSize = teamSize.takeIf { it > 1 },
                 ),
             )
             presetSaved = true
