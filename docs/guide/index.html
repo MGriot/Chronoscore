@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Chronoscore User Guide</title>
-<meta name="description" content="How to use Chronoscore 1.1, the offline multi-seat scorekeeper for tabletop, card and board games.">
+<meta name="description" content="How to use Chronoscore 1.3, the offline multi-seat scorekeeper for tabletop, card and board games.">
 <link rel="icon" href="../images/icon.png">
 <style>
   :root {
@@ -225,7 +225,7 @@
 <header class="topbar">
   <img src="../images/icon.png" alt="">
   <span class="name">Chronoscore</span>
-  <span class="ver">Guide · 1.1</span>
+  <span class="ver">Guide · 1.3</span>
   <span class="spacer"></span>
   <button class="toc-btn" id="tocBtn" aria-expanded="false" aria-controls="toc">Contents</button>
   <button class="theme-btn" id="themeBtn" title="Switch light / dark">◐</button>
@@ -252,6 +252,9 @@
   <a href="#timer-mode">Timer mode</a>
   <a href="#winning">Winning and elimination</a>
   <a href="#sheet">Round sheet</a>
+  <a href="#hand-calculators">Hand calculators</a>
+  <a href="#darts">Darts</a>
+  <a href="#teams">Teams</a>
   <a href="#mtg">Magic: The Gathering extras</a>
   <a href="#presets">Presets</a>
   <div class="group">Tools and history</div>
@@ -273,7 +276,7 @@
   <div class="hero">
     <img src="../images/icon.png" alt="Chronoscore icon">
     <div>
-      <div class="label">User guide · version 1.1</div>
+      <div class="label">User guide · version 1.3</div>
       <h1>Chronoscore</h1>
     </div>
   </div>
@@ -282,23 +285,23 @@
     <span class="pill">1–8 players</span>
     <span class="pill">Android · Windows · Linux</span>
     <span class="pill">Fully offline</span>
-    <span class="pill new">New: turns &amp; timers</span>
-    <span class="pill new">New: win rules</span>
-    <span class="pill new">New: presets</span>
-    <span class="pill new">New: round sheet</span>
-    <span class="pill new">New: MTG extras</span>
-    <span class="pill new">New: stats &amp; backups</span>
+    <span class="pill">Turns &amp; timers</span>
+    <span class="pill">Win rules &amp; presets</span>
+    <span class="pill">Round sheet</span>
+    <span class="pill new">New: teams</span>
+    <span class="pill new">New: darts</span>
+    <span class="pill new">New: hand calculators</span>
   </div>
-  <div class="note"><strong>Everything new in 1.1 is optional.</strong> With every match option off, Chronoscore looks and works exactly like 1.0: a plain, fast counter. Turn on only what your game needs.</div>
+  <div class="note"><strong>Every match option is optional.</strong> With every match option off, Chronoscore looks and works exactly like 1.0: a plain, fast counter. Turn on only what your game needs.</div>
 </section>
 
 <section id="install">
   <h2>Install</h2>
   <div class="table-wrap"><table>
     <tr><th>Platform</th><th>File</th><th>How</th></tr>
-    <tr><td>Android 7.0+</td><td><code>Chronoscore-1.2.2.apk</code></td><td>Allow installs from your browser or file manager, then open the file. Updating over 1.0 keeps all your matches.</td></tr>
-    <tr><td>Windows 10/11 (x64)</td><td><code>Chronoscore-1.2.2.exe</code></td><td>Run the installer. It includes its own Java runtime, so you don't need Java installed. Chronoscore appears in the Start menu.</td></tr>
-    <tr><td>Windows, portable</td><td><code>Chronoscore-windows-x64-1.2.2.jar</code></td><td>Needs Java 17+. Run <code>java -jar Chronoscore-windows-x64-1.2.2.jar</code>.</td></tr>
+    <tr><td>Android 7.0+</td><td><code>Chronoscore-1.3.0.apk</code></td><td>Allow installs from your browser or file manager, then open the file. Updating over 1.0 keeps all your matches.</td></tr>
+    <tr><td>Windows 10/11 (x64)</td><td><code>Chronoscore-1.3.0.exe</code></td><td>Run the installer. It includes its own Java runtime, so you don't need Java installed. Chronoscore appears in the Start menu.</td></tr>
+    <tr><td>Windows, portable</td><td><code>Chronoscore-windows-x64-1.3.0.jar</code></td><td>Needs Java 17+. Run <code>java -jar Chronoscore-windows-x64-1.3.0.jar</code>.</td></tr>
     <tr><td>Linux</td><td>build from source</td><td><code>./gradlew :composeApp:packageDeb</code> or <code>packageRpm</code> on the target machine.</td></tr>
   </table></div>
   <p>Your data is upgraded automatically the first time 1.1 starts. Nothing is lost, and 1.0 matches open with every new option off.</p>
@@ -502,7 +505,8 @@
     <tr><th>Rule</th><th>How it works</th><th>Good for</th></tr>
     <tr><td><strong>None</strong></td><td>No automatic result. A seat can still <em>Mark as out</em>; when only one seat is left, it wins.</td><td>Most games</td></tr>
     <tr><td><strong>Target</strong></td><td>The match ends when a seat reaches the target score (counting up or down, depending on where you started). Then <em>Highest wins</em> or <em>Lowest wins</em> decides.</td><td>Race to 10 VP; Hearts (to 100, lowest wins)</td></tr>
-    <tr><td><strong>Elimination</strong></td><td>A seat at or below the threshold (0 by default) is <span class="tag outline">OUT</span>. The last seat standing wins.</td><td>Life-total games, Magic</td></tr>
+    <tr><td><strong>Out ≤</strong> (elimination)</td><td>A seat at or below the threshold (0 by default) is <span class="tag outline">OUT</span>. The last seat standing wins.</td><td>Life-total games, Magic</td></tr>
+    <tr><td><strong>Out ≥</strong></td><td>For penalty points: a seat at or above the threshold (101 by default) is <span class="tag outline">OUT</span>. The last seat standing wins.</td><td>Scala 40</td></tr>
   </table></div>
   <ul>
     <li>Seats that are out are <strong>dimmed</strong> but stay editable, so you can still fix mistakes.</li>
@@ -525,6 +529,69 @@
       <p>Every entry is an ordinary log entry in its round, so Undo, the match log, win rules and CSV export all work.</p>
     </div>
     <figure class="phone"><img src="../images/phone-sheet.png" alt="Round sheet for Hearts"></figure>
+  </div>
+</section>
+
+<section id="hand-calculators">
+  <h2>Hand calculators</h2>
+  <div class="split">
+    <div>
+      <p>For card games and bocce, pick a <em>Hand calculator</em> under <em>Match options → Layout &amp; games</em> (with the Round sheet on), or start from one of their <a href="#presets">presets</a>. Tapping a round then opens a calculator for the whole hand instead of the keypad:</p>
+      <ul>
+        <li>Enter what happened in the hand; the points for each seat show at the bottom before you tap <strong>Apply</strong>.</li>
+        <li>Applying the current round moves the sheet on to the next one. One <strong>Undo</strong> reverts the whole hand.</li>
+        <li><strong>Type points</strong> goes back to the plain keypad for that cell.</li>
+      </ul>
+    </div>
+    <figure class="dialog"><img src="../images/dialog-hand-scopa.png" alt="Scopa hand calculator"></figure>
+  </div>
+  <div class="table-wrap"><table>
+    <tr><th>Calculator</th><th>You enter</th><th>Points</th></tr>
+    <tr><td><strong>Scopa</strong> / Scopone</td><td>Cards, denari and scope per side; who took the settebello and the primiera</td><td>1 each for most cards, most denari (a tie scores nobody), settebello and primiera; +1 per scopa</td></tr>
+    <tr><td><strong>Burraco</strong></td><td>Clean and dirty burrachi, cards on the table and in hand, pozzetto taken, who closed</td><td>+200 / +100 per burraco, +100 for closing, −100 without the pozzetto, plus the table, minus the hand</td></tr>
+    <tr><td><strong>Briscola</strong></td><td>One side's card points (the other side has the rest of 120)</td><td>61 wins the hand (1 point); 60–60 is a draw</td></tr>
+    <tr><td><strong>Bocce</strong></td><td>The side closest to the jack, and how many of its bocce beat the other side's best</td><td>Only that side scores</td></tr>
+    <tr><td><strong>Scala 40</strong></td><td>Who closed; for the others, whether they opened and their cards in hand</td><td>0 for closing, 100 for not opening, otherwise the cards in hand</td></tr>
+  </table></div>
+  <div class="note tip">Card values are shown in each calculator. Burraco: jolly 30, pinella 20, ace 15, 8 to king 10, 3 to 7 five. Scala 40: ace 11, face cards 10, numbers at face value, jolly 25. Primiera: 7 = 21, 6 = 18, ace = 16, 5 = 15, 4 = 14, 3 = 13, 2 = 12, face cards 10.</div>
+</section>
+
+<section id="darts">
+  <h2>Darts</h2>
+  <div class="split">
+    <div>
+      <p>Choose a game under <em>Match options → Darts</em>, or a darts <a href="#presets">preset</a>. The table becomes a darts board: seat scores on top, the visit in progress below them, and a keypad at the bottom.</p>
+      <ul>
+        <li>Pick <strong>Single / Double / Treble</strong>, then the number. The ring goes back to Single after each dart. <strong>25</strong> is the single bull; with Double it is the bull's eye (50).</li>
+        <li>After three darts, a bust or a win, the turn passes by itself. <strong>Next</strong> in the turn bar ends a visit early; the darts not thrown count as misses.</li>
+        <li><strong>Undo</strong> takes back one dart, and a bust or a win with it.</li>
+      </ul>
+    </div>
+    <figure class="phone"><img src="../images/phone-darts.png" alt="Darts 501 board"></figure>
+  </div>
+  <div class="table-wrap"><table>
+    <tr><th>Game</th><th>Rules</th></tr>
+    <tr><td><strong>X01</strong> (301, 501, 701)</td><td>Count down to exactly 0. With <em>double out</em> the last dart must be a double (or the bull's eye); going below 0, or to 1, is a bust and the visit doesn't count. <em>Double in</em> starts scoring with a double. The active seat shows a checkout, such as <em>T20 T20 Bull</em> for 170.</td></tr>
+    <tr><td><strong>Cricket</strong></td><td>Three marks close 15–20 or the bull (a treble closes in one), shown as / X Ⓧ. Extra marks score the number while an opponent still has it open. Close everything without trailing on points to win.</td></tr>
+    <tr><td><strong>Around the Clock</strong></td><td>Hit 1 to 20 in order, then the bull. Any ring counts as one hit. The first to hit the bull wins.</td></tr>
+    <tr><td><strong>Shanghai</strong></td><td>Round n aims at n; doubles and trebles multiply. Single, double and treble of n in one visit wins outright; otherwise the highest score after 7 (or 20) rounds wins.</td></tr>
+  </table></div>
+  <div class="note warn">Changing the darts settings in the middle of a match starts the scores over.</div>
+</section>
+
+<section id="teams">
+  <h2>Teams</h2>
+  <div class="split">
+    <div>
+      <p>A seat can be a team whose members share its score, as in Scopone, Burraco in pairs or bocce teams.</p>
+      <ul>
+        <li>Choose <strong>Teams of 2</strong> (or 3) under <em>Menu → New game</em>, or tap <em>Edit seat → Make this seat a team</em>.</li>
+        <li>Add members by name or from your saved players; remove them in the same place. Removing every member makes it a single seat again.</li>
+        <li>Member names show under the team name, on the table and on the round sheet.</li>
+        <li><a href="#stats">Players and stats</a> count a team's result for each member, and the CSV export lists the members.</li>
+      </ul>
+    </div>
+    <figure class="phone"><img src="../images/phone-teams.png" alt="Scopone round sheet with two teams"></figure>
   </div>
 </section>
 
@@ -560,6 +627,12 @@
     <tr><td>Race to 10</td><td>4 players at 0, turn tracker, Target 10</td></tr>
     <tr><td>Chess clock</td><td>2 players, timer mode: 10 min each, +5 s increment, out on time</td></tr>
     <tr><td>Board game timer</td><td>4 players, timer mode: 20 min each, 10 s delay, overtime; match clock</td></tr>
+    <tr><td>Bocce · Raffa / Pétanque</td><td>2 sides, Round sheet with the bocce calculator, Target 12 / 13</td></tr>
+    <tr><td>Briscola</td><td>2 sides, Round sheet with the Briscola calculator, Target 2 hands</td></tr>
+    <tr><td>Scopa / Scopone</td><td>2 players / 2 teams of 2, Round sheet with the Scopa calculator, Target 11</td></tr>
+    <tr><td>Scala 40</td><td>4 players, Round sheet with the Scala 40 calculator, out at 101</td></tr>
+    <tr><td>Burraco</td><td>2 teams of 2, Round sheet with the Burraco calculator, Target 2005</td></tr>
+    <tr><td>Darts 501 / 301, Cricket, Around the Clock, Shanghai</td><td>2 players, darts board</td></tr>
   </table></div>
   <ul>
     <li><strong>Save as preset</strong> (under the New game form) stores your current setup under its game name.</li>
@@ -702,7 +775,7 @@
 </section>
 
 <footer>
-  Chronoscore 1.1 · offline scorekeeper for Android, Windows and Linux · Fonts in the app: Inter and Inter Tight (SIL Open Font License 1.1).
+  Chronoscore 1.3 · offline scorekeeper for Android, Windows and Linux · Fonts in the app: Inter and Inter Tight (SIL Open Font License 1.1).
 </footer>
 </main>
 </div>

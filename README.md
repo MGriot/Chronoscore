@@ -21,9 +21,9 @@ Get the latest build from [**Releases**](https://github.com/MGriot/Chronoscore/r
 
 | Platform | File | Notes |
 | --- | --- | --- |
-| Android 7.0+ | `Chronoscore-1.2.2.apk` | Signed release build. Allow installs from your browser or file manager, then open the file. |
-| Windows x64 | `Chronoscore-1.2.2.exe` | Installer with its own Java runtime, so you don't need Java. Adds Chronoscore to the Start menu. |
-| Windows x64 (portable) | `Chronoscore-windows-x64-1.2.2.jar` | Needs Java 17+. Run it with `java -jar Chronoscore-windows-x64-1.2.2.jar`. |
+| Android 7.0+ | `Chronoscore-1.3.0.apk` | Signed release build. Allow installs from your browser or file manager, then open the file. |
+| Windows x64 | `Chronoscore-1.3.0.exe` | Installer with its own Java runtime, so you don't need Java. Adds Chronoscore to the Start menu. |
+| Windows x64 (portable) | `Chronoscore-windows-x64-1.3.0.jar` | Needs Java 17+. Run it with `java -jar Chronoscore-windows-x64-1.3.0.jar`. |
 
 To get a Linux build, build it from source (see below).
 
