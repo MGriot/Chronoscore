@@ -261,7 +261,6 @@ fun App(viewModel: GameViewModel, files: FileBridge = NoFileBridge) {
                 session = session,
                 onUndo = { dispatch(GameAction.Undo) },
                 onNextRound = { dispatch(GameAction.NextRound) },
-                onOpenLibrary = { dialog = OpenDialog.Library },
                 onDismiss = dismiss,
                 canUndo = session.canUndo,
             )

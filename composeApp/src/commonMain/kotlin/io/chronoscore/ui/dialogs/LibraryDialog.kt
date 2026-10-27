@@ -2,12 +2,15 @@ package io.chronoscore.ui.dialogs
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -18,7 +21,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -69,11 +71,7 @@ fun LibraryDialog(
             knownGames = games,
             label = "This match belongs to",
         )
-        Pill(
-            "Players & stats", Modifier.fillMaxWidth(),
-            leadingIcon = ChronoIcons.Person, trailingIcon = ChronoIcons.ArrowRight, textAlign = TextAlign.Start,
-            onClick = onStats,
-        )
+        NavRow("Players & stats", ChronoIcons.Person, onClick = onStats)
         if (filesAvailable) {
             SectionLabel("Backup")
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -106,22 +104,20 @@ fun LibraryDialog(
                     topGap = 0.dp,
                 )
                 if (name != null) {
-                    val onDeleteThisGame = {
-                        if (confirmingGame) {
-                            onDeleteGame(name)
-                            confirmGame = null
-                        } else {
-                            confirmGame = key
-                            confirmDelete = null
-                        }
+                    // Deleting the whole game sits behind a ⋯ menu, apart from each match's own trash icon.
+                    IconTap(ChronoIcons.More, "More for $name", tint = c.muted) {
+                        confirmGame = if (confirmingGame) null else key
+                        confirmDelete = null
                     }
-                    if (confirmingGame) Pill("Delete game", style = PillStyle.DESTRUCTIVE, onClick = onDeleteThisGame)
-                    else IconTap(ChronoIcons.Trash, "Delete game", tint = c.muted, onClick = onDeleteThisGame)
                 }
             }
-            if (confirmingGame) {
+            if (name != null && confirmingGame) {
                 val matches = if (group.size == 1) "1 match" else "${group.size} matches"
                 Note("Deletes $matches for good" + if (group.any { it.id == current.id }) ", including the one on the table." else ".")
+                Pill("Delete all $name matches", Modifier.fillMaxWidth(), style = PillStyle.DESTRUCTIVE) {
+                    onDeleteGame(name)
+                    confirmGame = null
+                }
             }
             group.forEach { s ->
                 MatchRow(
@@ -153,12 +149,14 @@ private fun MatchRow(
     onDelete: () -> Unit,
 ) {
     val c = ChronoTheme.colors
+    // The whole card opens the match; the chevron says so.
     Row(
         Modifier
             .fillMaxWidth()
             .clip(ChronoShapes.control)
             .background(c.surface)
             .border(if (isCurrent) 1.5.dp else 1.dp, if (isCurrent) c.text else c.outline, ChronoShapes.control)
+            .clickable(enabled = !isCurrent, onClickLabel = "Continue this match", onClick = onOpen)
             .padding(start = 12.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -185,9 +183,9 @@ private fun MatchRow(
                 modifier = Modifier.clip(RoundedCornerShape(4.dp)).background(c.primary).padding(horizontal = 8.dp, vertical = 4.dp),
             )
         } else {
-            Pill("Continue", style = PillStyle.PRIMARY, onClick = onOpen)
             if (confirming) Pill("Delete", style = PillStyle.DESTRUCTIVE, onClick = onDelete)
             else IconTap(ChronoIcons.Trash, "Delete match", tint = c.muted, onClick = onDelete)
+            Icon(ChronoIcons.ChevronRight, null, Modifier.size(20.dp), tint = c.muted)
         }
     }
 }

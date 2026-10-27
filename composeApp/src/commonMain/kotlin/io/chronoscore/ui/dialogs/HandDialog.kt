@@ -1,10 +1,15 @@
 package io.chronoscore.ui.dialogs
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -63,7 +68,11 @@ fun HandDialog(
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 seats.forEachIndexed { i, p ->
                     Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(p.name, style = ChronoTheme.type.label.copy(fontSize = 11.sp), color = parseHex(p.colorHex), maxLines = 1)
+                        Box(Modifier.size(width = 24.dp, height = 3.dp).background(parseHex(p.colorHex)))
+                        Text(
+                            p.name, style = ChronoTheme.type.label.copy(fontSize = 11.sp), color = ChronoTheme.colors.text,
+                            maxLines = 1, modifier = Modifier.padding(top = 4.dp),
+                        )
                         Text(
                             formatScore(points[i], plus = true), style = ChronoTheme.type.counter.copy(fontSize = 22.sp, fontWeight = FontWeight.Bold),
                             color = ChronoTheme.colors.text, textAlign = TextAlign.Center,
@@ -106,10 +115,10 @@ private fun scopaInputs(seats: List<Player>): List<Int> {
         }
     }
     Text("Settebello", style = ChronoTheme.type.body, color = ChronoTheme.colors.text)
-    SeatChoice(seats, settebello, noneLabel = "—") { settebello = it }
+    SeatChoice(seats, settebello, noneLabel = "None") { settebello = it }
     Text("Primiera", style = ChronoTheme.type.body, color = ChronoTheme.colors.text)
     SeatChoice(seats, primiera, noneLabel = "Tie") { primiera = it }
-    Note("Most cards (over 20 of 40) and most denari (over 5) score a point each; a tie scores nobody. Primiera: best card per suit, 7 = 21, 6 = 18, ace = 16, 5 = 15, 4 = 14, 3 = 13, 2 = 12, face cards 10.")
+    HowScoringWorks("Most cards (over 20 of 40) and most denari (over 5) score a point each; a tie scores nobody. Primiera: best card per suit, 7 = 21, 6 = 18, ace = 16, 5 = 15, 4 = 14, 3 = 13, 2 = 12, face cards 10.")
     return scopaPoints(sides.value.mapIndexed { i, s -> s.copy(settebello = i == settebello, primiera = i == primiera) })
 }
 
@@ -133,7 +142,7 @@ private fun burracoInputs(seats: List<Player>): List<Int> {
     }
     Text("Closed the hand (+100)", style = ChronoTheme.type.body, color = ChronoTheme.colors.text)
     SeatChoice(seats, closer, noneLabel = "Nobody") { closer = it }
-    Note("Card values: jolly 30, pinella 20, ace 15, 8 to king 10, 3 to 7 five.")
+    HowScoringWorks("Card values: jolly 30, pinella 20, ace 15, 8 to king 10, 3 to 7 five.")
     return sides.value.mapIndexed { i, s -> burracoPoints(s.copy(closed = i == closer)) }
 }
 
@@ -179,16 +188,29 @@ private fun scala40Inputs(seats: List<Player>): List<Int> {
             }
         }
     }
-    Note("Penalties: ace 11, face cards 10, number cards face value, jolly 25.")
+    HowScoringWorks("Penalties: ace 11, face cards 10, number cards face value, jolly 25.")
     return seats.indices.map { i -> scala40Penalty(closed = i == closer, opened = opened.value[i], cardsInHand = cards.value[i]) }
 }
 
+/** Seat name in the text colour, after a bar in the seat colour (coloured text is too faint here). */
 @Composable
 private fun SeatHeading(player: Player) {
-    Text(
-        player.name.uppercase() + if (player.isTeam) " · " + player.members.joinToString(" & ") { it.name } else "",
-        style = ChronoTheme.type.label, color = parseHex(player.colorHex), modifier = Modifier.padding(top = 6.dp),
-    )
+    Row(Modifier.padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.size(width = 3.dp, height = 14.dp).background(parseHex(player.colorHex)))
+        Spacer(Modifier.width(8.dp))
+        Text(
+            player.name.uppercase() + if (player.isTeam) " · " + player.members.joinToString(" & ") { it.name } else "",
+            style = ChronoTheme.type.label, color = ChronoTheme.colors.text,
+        )
+    }
+}
+
+/** Rules reference, folded away: players who know the game don't need it every hand. */
+@Composable
+private fun HowScoringWorks(text: String) {
+    var open by remember { mutableStateOf(false) }
+    TextAction(if (open) "Hide scoring rules" else "How scoring works") { open = !open }
+    if (open) Note(text)
 }
 
 /** One seat, or none with [noneLabel]; -1 means none. */

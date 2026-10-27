@@ -115,7 +115,7 @@ class RenderSmokeTest {
         val dialogs: Map<String, @Composable () -> Unit> = mapOf(
             "keypad" to { KeypadDialog("Mara", "#2563EB", "Score", 40, false, 4, {}, { _, _, _ -> }) },
             "utilities" to { UtilitiesDialog(vm.utility.value, { _, _ -> }, {}, {}, {}, {}) },
-            "log" to { HistoryDialog(session, {}, {}, {}, {}) },
+            "log" to { HistoryDialog(session, {}, {}, {}) },
             "menu" to {
                 MenuDialog(session, listOf("Commander", "Catan"), noop, {}, {}, {})
             },

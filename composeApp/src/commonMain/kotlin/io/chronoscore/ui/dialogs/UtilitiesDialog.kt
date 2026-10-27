@@ -74,7 +74,7 @@ fun UtilitiesDialog(
                 showCounter = false,
                 modifier = Modifier.weight(1f),
             )
-            Pill("Roll", style = PillStyle.PRIMARY, enabled = valid || custom.isEmpty()) {
+            Pill("Roll", enabled = valid || custom.isEmpty()) {
                 if (valid) sides = customSides!!
                 onRoll(sides, count)
             }

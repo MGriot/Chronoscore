@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -20,7 +21,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -32,7 +32,6 @@ import io.chronoscore.model.GameSession
 import io.chronoscore.model.Profile
 import io.chronoscore.ui.formatDuration
 import io.chronoscore.ui.theme.ChronoIcons
-import io.chronoscore.ui.theme.ChronoShapes
 import io.chronoscore.ui.theme.ChronoTheme
 import io.chronoscore.ui.theme.parseHex
 import kotlin.math.roundToInt
@@ -66,7 +65,12 @@ fun StatsDialog(
         Note("$inScope ${if (inScope == 1) "match" else "matches"} · wins count matches with a result.")
 
         if (stats.isEmpty()) Note("No matches yet.")
-        stats.forEach { s -> StatsRow(s) }
+        Column {
+            stats.forEachIndexed { i, s ->
+                if (i > 0) Hairline()
+                StatsRow(s)
+            }
+        }
 
         if (profiles.isNotEmpty()) {
             SectionLabel("Saved players")
@@ -92,19 +96,27 @@ fun StatsDialog(
 @Composable
 private fun StatsRow(s: PlayerStats) {
     val c = ChronoTheme.colors
+    // A plain list row, like the match log: these rows don't open anything.
     Row(
-        Modifier.fillMaxWidth().clip(ChronoShapes.control).background(c.surface)
-            .border(1.dp, c.outline, ChronoShapes.control).padding(horizontal = 12.dp, vertical = 8.dp),
+        Modifier.fillMaxWidth().padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Box(Modifier.size(width = 3.dp, height = 32.dp).background(parseHex(s.colorHex)))
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(
-                s.name + if (s.isProfile) "" else "  ·  by name",
-                style = ChronoTheme.type.body.copy(fontWeight = FontWeight.Medium), color = c.text,
-                maxLines = 1, overflow = TextOverflow.Ellipsis,
-            )
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(
+                    s.name, style = ChronoTheme.type.body.copy(fontWeight = FontWeight.Medium), color = c.text,
+                    maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false),
+                )
+                // Counted by seat name rather than a saved player.
+                if (!s.isProfile) {
+                    Text(
+                        "Unsaved", style = ChronoTheme.type.label.copy(fontSize = 10.sp, letterSpacing = 0.5.sp), color = c.muted,
+                        modifier = Modifier.border(1.dp, c.outline, RoundedCornerShape(4.dp)).padding(horizontal = 5.dp, vertical = 1.dp),
+                    )
+                }
+            }
             val avg = (s.averageScore * 10).roundToInt() / 10.0
             val time = if (s.timeMillis >= 1_000) " · ${formatDuration(s.timeMillis)} on turns" else ""
             Text(

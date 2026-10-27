@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
@@ -34,7 +33,6 @@ fun HistoryDialog(
     session: GameSession,
     onUndo: () -> Unit,
     onNextRound: () -> Unit,
-    onOpenLibrary: () -> Unit,
     onDismiss: () -> Unit,
     /** Darts misses aren't logged, so the table says whether there is anything to undo. */
     canUndo: Boolean = session.historyLog.isNotEmpty(),
@@ -104,6 +102,5 @@ fun HistoryDialog(
                 }
             }
 
-        Pill("Saved matches", Modifier.fillMaxWidth(), leadingIcon = ChronoIcons.Library, trailingIcon = ChronoIcons.ArrowRight, textAlign = TextAlign.Start, onClick = onOpenLibrary)
     }
 }

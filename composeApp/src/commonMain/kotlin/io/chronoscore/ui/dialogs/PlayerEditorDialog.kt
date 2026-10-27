@@ -74,6 +74,7 @@ fun PlayerEditorDialog(
 
         // In darts the score comes from the darts thrown; a typed score would be overwritten by the next dart.
         val darts = options.darts != null
+        SectionLabel("Seat")
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             if (!darts) {
                 Pill("Set score", Modifier.weight(1f), leadingIcon = ChronoIcons.Keypad) {
@@ -95,6 +96,7 @@ fun PlayerEditorDialog(
             Pill("+${Limits.ROTATION_STEP}°", Modifier.weight(1f)) { dispatch(GameAction.RotateSeat(player.id, Limits.ROTATION_STEP)) }
         }
 
+        SectionLabel("In this match")
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             // Darts pass the turn after each visit; Undo on the keypad gives it back.
             if (options.turnTracking && !darts) {
@@ -124,7 +126,7 @@ fun PlayerEditorDialog(
         }
         if (options.mtgExtras) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Pill("Monarch", Modifier.weight(1f), selected = isMonarch) {
+                Pill("Monarch", Modifier.weight(1f), selected = isMonarch, leadingIcon = ChronoIcons.Crown) {
                     dispatch(GameAction.SetMonarch(if (isMonarch) null else player.id))
                 }
                 Pill("Initiative", Modifier.weight(1f), selected = isInitiative) {
@@ -144,7 +146,6 @@ fun PlayerEditorDialog(
                 }
             }
         }
-        Note("Selected swatch takes a ring, so it doesn't depend on hue.")
 
         SectionLabel("Counters · ${player.subCounters.size} / ${Limits.MAX_SUB_COUNTERS}")
         player.subCounters.forEach { counter ->

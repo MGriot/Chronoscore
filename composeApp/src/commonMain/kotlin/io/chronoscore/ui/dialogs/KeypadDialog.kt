@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
@@ -69,26 +70,34 @@ fun KeypadDialog(
                 options = listOf("Only $playerName", "All seats"),
                 selectedIndex = if (allSeats) 1 else 0,
                 onSelect = { allSeats = it == 1 },
-                dotColors = listOf(parseHex(playerColor), c.text),
+                // Only the seat gets its colour dot; "All seats" needs none.
+                dotColors = listOf(parseHex(playerColor)),
             )
         }
 
+        // "40 → 52" once something is typed, with the new value in the text colour.
         Row(
-            Modifier.fillMaxWidth().clip(ChronoShapes.control).background(c.surface).padding(horizontal = 16.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.Bottom,
+            Modifier.fillMaxWidth().heightIn(min = 72.dp).clip(ChronoShapes.control).background(c.surface)
+                .padding(horizontal = 16.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                if (allSeats && mode == 0) "all →" else "$current →",
-                style = ChronoTheme.type.body, color = c.muted, modifier = Modifier.padding(bottom = 6.dp),
+                if (allSeats && mode == 0) "All seats" else formatScore(current),
+                style = ChronoTheme.type.counter.copy(fontSize = 22.sp), color = c.muted,
             )
-            Text(
-                formatScore(preview ?: current),
-                style = ChronoTheme.type.score.copy(fontSize = 48.sp, lineHeight = 52.sp),
-                color = if (preview == null) c.muted else c.text,
-                textAlign = TextAlign.End,
-                maxLines = 1,
-                modifier = Modifier.weight(1f),
-            )
+            Icon(ChronoIcons.ArrowRight, null, Modifier.padding(horizontal = 10.dp).size(18.dp), tint = c.muted)
+            if (preview == null) {
+                Text(
+                    "type a value", style = ChronoTheme.type.body, color = c.muted.copy(alpha = 0.7f),
+                    textAlign = TextAlign.End, modifier = Modifier.weight(1f),
+                )
+            } else {
+                Text(
+                    formatScore(preview),
+                    style = ChronoTheme.type.score.copy(fontSize = 48.sp, lineHeight = 52.sp),
+                    color = c.text, textAlign = TextAlign.End, maxLines = 1, modifier = Modifier.weight(1f),
+                )
+            }
         }
 
         Segmented(Modes, mode, onSelect = { mode = it; if (it != 0) negative = false })
@@ -138,7 +147,7 @@ private fun Key(key: String, enabled: Boolean, modifier: Modifier, onClick: () -
     ) {
         val color = if (enabled) c.text else c.muted.copy(alpha = 0.4f)
         if (key == "⌫") {
-            Icon(ChronoIcons.Close, "Backspace", Modifier.size(20.dp), tint = color)
+            Icon(ChronoIcons.Backspace, "Backspace", Modifier.size(22.dp), tint = color)
         } else {
             Text(key, style = ChronoTheme.type.counter.copy(fontSize = 22.sp), color = color)
         }
