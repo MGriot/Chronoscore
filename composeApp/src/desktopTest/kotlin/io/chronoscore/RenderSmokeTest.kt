@@ -20,10 +20,14 @@ import io.chronoscore.ui.dialogs.OptionsDialog
 import io.chronoscore.ui.dialogs.StartDialog
 import io.chronoscore.ui.dialogs.StatsDialog
 import io.chronoscore.ui.dialogs.EditAllSeatsDialog
+import io.chronoscore.model.HandCalc
+import io.chronoscore.ui.dialogs.HandDialog
 import io.chronoscore.ui.dialogs.HistoryDialog
 import io.chronoscore.ui.dialogs.KeypadDialog
 import io.chronoscore.ui.dialogs.LibraryDialog
 import io.chronoscore.ui.dialogs.MenuDialog
+import io.chronoscore.ui.dialogs.NewGameDialog
+import io.chronoscore.ui.dialogs.AppearanceDialog
 import io.chronoscore.ui.dialogs.PlayerEditorDialog
 import io.chronoscore.ui.dialogs.UtilitiesDialog
 import io.chronoscore.ui.theme.ChronoscoreTheme
@@ -111,17 +115,14 @@ class RenderSmokeTest {
         val dialogs: Map<String, @Composable () -> Unit> = mapOf(
             "keypad" to { KeypadDialog("Mara", "#2563EB", "Score", 40, false, 4, {}, { _, _, _ -> }) },
             "utilities" to { UtilitiesDialog(vm.utility.value, { _, _ -> }, {}, {}, {}, {}) },
-            "log" to { HistoryDialog(session, {}, {}, {}, {}) },
+            "log" to { HistoryDialog(session, {}, {}, {}) },
             "menu" to {
-                MenuDialog(session, ThemeMode.DARK, SeatStyle.NEUTRAL, listOf("Commander", "Catan"), noop, {}, {}, {}, {}, {}, {})
+                MenuDialog(session, listOf("Commander", "Catan"), noop, {}, {}, {})
             },
-            "start" to { StartDialog(session, summaries[0], {}, {}, {}) },
-            "new_game" to {
-                MenuDialog(
-                    session, ThemeMode.DARK, SeatStyle.NEUTRAL, listOf("Commander", "Catan"), noop, {}, {}, {}, {}, {}, {},
-                    presets = BuiltInPresets.all, newGameOnly = true,
-                )
-            },
+            "start" to { StartDialog(session, summaries[0], {}, {}, {}, quickStarts = BuiltInPresets.all.take(3)) },
+            "new_game" to { NewGameDialog(session, listOf("Commander", "Catan"), BuiltInPresets.all, {}, {}) },
+            "new_game_players" to { NewGameDialog(session, listOf("Commander"), BuiltInPresets.all, {}, {}, initialStep = 1) },
+            "appearance" to { AppearanceDialog(ThemeMode.DARK, SeatStyle.NEUTRAL, {}, {}, {}) },
             "edit_all" to { EditAllSeatsDialog(session, noop) {} },
             "counters_all" to { CountersAllSeatsDialog(session, noop) {} },
             "library" to { LibraryDialog(session, summaries, {}, {}, {}, {}) },
@@ -197,6 +198,43 @@ class RenderSmokeTest {
         ImageComposeScene(420, 880, Density(1.5f)) { App(angled) }.use { it.snapshot("feature_rotation_phone") }
     }
 
+    /** A new match from a built-in preset, by name. */
+    private fun presetTable(name: String) = offlineVm().also { vm ->
+        val preset = BuiltInPresets.all.first { it.name == name }
+        vm.dispatch(GameAction.NewGame(preset.playerCount, preset.startingScore, preset.gameName, preset.counters, preset.options, preset.teamSize))
+    }
+
+    @Test
+    fun rendersDartsAndTeams() {
+        val x01 = presetTable("Darts 501").also { vm ->
+            val ids = vm.session.value.players.map { it.id }
+            vm.dispatch(GameAction.RenamePlayer(ids[0], "Mara"))
+            vm.dispatch(GameAction.RenamePlayer(ids[1], "Jonas"))
+            listOf(20 to 3, 20 to 3, 20 to 1, 19 to 3, 5 to 1, 1 to 1, 20 to 3, 20 to 3, 20 to 3).forEach { (n, m) ->
+                vm.dispatch(GameAction.ThrowDart(n, m))
+            }
+            vm.dispatch(GameAction.ThrowDart(20, 3))
+        }
+        ImageComposeScene(420, 880, Density(1.5f)) { App(x01) }.use { it.snapshot("feature_darts_501_phone") }
+        ImageComposeScene(1280, 800, Density(1.5f)) { App(x01) }.use { it.snapshot("feature_darts_501_desktop") }
+
+        val cricket = presetTable("Cricket").also { vm ->
+            listOf(20 to 3, 20 to 2, 19 to 1, 18 to 3, 0 to 1, 25 to 2, 17 to 3, 16 to 1).forEach { (n, m) ->
+                vm.dispatch(GameAction.ThrowDart(n, m))
+            }
+        }
+        ImageComposeScene(420, 880, Density(1.5f)) { App(cricket) }.use { it.snapshot("feature_darts_cricket_phone") }
+
+        val scopone = presetTable("Scopone").also { vm ->
+            val ids = vm.session.value.players.map { it.id }
+            listOf(listOf(3, 1), listOf(2, 4), listOf(4, 2)).forEachIndexed { r, row ->
+                row.forEachIndexed { i, pts -> vm.dispatch(GameAction.SetRoundPoints(ids[i], r + 1, pts)) }
+                vm.dispatch(GameAction.NextRound)
+            }
+        }
+        ImageComposeScene(420, 880, Density(1.5f)) { App(scopone) }.use { it.snapshot("feature_teams_phone") }
+    }
+
     @Test
     fun rendersFeatureDialogs() {
         val vm = commanderTable()
@@ -208,12 +246,7 @@ class RenderSmokeTest {
             "options" to { OptionsDialog(session.options, {}, {}) },
             "commander" to { CommanderDialog(session, session.players[1].id, false, noop, {}) },
             "stats" to { StatsDialog(history, profiles, {}, {}) },
-            "menu_presets" to {
-                MenuDialog(
-                    session, ThemeMode.DARK, SeatStyle.NEUTRAL, listOf("Commander"), noop, {}, {}, {}, {}, {}, {},
-                    presets = BuiltInPresets.all,
-                )
-            },
+            "menu_presets" to { MenuDialog(session, listOf("Commander"), noop, {}, {}, {}) },
             "editor_extras" to {
                 PlayerEditorDialog(
                     session.players[0], true, false, noop, {}, {},
@@ -221,6 +254,15 @@ class RenderSmokeTest {
                 )
             },
             "library_backup" to { LibraryDialog(session, emptyList(), {}, {}, {}, {}, filesAvailable = true) },
+            "options_darts" to { OptionsDialog(BuiltInPresets.all.first { it.name == "Darts 501" }.options, {}, {}) },
+            "hand_scopa" to { HandDialog(presetTable("Scopone").session.value.players, 3, HandCalc.SCOPA, {}, {}, {}) },
+            "hand_burraco" to { HandDialog(presetTable("Burraco").session.value.players, 1, HandCalc.BURRACO, {}, {}, {}) },
+            "hand_scala40" to { HandDialog(presetTable("Scala 40").session.value.players, 2, HandCalc.SCALA40, {}, {}, {}) },
+            "hand_bocce" to { HandDialog(presetTable("Bocce · Raffa").session.value.players, 5, HandCalc.BOCCE, {}, {}, {}) },
+            "editor_team" to {
+                val team = presetTable("Scopone").session.value.players[0]
+                PlayerEditorDialog(team, true, false, noop, {}, {}, profiles = profiles)
+            },
         )
         for ((name, dialog) in dialogs) {
             ImageComposeScene(720, 2600, Density(1.5f)) {

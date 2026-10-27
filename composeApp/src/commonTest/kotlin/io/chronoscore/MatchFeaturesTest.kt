@@ -4,7 +4,6 @@ import io.chronoscore.data.BackupCodec
 import io.chronoscore.data.Backup
 import io.chronoscore.data.matchCsv
 import io.chronoscore.engine.GameAction
-import io.chronoscore.engine.GameEngine
 import io.chronoscore.engine.computeStats
 import io.chronoscore.engine.outcome
 import io.chronoscore.model.CounterTarget
@@ -21,14 +20,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /** 1.1 features: turns, clocks, win rules, round sheet, MTG extras, profiles, backups. */
-class MatchFeaturesTest {
-
-    private var now = 1_000_000L
-    private var nextId = 0
-    private val engine = GameEngine(clock = { now }, newId = { "id${nextId++}" })
-
-    private fun GameSession.apply(vararg actions: GameAction) = actions.fold(this) { s, a -> engine.reduce(s, a) }
-    private fun GameSession.id(seat: Int) = players[seat].id
+class MatchFeaturesTest : EngineTest() {
 
     private val turns = MatchOptions(turnTracking = true, seatTimers = true, matchClock = true)
 
@@ -152,6 +144,23 @@ class MatchFeaturesTest {
         assertTrue(h.outcome().finished)
         assertEquals(listOf(hearts.id(1)), h.outcome().winners)
         assertFalse(hearts.apply(GameAction.SetValue(hearts.id(0), CounterTarget.Primary, 99)).outcome().finished)
+    }
+
+    @Test
+    fun targetEqualToTheStartingScoreIsNotReachedAtTheStart() {
+        val s = engine.newSession(2, 10, options = MatchOptions(winRule = WinRule(WinMode.TARGET_SCORE, target = 10)))
+        assertFalse(s.outcome().finished)
+        assertFalse(s.apply(GameAction.Adjust(s.id(0), CounterTarget.Primary, 3)).outcome().finished)
+    }
+
+    @Test
+    fun statsBestScoreIsTheLowestInPenaltyGames() {
+        val hearts = MatchOptions(sheetMode = true, winRule = WinRule(WinMode.TARGET_SCORE, 100, lowestWins = true))
+        fun match(score: Int) = engine.newSession(2, 0, "Hearts", hearts).let { s ->
+            s.apply(GameAction.SetValue(s.id(0), CounterTarget.Primary, score))
+        }
+        val best = computeStats(listOf(match(40), match(80)), emptyList()).first { it.name == "Player 1" }.bestScore
+        assertEquals(40, best)
     }
 
     @Test

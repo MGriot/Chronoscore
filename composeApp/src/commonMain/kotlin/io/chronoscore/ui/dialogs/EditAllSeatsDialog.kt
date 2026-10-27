@@ -24,6 +24,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -35,6 +36,7 @@ import io.chronoscore.engine.GameAction
 import io.chronoscore.model.GameSession
 import io.chronoscore.model.Limits
 import io.chronoscore.model.Player
+import io.chronoscore.ui.formatScore
 import io.chronoscore.ui.theme.ChronoShapes
 import io.chronoscore.ui.theme.ChronoTheme
 import io.chronoscore.ui.theme.MinTouch
@@ -78,7 +80,7 @@ fun EditAllSeatsDialog(
     val affected = targets.count { p -> p.currentValue()?.let { next(it) != it } == true }
 
     DialogFrame("Edit all seats", onDismiss, maxWidth = 440.dp) {
-        SectionLabel("Seats")
+        SectionLabel("Seats", topGap = 0.dp)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             val all = selected.size == session.players.size
             Pill("All", selected = all) { selected = if (all) emptySet() else session.players.map { it.id }.toSet() }
@@ -112,7 +114,7 @@ fun EditAllSeatsDialog(
             StepKey("−5", Modifier.weight(1f)) { bump(-5) }
             StepKey("−1", Modifier.weight(1f)) { bump(-1) }
             Text(
-                if (value < 0) "−${-value}" else "$value",
+                formatScore(value),
                 style = ChronoTheme.type.score.copy(fontSize = 34.sp, lineHeight = 36.sp),
                 color = c.text, textAlign = TextAlign.Center, modifier = Modifier.weight(2f),
             )
@@ -124,7 +126,12 @@ fun EditAllSeatsDialog(
             targets.forEachIndexed { i, p ->
                 if (i > 0) Hairline()
                 val current = p.currentValue()
-                Row(Modifier.fillMaxWidth().heightIn(min = 42.dp), verticalAlignment = Alignment.CenterVertically) {
+                // Rows the change leaves as they are are dimmed, which is why they aren't counted in "Apply to n seats".
+                val unchanged = current == null || next(current) == current
+                Row(
+                    Modifier.fillMaxWidth().heightIn(min = 42.dp).alpha(if (unchanged) 0.45f else 1f),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
                     Box(Modifier.size(width = 3.dp, height = 18.dp).background(parseHex(p.colorHex)))
                     Spacer(Modifier.width(10.dp))
                     Text(

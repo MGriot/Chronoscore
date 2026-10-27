@@ -40,6 +40,7 @@ object ChronoIcons {
     val Trash = icon("Trash", "M4 7h16", "M10 11v6", "M14 11v6", "M6 7l1 13h10l1-13", "M9 7V4h6v3")
     val ChevronLeft = icon("ChevronLeft", "M15 5l-7 7 7 7")
     val ChevronRight = icon("ChevronRight", "M9 5l7 7-7 7")
+    val ChevronUp = icon("ChevronUp", "M5 15l7-7 7 7")
     val Play = icon("Play", "M8 5.5v13l10.5-6.5z")
     val Pause = icon("Pause", "M8.5 5.5v13", "M15.5 5.5v13")
     val Timer = icon("Timer", "M12 21a8 8 0 1 1 0-16a8 8 0 1 1 0 16z", "M12 9v4l2.5 1.5", "M10 2.5h4")
@@ -49,6 +50,16 @@ object ChronoIcons {
     val Import = icon("Import", "M12 4v11", "M7.5 10.5L12 15l4.5-4.5", "M5 14v5h14v-5")
     val Sheet = icon("Sheet", "M4 5h16v14H4z", "M4 10h16", "M10 5v14", "M15 5v14")
     val Person = icon("Person", "M12 12a4 4 0 1 1 0-8a4 4 0 1 1 0 8z", "M4.5 20a7.5 7.5 0 0 1 15 0")
+    val Check = icon("Check", "M5 12.5l4.5 4.5L19 7.5")
+    val Backspace = icon("Backspace", "M9 5h11v14H9l-6-7z", "M12.5 9.5l5 5", "M17.5 9.5l-5 5")
+    val Sun = icon(
+        "Sun", "M12 16a4 4 0 1 1 0-8a4 4 0 1 1 0 8z",
+        "M12 2.5v2", "M12 19.5v2", "M2.5 12h2", "M19.5 12h2", "M5.3 5.3l1.4 1.4", "M17.3 17.3l1.4 1.4", "M5.3 18.7l1.4-1.4", "M17.3 6.7l1.4-1.4",
+    )
+    val Moon = icon("Moon", "M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z")
+    val Crown = icon("Crown", "M4 8l4 4 4-7 4 7 4-4-1.5 10h-13z")
+    val More = icon("More", dots = listOf(6f to 12f, 12f to 12f, 18f to 12f))
+    val Palette = icon("Palette", "M12 3a9 9 0 1 0 0 18c1.5 0 2-1 2-2s-1-1.5-1-2.5 1-1.5 2-1.5h2a4 4 0 0 0 4-4c0-4.5-4-8-9-8z", dots = listOf(7.5f to 11f, 10f to 7f, 15f to 7.5f))
 
     private fun icon(name: String, vararg paths: String, dots: List<Pair<Float, Float>> = emptyList()): ImageVector =
         ImageVector.Builder(name, 24.dp, 24.dp, 24f, 24f).apply {

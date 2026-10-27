@@ -10,13 +10,8 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-class GameEngineTest {
+class GameEngineTest : EngineTest() {
 
-    private var now = 1_000_000L
-    private var nextId = 0
-    private val engine = GameEngine(clock = { now }, newId = { "id${nextId++}" })
-
-    private fun GameSession.apply(vararg actions: GameAction) = actions.fold(this) { s, a -> engine.reduce(s, a) }
     private val GameSession.p0 get() = players[0]
 
     @Test

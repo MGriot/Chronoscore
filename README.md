@@ -21,9 +21,9 @@ Get the latest build from [**Releases**](https://github.com/MGriot/Chronoscore/r
 
 | Platform | File | Notes |
 | --- | --- | --- |
-| Android 7.0+ | `Chronoscore-1.2.2.apk` | Signed release build. Allow installs from your browser or file manager, then open the file. |
-| Windows x64 | `Chronoscore-1.2.2.exe` | Installer with its own Java runtime, so you don't need Java. Adds Chronoscore to the Start menu. |
-| Windows x64 (portable) | `Chronoscore-windows-x64-1.2.2.jar` | Needs Java 17+. Run it with `java -jar Chronoscore-windows-x64-1.2.2.jar`. |
+| Android 7.0+ | `Chronoscore-1.3.0.apk` | Signed release build. Allow installs from your browser or file manager, then open the file. |
+| Windows x64 | `Chronoscore-1.3.0.exe` | Installer with its own Java runtime, so you don't need Java. Adds Chronoscore to the Start menu. |
+| Windows x64 (portable) | `Chronoscore-windows-x64-1.3.0.jar` | Needs Java 17+. Run it with `java -jar Chronoscore-windows-x64-1.3.0.jar`. |
 
 To get a Linux build, build it from source (see below).
 
@@ -46,8 +46,8 @@ New in 1.1. Each of these is optional and set per match:
 
 - **Turn tracker:** an active seat with Previous / Next buttons. After the last seat the round advances.
 - **Timers:** a match clock, seat timers (chess-clock style) and an optional turn limit, with pause and resume.
-- **Win rules:** first to a target score (highest or lowest wins) or elimination. Dimmed seats are out, a banner names the winner, and Undo revives.
-- **Presets:** Commander, Magic 1v1, Hearts, Race to 10, Chess clock and Board game timer, plus your own.
+- **Win rules:** first to a target score (highest or lowest wins), elimination, or (1.3) out at or above a score. Dimmed seats are out, a banner names the winner, and Undo revives.
+- **Presets:** Commander, Magic 1v1, Hearts, Race to 10, Catan, Carcassonne, Uno, Rummy 500, Skyjo, Chess clock and Board game timer, plus your own.
 - **Round sheet:** a scorepad of points per round with totals.
 - **Magic: The Gathering extras:** per-opponent commander damage, Monarch, Initiative and Day/Night.
 - **Players & stats:** saved players and their wins, win rate, averages and time on turns.
@@ -63,6 +63,18 @@ New in 1.2:
 - **Game name on the table:** name the current match from the menu. It shows on the hub and in the match log, with a confirmation. Starting a new game asks for a second tap and keeps the old match in Saved matches.
 - **Delete a game** (1.2.1): remove every match filed under a game from Saved matches.
 - **Start screen** (1.2.2): when the app opens, choose to continue the last match, start a new game or pick one from Saved matches.
+
+New in 1.3:
+
+- **Teams:** a seat can be a team (Scopone, Burraco in pairs, bocce teams). Members share the seat's score, and stats count the result for each of them. Choose *Teams of 2* or *3* in New game, or turn any seat into a team from its editor.
+- **Darts**, entered one dart at a time on a board keypad (Single / Double / Treble, 1–20, bull, miss):
+  - **X01** (301, 501, 701) with double-out, optional double-in, busts and checkout hints;
+  - **Cricket** with marks on 15–20 and the bull;
+  - **Around the Clock** and **Shanghai**, including the Shanghai knockout.
+  The turn passes after three darts, and Undo takes back one dart, bust or win included.
+- **Hand calculators** for the round sheet: tap a round to score a hand of **Scopa / Scopone** (cards, denari, settebello, primiera, scope), **Burraco** (burrachi, closing, pozzetto, cards on the table and in hand), **Briscola** (61 of 120), **bocce** (points for the closest side) or **Scala 40** (penalties, 100 for not opening).
+- **Out at or above** a score, for penalty games like Scala 40 (out at 101).
+- **New presets:** Bocce · Raffa (12), Pétanque (13), Briscola, Scopa (11), Scopone, Scala 40, Burraco (2005), Darts 501 and 301, Cricket, Around the Clock and Shanghai.
 
 <p align="center">
   <img src="docs/images/dialog-start.png" width="300" alt="Start screen: continue, new game or saved matches">

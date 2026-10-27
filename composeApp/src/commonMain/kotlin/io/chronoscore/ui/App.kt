@@ -4,7 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -33,11 +32,14 @@ import io.chronoscore.engine.GameAction
 import io.chronoscore.engine.Outcome
 import io.chronoscore.engine.nowMillis
 import io.chronoscore.engine.outcome
+import io.chronoscore.engine.pointsIn
 import io.chronoscore.model.CounterTarget
+import io.chronoscore.model.GamePreset
 import io.chronoscore.model.GameSession
 import io.chronoscore.model.Limits
 import io.chronoscore.model.Player
 import io.chronoscore.ui.board.ClockTiles
+import io.chronoscore.ui.board.DartsBoard
 import io.chronoscore.ui.board.PlayerGrid
 import io.chronoscore.ui.board.ResultBanner
 import io.chronoscore.ui.board.RoundSheet
@@ -46,16 +48,19 @@ import io.chronoscore.ui.board.SeatStatus
 import io.chronoscore.ui.board.TurnBar
 import io.chronoscore.ui.board.gridFor
 import io.chronoscore.ui.board.rememberNow
-import io.chronoscore.ui.board.roundPoints
 import io.chronoscore.ui.board.showsTurnBar
+import io.chronoscore.ui.dialogs.AppearanceDialog
 import io.chronoscore.ui.dialogs.CommanderDialog
 import io.chronoscore.ui.dialogs.CountersAllSeatsDialog
 import io.chronoscore.ui.dialogs.EditAllSeatsDialog
+import io.chronoscore.ui.dialogs.HandDialog
 import io.chronoscore.ui.dialogs.HistoryDialog
 import io.chronoscore.ui.dialogs.IconTap
 import io.chronoscore.ui.dialogs.KeypadDialog
 import io.chronoscore.ui.dialogs.LibraryDialog
 import io.chronoscore.ui.dialogs.MenuDialog
+import io.chronoscore.ui.dialogs.NewGameDialog
+import io.chronoscore.ui.dialogs.rematch
 import io.chronoscore.ui.dialogs.OptionsDialog
 import io.chronoscore.ui.dialogs.PlayerEditorDialog
 import io.chronoscore.ui.dialogs.StartDialog
@@ -71,7 +76,9 @@ import io.chronoscore.viewmodel.GameViewModel
 private sealed interface OpenDialog {
     data object None : OpenDialog
     data object Start : OpenDialog
-    data object NewGame : OpenDialog
+    /** [preset] prefills the setup (long-press on a Home tile). */
+    data class NewGame(val preset: GamePreset? = null) : OpenDialog
+    data object Appearance : OpenDialog
     data object Utilities : OpenDialog
     data object History : OpenDialog
     data object Menu : OpenDialog
@@ -83,7 +90,8 @@ private sealed interface OpenDialog {
     data class Keypad(val playerId: String, val target: CounterTarget, val rotated: Boolean) : OpenDialog
     data class Editor(val playerId: String, val rotated: Boolean) : OpenDialog
     data class Commander(val playerId: String, val rotated: Boolean) : OpenDialog
-    data class RoundPoints(val playerId: String, val round: Int) : OpenDialog
+    /** [manual] types one seat's points even when the match has a hand calculator. */
+    data class RoundPoints(val playerId: String, val round: Int, val manual: Boolean = false) : OpenDialog
 }
 
 @Composable
@@ -111,7 +119,7 @@ fun App(viewModel: GameViewModel, files: FileBridge = NoFileBridge) {
 
     // The library list is refreshed whenever a dialog that shows saved games opens.
     LaunchedEffect(dialog) {
-        if (dialog == OpenDialog.Start || dialog == OpenDialog.Menu || dialog == OpenDialog.NewGame || dialog == OpenDialog.Library) {
+        if (dialog == OpenDialog.Start || dialog == OpenDialog.Menu || dialog is OpenDialog.NewGame || dialog == OpenDialog.Library) {
             viewModel.refreshLibrary()
         }
         if (dialog == OpenDialog.Stats) viewModel.refreshStats()
@@ -130,12 +138,25 @@ fun App(viewModel: GameViewModel, files: FileBridge = NoFileBridge) {
                     dispatch = dispatch,
                     onDice = { dialog = OpenDialog.Utilities },
                     onEditAll = { dialog = OpenDialog.EditAllSeats },
+                    onNewGame = { dialog = OpenDialog.NewGame() },
                     onLog = { dialog = OpenDialog.History },
                     onMenu = { dialog = OpenDialog.Menu },
                 )
             }
 
-            if (session.options.sheetMode) {
+            if (session.options.darts != null) {
+                Column(Modifier.fillMaxSize().padding(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    strip()
+                    DartsBoard(
+                        session = session,
+                        outcome = outcome,
+                        onThrow = { segment, multiplier -> dispatch(GameAction.ThrowDart(segment, multiplier)) },
+                        onUndo = { dispatch(GameAction.Undo) },
+                        onEditSeat = { id -> dialog = OpenDialog.Editor(id, rotated = false) },
+                        modifier = Modifier.weight(1f).fillMaxWidth(),
+                    )
+                }
+            } else if (session.options.sheetMode) {
                 Column(Modifier.fillMaxSize().padding(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     strip()
                     RoundSheet(
@@ -186,8 +207,44 @@ fun App(viewModel: GameViewModel, files: FileBridge = NoFileBridge) {
                 session = session,
                 summary = library.firstOrNull { it.id == session.id },
                 onContinue = dismiss,
-                onNewGame = { dialog = OpenDialog.NewGame },
+                onNewGame = { dialog = OpenDialog.NewGame() },
                 onSavedMatches = { dialog = OpenDialog.Library },
+                quickStarts = quickStartPresets(session, knownGames(library), presets),
+                onQuickStart = {
+                    dispatch(it)
+                    dismiss()
+                },
+                onCustomize = { dialog = OpenDialog.NewGame(it) },
+            )
+            is OpenDialog.NewGame -> NewGameDialog(
+                session = session,
+                knownGames = knownGames(library),
+                presets = presets,
+                onStart = { setup ->
+                    dispatch(setup.action)
+                    // Names and colors typed in setup go onto the seats the engine just made.
+                    val seats = viewModel.session.value.players
+                    setup.names.forEach { (i, name) ->
+                        val seat = seats.getOrNull(i) ?: return@forEach
+                        if (name.trim() != seat.name) {
+                            dispatch(GameAction.RenamePlayer(seat.id, name))
+                            // A renamed seat is someone else, so its saved player no longer applies.
+                            if (seat.profileId != null) dispatch(GameAction.SetProfile(seat.id, null))
+                        }
+                    }
+                    setup.colors.forEach { (i, hex) -> seats.getOrNull(i)?.let { dispatch(GameAction.SetColor(it.id, hex)) } }
+                },
+                onDismiss = dismiss,
+                onSavePreset = viewModel::savePreset,
+                onDeletePreset = viewModel::deletePreset,
+                initialPreset = d.preset,
+            )
+            OpenDialog.Appearance -> AppearanceDialog(
+                themeMode = themeMode,
+                seatStyle = seatStyle,
+                onThemeMode = viewModel::setThemeMode,
+                onSeatStyle = viewModel::setSeatStyle,
+                onDismiss = dismiss,
             )
             OpenDialog.Utilities -> UtilitiesDialog(
                 state = utility,
@@ -204,27 +261,20 @@ fun App(viewModel: GameViewModel, files: FileBridge = NoFileBridge) {
                 session = session,
                 onUndo = { dispatch(GameAction.Undo) },
                 onNextRound = { dispatch(GameAction.NextRound) },
-                onOpenLibrary = { dialog = OpenDialog.Library },
                 onDismiss = dismiss,
+                canUndo = session.canUndo,
             )
-            OpenDialog.Menu, OpenDialog.NewGame -> MenuDialog(
+            OpenDialog.Menu -> MenuDialog(
                 session = session,
-                themeMode = themeMode,
-                seatStyle = seatStyle,
                 knownGames = knownGames(library),
                 dispatch = dispatch,
-                onThemeMode = viewModel::setThemeMode,
-                onSeatStyle = viewModel::setSeatStyle,
-                onEditAllSeats = { dialog = OpenDialog.EditAllSeats },
                 onCountersAllSeats = { dialog = OpenDialog.CountersAllSeats },
                 onOpenLibrary = { dialog = OpenDialog.Library },
                 onDismiss = dismiss,
-                presets = presets,
+                onNewGame = { dialog = OpenDialog.NewGame() },
                 onMatchOptions = { dialog = OpenDialog.Options },
                 onStats = { dialog = OpenDialog.Stats },
-                onSavePreset = viewModel::savePreset,
-                onDeletePreset = viewModel::deletePreset,
-                newGameOnly = d == OpenDialog.NewGame,
+                onAppearance = { dialog = OpenDialog.Appearance },
             )
             OpenDialog.Options -> OptionsDialog(
                 options = session.options,
@@ -301,10 +351,26 @@ fun App(viewModel: GameViewModel, files: FileBridge = NoFileBridge) {
             }
             is OpenDialog.RoundPoints -> {
                 val player = session.player(d.playerId)
+                val calc = session.options.handCalculator
                 if (player == null) {
                     LaunchedEffect(Unit) { dialog = OpenDialog.None }
+                } else if (calc != null && !d.manual) {
+                    HandDialog(
+                        players = session.players,
+                        round = d.round,
+                        calc = calc,
+                        onApply = { points ->
+                            dispatch(GameAction.SetRoundPointsBatch(d.round, points))
+                            // Scoring the current hand moves the sheet on to the next one.
+                            val after = viewModel.session.value
+                            if (d.round == after.round && !after.outcome().finished) dispatch(GameAction.NextRound)
+                            dismiss()
+                        },
+                        onManual = { dialog = d.copy(manual = true) },
+                        onDismiss = dismiss,
+                    )
                 } else {
-                    val current = session.roundPoints()[d.round to d.playerId] ?: 0
+                    val current = session.pointsIn(d.round, d.playerId)
                     KeypadDialog(
                         playerName = player.name,
                         playerColor = player.colorHex,
@@ -346,6 +412,22 @@ fun App(viewModel: GameViewModel, files: FileBridge = NoFileBridge) {
     }
 }
 
+/**
+ * Home's quick-start tiles: presets for the games played most recently (other than the one on
+ * the table, which has its own tile), topped up with the first presets.
+ */
+private fun quickStartPresets(session: GameSession, recentGames: List<String>, presets: List<GamePreset>): List<GamePreset> {
+    val current = session.gameName?.lowercase()
+    val recent = recentGames.filter { it.lowercase() != current }.mapNotNull { game ->
+        presets.firstOrNull { it.gameName.equals(game, ignoreCase = true) || it.name.equals(game, ignoreCase = true) }
+    }
+    val fill = presets.filter { it.gameName?.lowercase() != current }
+    return (recent + fill).distinctBy { it.id }.take(3)
+}
+
+/** Undo has something to take back: a logged change, or a dart (misses aren't logged). */
+private val GameSession.canUndo: Boolean get() = historyLog.isNotEmpty() || darts.isNotEmpty()
+
 /** What a seat shows for the optional features that are on. */
 private fun seatStatus(session: GameSession, outcome: Outcome, player: Player, now: Long): SeatStatus {
     val o = session.options
@@ -380,23 +462,27 @@ private fun CenterStrip(
     dispatch: (GameAction) -> Unit,
     onDice: () -> Unit,
     onEditAll: () -> Unit,
+    onNewGame: () -> Unit,
     onLog: () -> Unit,
     onMenu: () -> Unit,
 ) {
     Column {
-        ResultBanner(session, outcome)
-        if (session.showsTurnBar()) {
+        ResultBanner(session, outcome, onRematch = { dispatch(session.rematch()) }, onNewGame = onNewGame)
+        if (session.showsTurnBar() && !outcome.finished) {
             TurnBar(
                 session = session,
                 now = now,
                 onPrevious = { dispatch(GameAction.PreviousTurn) },
-                onNext = { dispatch(GameAction.NextTurn) },
+                // In darts, Next ends the visit, so darts not thrown count as misses.
+                onNext = { dispatch(if (session.options.darts != null) GameAction.EndVisit else GameAction.NextTurn) },
                 onToggleClock = { dispatch(GameAction.ToggleClock) },
             )
         }
         CenterHub(
             gameName = session.gameName,
-            canUndo = session.historyLog.isNotEmpty(),
+            canUndo = session.canUndo,
+            // Darts scores come from the darts thrown, so they can't be edited by hand.
+            canEditAll = session.options.darts == null,
             onUndo = { dispatch(GameAction.Undo) },
             onDice = onDice,
             onEditAll = onEditAll,
@@ -411,6 +497,7 @@ private fun CenterStrip(
 private fun CenterHub(
     gameName: String?,
     canUndo: Boolean,
+    canEditAll: Boolean,
     onUndo: () -> Unit,
     onDice: () -> Unit,
     onEditAll: () -> Unit,
@@ -419,31 +506,32 @@ private fun CenterHub(
 ) {
     val c = ChronoTheme.colors
     BoxWithConstraints(Modifier.fillMaxWidth().padding(vertical = 2.dp), contentAlignment = Alignment.Center) {
-        // The five buttons need ~250 dp; the name only joins them when it can't push one off.
         val showName = gameName != null && maxWidth >= 400.dp
-        Row(
-            Modifier
-                .clip(ChronoShapes.hub)
-                .background(c.surface)
-                .border(1.dp, c.outline, ChronoShapes.hub)
-                .padding(horizontal = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(2.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            // The game this match is filed under, so a rename shows on the table.
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            // The game this match is filed under, as a title above the toolbar, so a rename shows on the table.
             if (showName) {
                 Text(
                     gameName!!.uppercase(),
                     style = ChronoTheme.type.label.copy(fontSize = 11.sp, letterSpacing = 1.sp),
                     color = c.muted, maxLines = 1, overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.widthIn(max = 120.dp).padding(start = 8.dp, end = 4.dp).clickable(onClick = onMenu),
+                    modifier = Modifier.widthIn(max = 240.dp).padding(bottom = 2.dp).clickable(onClick = onMenu),
                 )
             }
-            IconTap(ChronoIcons.Undo, "Undo", enabled = canUndo, onClick = onUndo)
-            IconTap(ChronoIcons.Dice, "Dice & utilities", onClick = onDice)
-            IconTap(ChronoIcons.Grid, "Edit all seats", onClick = onEditAll)
-            IconTap(ChronoIcons.Log, "Match log", onClick = onLog)
-            IconTap(ChronoIcons.Menu, "Menu", onClick = onMenu)
+            Row(
+                Modifier
+                    .clip(ChronoShapes.hub)
+                    .background(c.surface)
+                    .border(1.dp, c.outline, ChronoShapes.hub)
+                    .padding(horizontal = 6.dp),
+                horizontalArrangement = Arrangement.spacedBy(2.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                IconTap(ChronoIcons.Undo, "Undo", enabled = canUndo, onClick = onUndo)
+                IconTap(ChronoIcons.Dice, "Dice & utilities", onClick = onDice)
+                if (canEditAll) IconTap(ChronoIcons.Grid, "Edit all seats", onClick = onEditAll)
+                IconTap(ChronoIcons.Log, "Match log", onClick = onLog)
+                IconTap(ChronoIcons.Menu, "Menu", onClick = onMenu)
+            }
         }
     }
 }

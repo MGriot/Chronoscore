@@ -5,7 +5,12 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.hoverable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.BoxWithConstraintsScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -25,7 +30,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -40,6 +49,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -54,6 +64,7 @@ import io.chronoscore.model.Limits
 import io.chronoscore.model.Player
 import io.chronoscore.model.ScoreHistoryEntry
 import io.chronoscore.model.SubCounter
+import io.chronoscore.ui.formatScore
 import io.chronoscore.ui.theme.ChronoIcons
 import io.chronoscore.ui.theme.ChronoShapes
 import io.chronoscore.ui.theme.ChronoTheme
@@ -108,6 +119,14 @@ internal data class SeatPalette(
 
 internal val SeatShape = RoundedCornerShape(10.dp)
 internal val COMPACT_WIDTH = 220.dp
+/** Seats this wide get bigger − / + glyphs and a tinted minus half. */
+private val WIDE_WIDTH = 400.dp
+/** Cells smaller than this snap seat angles to right angles. */
+private val FREE_ANGLE_MIN = 260.dp
+/** Narrowest full counter chip: two 30 dp steppers and the label between them. */
+private val MIN_CHIP_WIDTH = 108.dp
+/** Share of the seat height the score always keeps. */
+private const val SCORE_SHARE = 0.55f
 internal const val OUT_ALPHA = 0.45f
 
 @Composable
@@ -149,44 +168,83 @@ fun SeatViewport(
     status: SeatStatus = SeatStatus(),
 ) {
     val p = seatPalette(player, style)
+    val hover = remember { MutableInteractionSource() }
+    val hovered by hover.collectIsHoveredAsState()
 
-    BoxWithConstraints(modifier.rotatedToFit(angle)) {
+    RotatedSeat(angle, modifier) {
         val compact = maxWidth < COMPACT_WIDTH
+        val wide = maxWidth >= WIDE_WIDTH
         val ring = highlighted || status.active || status.winner
+        // The score keeps at least SCORE_SHARE of the seat; counters that don't fit collapse to mini chips.
+        val headerHeight = MinTouch + if (compact && status.hasTags(highlighted)) 24.dp else 0.dp
+        val counterBudget = maxHeight * (1f - SCORE_SHARE) - headerHeight
+        // Full chips need room for − value +; narrower grid cells get the mini chips instead.
+        val cellTooNarrow = compact && (maxWidth - 18.dp) / 2 < MIN_CHIP_WIDTH
+        val mini = cellTooNarrow || counterRowHeight(player, status, compact, maxWidth) > counterBudget
         Column(
             Modifier
                 .fillMaxSize()
                 .alpha(if (status.out) OUT_ALPHA else 1f)
                 .clip(SeatShape)
                 .background(p.fill)
-                .then(if (ring) Modifier.border(4.dp, p.ring, SeatShape) else Modifier),
+                .then(if (ring) Modifier.border(4.dp, p.ring, SeatShape) else Modifier)
+                .hoverable(hover),
         ) {
             SeatHeader(player, p, compact, highlighted, status, lastEntry, callbacks)
 
-            // Primary score: left half decrements, right half increments.
+            // Primary score: left half decrements, right half increments. Out seats only open the editor.
             Box(Modifier.weight(1f).fillMaxWidth()) {
-                val tint = p.text.copy(alpha = 0.06f)
-                Row(Modifier.fillMaxSize()) {
-                    Box(
-                        Modifier.weight(1f).fillMaxHeight()
-                            .repeatingPress(tint) { callbacks.onAdjust(CounterTarget.Primary, -it) },
-                        contentAlignment = Alignment.CenterStart,
-                    ) { EdgeIcon(ChronoIcons.Minus, p.muted, compact) }
-                    Box(
-                        Modifier.weight(1f).fillMaxHeight()
-                            .repeatingPress(tint) { callbacks.onAdjust(CounterTarget.Primary, it) },
-                        contentAlignment = Alignment.CenterEnd,
-                    ) { EdgeIcon(ChronoIcons.Plus, p.muted, compact) }
+                if (status.out) {
+                    Box(Modifier.fillMaxSize().pointerInput(callbacks) { detectTapGestures(onLongPress = { callbacks.onEdit() }) })
+                } else {
+                    val tint = p.text.copy(alpha = 0.06f)
+                    Row(Modifier.fillMaxSize()) {
+                        Box(
+                            Modifier.weight(1f).fillMaxHeight()
+                                // Wide seats tint the minus half faintly, so the split reads at a glance.
+                                .then(if (wide) Modifier.background(p.text.copy(alpha = 0.03f)) else Modifier)
+                                .repeatingPress(tint) { callbacks.onAdjust(CounterTarget.Primary, -it) },
+                            contentAlignment = Alignment.CenterStart,
+                        ) { EdgeIcon(ChronoIcons.Minus, p.muted, compact, wide) }
+                        Box(
+                            Modifier.weight(1f).fillMaxHeight()
+                                .repeatingPress(tint) { callbacks.onAdjust(CounterTarget.Primary, it) },
+                            contentAlignment = Alignment.CenterEnd,
+                        ) { EdgeIcon(ChronoIcons.Plus, p.muted, compact, wide) }
+                    }
                 }
                 AutoSizeText(
-                    player.primaryScore.let { if (it < 0) "−${-it}" else it.toString() }, p.text,
-                    Modifier.fillMaxSize().padding(horizontal = if (compact) 30.dp else 52.dp),
+                    formatScore(player.primaryScore), p.text,
+                    Modifier.fillMaxSize().padding(horizontal = if (compact) 30.dp else if (wide) 64.dp else 52.dp),
+                    tableKey = player.id,
                 )
             }
 
-            CounterRow(player, p, compact, status, callbacks)
+            if (mini) MiniCounterStrip(player, p, status, callbacks)
+            else CounterRow(player, p, compact, status, callbacks, showAdd = hovered)
         }
     }
+}
+
+/**
+ * Turns a seat by [angle] inside its cell. Small cells (phones) snap to right angles, since a
+ * card turned to 30° has to shrink until its name and score can't be read.
+ */
+@Composable
+internal fun RotatedSeat(angle: Int, modifier: Modifier, content: @Composable BoxWithConstraintsScope.() -> Unit) {
+    BoxWithConstraints(modifier) {
+        val snapped = if (min(maxWidth, maxHeight) < FREE_ANGLE_MIN) ((angle + 45).floorDiv(90) * 90) % 360 else angle
+        BoxWithConstraints(Modifier.fillMaxSize().rotatedToFit(snapped), content = content)
+    }
+}
+
+/** Height the full counter chips need, to decide whether they fit under the score. */
+private fun counterRowHeight(player: Player, status: SeatStatus, compact: Boolean, width: Dp): Dp {
+    val items = player.subCounters.size + if (status.commanderDamage != null) 1 else 0
+    if (items == 0) return 0.dp
+    val perRow = if (compact) 2 else ((width - 16.dp) / 150.dp).toInt().coerceAtLeast(1)
+    val rows = (items + perRow - 1) / perRow
+    return (MinTouch + 4.dp) * rows + 6.dp * (rows - 1) + if (compact) 12.dp else 16.dp
 }
 
 /** Color bar, name, status tags and header buttons; shared by score seats and clock tiles. */
@@ -217,9 +275,22 @@ internal fun SeatHeader(
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f, fill = false).clickable(onClick = callbacks.onEdit),
             )
+            if (player.isTeam && !compact) {
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    player.members.joinToString(" · ") { it.name },
+                    style = ChronoTheme.type.label.copy(fontSize = 11.sp, letterSpacing = 0.sp),
+                    color = p.muted,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false).clickable(onClick = callbacks.onEdit),
+                )
+            }
             RunningDelta(lastEntry, p)
-            if (highlighted) SeatTag(if (compact) "1ST" else "FIRST", p)
-            if (!compact) StatusTags(status, p, compact = false)
+            if (!compact) {
+                if (highlighted) SeatTag("FIRST", p)
+                StatusTags(status, p, compact = false)
+            }
         }
         if (!compact) {
             if (showKeypad) HeaderIcon(ChronoIcons.Keypad, "Enter value", p.muted) { callbacks.onOpenKeypad(CounterTarget.Primary) }
@@ -227,34 +298,46 @@ internal fun SeatHeader(
         }
         HeaderIcon(ChronoIcons.Edit, "Edit seat", p.muted, callbacks.onEdit)
     }
-    // Narrow seats keep the name readable by moving status tags to their own line.
-    if (compact && status.hasTags) {
-        FlowRow(
-            Modifier.fillMaxWidth().padding(start = 18.dp, end = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-            itemVerticalAlignment = Alignment.CenterVertically,
+    // Narrow seats keep the whole header for the name: badges and the timer get their own
+    // line, on one row that never wraps, with the timer at its end.
+    if (compact && status.hasTags(highlighted)) {
+        Row(
+            Modifier.fillMaxWidth().height(24.dp).padding(start = 18.dp, end = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            StatusTags(status, p, compact = true)
+            Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+                if (highlighted) SeatTag("1ST", p, leading = false)
+                StatusTags(status.copy(timeLabel = null), p, compact = true, leading = !highlighted)
+            }
+            status.timeLabel?.let { SeatTimer(it, status.overtime, p) }
         }
     }
 }
 
-private val SeatStatus.hasTags: Boolean
-    get() = winner || out || active || monarch || initiative || timeLabel != null
+private fun SeatStatus.hasTags(highlighted: Boolean): Boolean =
+    highlighted || winner || out || active || monarch || initiative || timeLabel != null
 
+/** Status badges; [leading] puts a gap before the first one (it follows the name). */
 @Composable
-internal fun StatusTags(status: SeatStatus, p: SeatPalette, compact: Boolean) {
-    if (status.winner) SeatTag(if (compact) "WIN" else "WINNER", p)
-    if (status.out) SeatTag("OUT", p, filled = false)
-    if (status.active && !status.winner) SeatTag("TURN", p)
-    if (status.monarch) SeatTag(if (compact) "MON" else "MONARCH", p, filled = false)
-    if (status.initiative) SeatTag(if (compact) "INI" else "INITIATIVE", p, filled = false)
+internal fun StatusTags(status: SeatStatus, p: SeatPalette, compact: Boolean, leading: Boolean = true) {
+    var gap = leading
+    @Composable
+    fun tag(text: String, filled: Boolean = true) {
+        SeatTag(text, p, filled, leading = gap)
+        gap = true
+    }
+    if (status.winner) tag(if (compact) "WIN" else "WINNER")
+    if (status.out) tag("OUT", filled = false)
+    if (status.active && !status.winner) tag("TURN")
+    // An out seat's Monarch or Initiative no longer matters, and only crowds the line.
+    if (status.monarch && !status.out) tag(if (compact) "MON" else "MONARCH", filled = false)
+    if (status.initiative && !status.out) tag(if (compact) "INI" else "INITIATIVE", filled = false)
     status.timeLabel?.let { SeatTimer(it, status.overtime, p) }
 }
 
 @Composable
-internal fun SeatTag(text: String, p: SeatPalette, filled: Boolean = true) {
-    Spacer(Modifier.width(6.dp))
+internal fun SeatTag(text: String, p: SeatPalette, filled: Boolean = true, leading: Boolean = true) {
+    if (leading) Spacer(Modifier.width(6.dp))
     Text(
         text,
         style = ChronoTheme.type.label.copy(fontSize = 10.sp, letterSpacing = 0.5.sp, fontWeight = FontWeight.Bold),
@@ -307,30 +390,120 @@ private fun RunningDelta(entry: ScoreHistoryEntry?, p: SeatPalette) {
     }
 }
 
+/**
+ * Counter chips under the score, centred. Compact seats use an equal-cell two-column grid.
+ * "+ Counter" only shows while the seat is hovered (desktop); the seat editor adds counters too.
+ */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun CounterRow(player: Player, p: SeatPalette, compact: Boolean, status: SeatStatus, callbacks: SeatCallbacks) {
-    val showAdd = !compact && player.subCounters.size < Limits.MAX_SUB_COUNTERS
-    if (player.subCounters.isEmpty() && !showAdd && status.commanderDamage == null) return
+private fun CounterRow(
+    player: Player,
+    p: SeatPalette,
+    compact: Boolean,
+    status: SeatStatus,
+    callbacks: SeatCallbacks,
+    showAdd: Boolean,
+) {
+    val canAdd = !compact && player.subCounters.size < Limits.MAX_SUB_COUNTERS
+    if (player.subCounters.isEmpty() && !canAdd && status.commanderDamage == null) return
+    if (player.subCounters.isEmpty() && status.commanderDamage == null && !showAdd) return
+    if (compact) {
+        val chips: List<@Composable (Modifier) -> Unit> = buildList {
+            status.commanderDamage?.let { d -> add { m: Modifier -> CommanderChip(d, p, compact = true, callbacks.onOpenCommander, m) } }
+            player.subCounters.forEach { counter -> add { m: Modifier -> SubCounterChip(counter, p, compact = true, callbacks, m) } }
+        }
+        Column(Modifier.fillMaxWidth().padding(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            chips.chunked(2).forEach { row ->
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    row.forEach { chip -> chip(Modifier.weight(1f)) }
+                    if (row.size == 1 && chips.size > 1) Spacer(Modifier.weight(1f))
+                }
+            }
+        }
+        return
+    }
     FlowRow(
-        Modifier.fillMaxWidth().padding(if (compact) 6.dp else 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        Modifier.fillMaxWidth().padding(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        status.commanderDamage?.let { CommanderChip(it, p, compact, callbacks.onOpenCommander) }
-        player.subCounters.forEach { counter -> SubCounterChip(counter, p, compact, callbacks) }
-        if (showAdd) AddCounterChip(p, callbacks.onEdit)
+        status.commanderDamage?.let { CommanderChip(it, p, compact = false, callbacks.onOpenCommander) }
+        player.subCounters.forEach { counter -> SubCounterChip(counter, p, compact = false, callbacks) }
+        if (canAdd && showAdd) AddCounterChip(p, callbacks.onEdit)
     }
 }
 
+/** One row of small "PSN 0" chips, for seats too short for full counters; a tap opens the keypad. */
+@Composable
+private fun MiniCounterStrip(player: Player, p: SeatPalette, status: SeatStatus, callbacks: SeatCallbacks) {
+    if (player.subCounters.isEmpty() && status.commanderDamage == null) return
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = 6.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally),
+    ) {
+        status.commanderDamage?.let { MiniChip("CMDR", it, p, callbacks.onOpenCommander) }
+        player.subCounters.forEach { counter ->
+            MiniChip(counter.shortLabel(), counter.value, p) { callbacks.onOpenKeypad(CounterTarget.Sub(counter.id)) }
+        }
+    }
+}
+
+@Composable
+private fun MiniChip(label: String, value: Int, p: SeatPalette, onClick: () -> Unit) {
+    Row(
+        Modifier.height(28.dp).clip(RoundedCornerShape(5.dp)).background(p.chipFill)
+            .border(1.dp, p.outline, RoundedCornerShape(5.dp))
+            .clickable(onClickLabel = label, onClick = onClick).padding(horizontal = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(label, style = ChronoTheme.type.label.copy(fontSize = 9.sp, letterSpacing = 0.5.sp), color = p.muted, maxLines = 1)
+        Spacer(Modifier.width(4.dp))
+        Text("$value", style = ChronoTheme.type.counter.copy(fontSize = 13.sp), color = p.text, maxLines = 1)
+    }
+}
+
+/** Short counter label for narrow chips: CMDR, PSN, or the first four letters. */
+internal fun SubCounter.shortLabel(): String = when (name.trim().lowercase()) {
+    "commander", "commander damage" -> "CMDR"
+    "poison" -> "PSN"
+    "energy" -> "NRG"
+    "experience" -> "EXP"
+    "treasure" -> "TRSR"
+    else -> name.trim().uppercase().take(4)
+}
+
+/**
+ * Score sizes measured across the table: each seat reports the largest two-digit size its box
+ * holds, and every seat uses the smallest, so equal scores look equal on every seat.
+ */
+internal class TableScoreSize {
+    private val capacities = mutableStateMapOf<String, Dp>()
+    val cap: Dp? get() = capacities.values.minOrNull()
+    fun report(key: String, capacity: Dp) {
+        if (capacities[key] != capacity) capacities[key] = capacity
+    }
+    fun remove(key: String) {
+        capacities.remove(key)
+    }
+}
+
+internal val LocalTableScoreSize = staticCompositionLocalOf<TableScoreSize?> { null }
+
 /** Display-size figures that fill the box: a score, or a clock in timer mode. */
 @Composable
-internal fun AutoSizeText(text: String, color: Color, modifier: Modifier) {
+internal fun AutoSizeText(text: String, color: Color, modifier: Modifier, tableKey: String? = null) {
+    val table = if (tableKey != null) LocalTableScoreSize.current else null
     BoxWithConstraints(modifier, contentAlignment = Alignment.Center) {
         // Inter Tight Bold figures run ~0.62em wide at display sizes; keep a little headroom.
         val byWidth: Dp = maxWidth / (text.length.coerceAtLeast(2) * 0.68f)
         val byHeight: Dp = maxHeight * 0.78f
-        val size = with(LocalDensity.current) { min(byWidth, byHeight).coerceAtLeast(16.dp).toSp() }
+        val capacity = min(maxWidth / (2 * 0.68f), byHeight)
+        if (table != null && tableKey != null) {
+            SideEffect { table.report(tableKey, capacity) }
+            DisposableEffect(tableKey) { onDispose { table.remove(tableKey) } }
+        }
+        val fitted = min(byWidth, byHeight)
+        val size = with(LocalDensity.current) { min(fitted, table?.cap ?: fitted).coerceAtLeast(16.dp).toSp() }
         Text(
             text,
             style = ChronoTheme.type.score.copy(fontSize = size, lineHeight = size),
@@ -343,8 +516,13 @@ internal fun AutoSizeText(text: String, color: Color, modifier: Modifier) {
 }
 
 @Composable
-private fun EdgeIcon(icon: ImageVector, tint: Color, compact: Boolean) {
-    Icon(icon, null, Modifier.padding(horizontal = if (compact) 8.dp else 14.dp).size(if (compact) 20.dp else 24.dp), tint = tint)
+private fun EdgeIcon(icon: ImageVector, tint: Color, compact: Boolean, wide: Boolean) {
+    val size = when {
+        compact -> 20.dp
+        wide -> 32.dp
+        else -> 24.dp
+    }
+    Icon(icon, null, Modifier.padding(horizontal = if (compact) 8.dp else 16.dp).size(size), tint = tint)
 }
 
 @Composable
@@ -358,12 +536,12 @@ internal fun HeaderIcon(icon: ImageVector, description: String, tint: Color, onC
 }
 
 @Composable
-private fun SubCounterChip(counter: SubCounter, p: SeatPalette, compact: Boolean, callbacks: SeatCallbacks) {
+private fun SubCounterChip(counter: SubCounter, p: SeatPalette, compact: Boolean, callbacks: SeatCallbacks, modifier: Modifier = Modifier) {
     val side = if (compact) 30.dp else 36.dp
     val target = CounterTarget.Sub(counter.id)
     val tint = p.text.copy(alpha = 0.08f)
     Row(
-        Modifier.height(MinTouch + 4.dp).clip(ChronoShapes.control).background(p.chipFill)
+        modifier.height(MinTouch + 4.dp).clip(ChronoShapes.control).background(p.chipFill)
             .border(1.dp, p.outline, ChronoShapes.control),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -372,12 +550,13 @@ private fun SubCounterChip(counter: SubCounter, p: SeatPalette, compact: Boolean
             contentAlignment = Alignment.Center,
         ) { Icon(ChronoIcons.Minus, "Decrease ${counter.name}", Modifier.size(16.dp), tint = p.muted) }
         Column(
-            Modifier.clickable { callbacks.onOpenKeypad(target) }.padding(horizontal = 2.dp)
-                .widthIn(min = 36.dp, max = if (compact) 60.dp else 96.dp),
+            Modifier.then(if (compact) Modifier.weight(1f) else Modifier.widthIn(min = 36.dp, max = 96.dp))
+                .clickable { callbacks.onOpenKeypad(target) }.padding(horizontal = 2.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
-                counter.name.uppercase(), style = ChronoTheme.type.label.copy(fontSize = 9.sp, letterSpacing = 0.5.sp),
+                if (compact) counter.shortLabel() else counter.name.uppercase(),
+                style = ChronoTheme.type.label.copy(fontSize = 9.sp, letterSpacing = 0.5.sp),
                 color = p.muted, maxLines = 1, overflow = TextOverflow.Ellipsis,
             )
             Text(counter.value.toString(), style = ChronoTheme.type.counter.copy(fontSize = 17.sp, lineHeight = 18.sp), color = p.text)
@@ -389,19 +568,24 @@ private fun SubCounterChip(counter: SubCounter, p: SeatPalette, compact: Boolean
     }
 }
 
-/** Commander damage summary; opens the per-opponent tracker. */
+/** Commander damage summary, same height as a counter chip; the chevron says it opens the tracker. */
 @Composable
-private fun CommanderChip(damage: Int, p: SeatPalette, compact: Boolean, onClick: () -> Unit) {
-    Column(
-        Modifier.height(MinTouch + 4.dp).clip(ChronoShapes.control).background(p.chipFill)
+private fun CommanderChip(damage: Int, p: SeatPalette, compact: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Row(
+        modifier.height(MinTouch + 4.dp).clip(ChronoShapes.control).background(p.chipFill)
             .border(1.dp, p.outline, ChronoShapes.control)
             .clickable(onClickLabel = "Commander damage", onClick = onClick)
-            .padding(horizontal = if (compact) 8.dp else 12.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
+            .padding(start = if (compact) 8.dp else 12.dp, end = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text("CMDR", style = ChronoTheme.type.label.copy(fontSize = 9.sp, letterSpacing = 0.5.sp), color = p.muted, maxLines = 1)
-        Text("$damage", style = ChronoTheme.type.counter.copy(fontSize = 17.sp, lineHeight = 18.sp), color = p.text)
+        Column(
+            Modifier.then(if (compact) Modifier.weight(1f) else Modifier),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text("CMDR", style = ChronoTheme.type.label.copy(fontSize = 9.sp, letterSpacing = 0.5.sp), color = p.muted, maxLines = 1)
+            Text("$damage", style = ChronoTheme.type.counter.copy(fontSize = 17.sp, lineHeight = 18.sp), color = p.text)
+        }
+        Icon(ChronoIcons.ChevronRight, null, Modifier.size(16.dp), tint = p.muted)
     }
 }
 

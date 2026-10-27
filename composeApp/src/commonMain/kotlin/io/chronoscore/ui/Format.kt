@@ -14,6 +14,13 @@ fun formatDuration(millis: Long): String {
     return sign + if (h > 0) "$h:${two(m)}:${two(s)}" else "$m:${two(s)}"
 }
 
+/** A score with a typographic minus ("−5"); with [plus], positive values get a "+" too. */
+fun formatScore(value: Int, plus: Boolean = false): String = when {
+    value < 0 -> "−${-value}"
+    plus && value > 0 -> "+$value"
+    else -> "$value"
+}
+
 /** UTC calendar date "2026-10-21" for file names. */
 fun isoDate(epochMillis: Long): String {
     // Days since 1970-01-01 → civil date (Howard Hinnant's algorithm).

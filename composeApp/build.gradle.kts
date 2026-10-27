@@ -63,8 +63,8 @@ android {
         applicationId = "io.chronoscore"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 5
-        versionName = "1.2.2"
+        versionCode = 6
+        versionName = "1.3.0"
     }
     signingConfigs {
         if (keystoreProps.isNotEmpty()) {
@@ -107,7 +107,7 @@ compose.desktop {
         nativeDistributions {
             targetFormats(TargetFormat.Exe, TargetFormat.Msi, TargetFormat.Deb, TargetFormat.Rpm)
             packageName = "Chronoscore"
-            packageVersion = "1.2.2"
+            packageVersion = "1.3.0"
             description = "Offline scorekeeper for tabletop, card and board games"
             vendor = "Chronoscore"
             modules("java.sql")

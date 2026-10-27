@@ -2,14 +2,19 @@ package io.chronoscore.engine
 
 import io.chronoscore.model.Accents
 import io.chronoscore.model.CounterTarget
+import io.chronoscore.model.Dart
+import io.chronoscore.model.DartsGame
+import io.chronoscore.model.DartsRules
 import io.chronoscore.model.GameSession
 import io.chronoscore.model.Limits
 import io.chronoscore.model.MatchOptions
 import io.chronoscore.model.Player
 import io.chronoscore.model.ScoreHistoryEntry
 import io.chronoscore.model.SubCounter
+import io.chronoscore.model.TeamMember
 import io.chronoscore.model.TimeBonus
 import io.chronoscore.model.Timing
+import io.chronoscore.model.WinRule
 import io.chronoscore.model.storedId
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
@@ -41,9 +46,9 @@ class GameEngine(
         counters: List<String> = emptyList(),
     ): GameSession {
         val count = playerCount.coerceIn(Limits.MIN_PLAYERS, Limits.MAX_PLAYERS)
-        val score = startingScore.clampValue()
         val game = gameName.cleanGameName()
         val opts = options.sanitized()
+        val score = opts.darts?.startScore ?: startingScore.clampValue()
         val now = clock()
         val layout = counters.cleanCounterNames()
         val players = List(count) { seat ->
@@ -169,21 +174,28 @@ class GameEngine(
             else p.copy(name = profile.name.cleanName(p.name), colorHex = profile.colorHex, profileId = profile.id)
         }
 
+        is GameAction.SetTeamMembers -> session.updatePlayer(action.playerId) { p ->
+            p.copy(members = action.members.cleanMembers())
+        }
+
         is GameAction.SetRoundPoints -> {
             val round = action.round.coerceIn(1, session.round)
-            val current = session.historyLog
-                .filter { it.playerId == action.playerId && it.subCounterId == null && it.round == round }
-                .sumOf { it.delta }
+            val current = session.pointsIn(round, action.playerId)
             adjust(session, action.playerId, CounterTarget.Primary, action.points - current, coalesce = false, round = round)
         }
+
+        is GameAction.SetRoundPointsBatch -> setRoundPointsBatch(session, action)
 
         is GameAction.SetMonarch -> session.copy(monarchId = action.playerId?.takeIf { session.player(it) != null })
         is GameAction.SetInitiative -> session.copy(initiativeId = action.playerId?.takeIf { session.player(it) != null })
         is GameAction.SetDayNight -> session.copy(dayNight = action.dayNight)
 
+        is GameAction.ThrowDart -> throwDart(session, action.segment, action.multiplier)
+        GameAction.EndVisit -> endVisit(session)
+
         GameAction.NextRound -> session.copy(round = session.round + 1)
 
-        GameAction.Undo -> undo(session)
+        GameAction.Undo -> if (session.options.darts != null && session.darts.isNotEmpty()) undoDart(session) else undo(session)
 
         GameAction.ResetScores -> {
             val now = clock()
@@ -205,22 +217,36 @@ class GameEngine(
                 monarchId = null,
                 initiativeId = null,
                 dayNight = null,
+                darts = emptyList(),
             )
         }
 
         is GameAction.NewGame -> {
             val options = action.options ?: session.options
             val fresh = newSession(action.playerCount, action.startingScore, action.gameName, options, action.counters.orEmpty())
+            val teamSize = action.teamSize?.coerceIn(1, Limits.MAX_TEAM_MEMBERS)
             // Keep names, colors, profiles and (unless counters were given) counter layout for seats that carry over.
             fresh.copy(players = fresh.players.map { p ->
-                val old = session.players.getOrNull(p.seatIndex) ?: return@map p
-                p.copy(
+                val old = session.players.getOrNull(p.seatIndex)
+                val carried = if (old == null) p else p.copy(
                     name = old.name,
                     colorHex = old.colorHex,
                     rotation = old.rotation,
                     profileId = old.profileId,
                     subCounters = if (action.counters == null) old.subCounters.map { it.copy(value = 0) } else p.subCounters,
+                    members = old.members,
                 )
+                when {
+                    teamSize == null -> carried
+                    teamSize == 1 -> carried.copy(members = emptyList())
+                    // A team of the same size carries over as it was.
+                    carried.members.size == teamSize -> carried
+                    else -> carried.copy(
+                        name = "Team ${p.seatIndex + 1}",
+                        profileId = null,
+                        members = List(teamSize) { TeamMember("Player ${p.seatIndex * teamSize + it + 1}") },
+                    )
+                }
             })
         }
     }
@@ -326,6 +352,22 @@ class GameEngine(
         return result.copy(historyLog = session.historyLog + entries)
     }
 
+    private fun setRoundPointsBatch(session: GameSession, action: GameAction.SetRoundPointsBatch): GameSession {
+        val round = action.round.coerceIn(1, session.round)
+        val batch = newId()
+        val now = clock()
+        var result = session
+        val entries = mutableListOf<ScoreHistoryEntry>()
+        session.players.filter { it.id in action.points }.forEach { p ->
+            val scored = session.pointsIn(round, p.id)
+            val next = (p.primaryScore + action.points.getValue(p.id) - scored).clampValue()
+            if (next == p.primaryScore) return@forEach
+            result = result.withValue(p.id, CounterTarget.Primary, next)
+            entries += ScoreHistoryEntry(newId(), now, round, p.id, null, next - p.primaryScore, next, batch)
+        }
+        return result.copy(historyLog = session.historyLog + entries)
+    }
+
     private fun undo(session: GameSession): GameSession {
         val last = session.historyLog.lastOrNull() ?: return session
         val step = if (last.batchId == null) listOf(last)
@@ -348,6 +390,7 @@ class GameEngine(
             .mapIndexed { index, p -> p.copy(seatIndex = index, commanderDamage = p.commanderDamage - playerId) }
         return passed.copy(
             players = remaining,
+            darts = passed.darts.filterNot { it.playerId == playerId },
             historyLog = passed.historyLog.filterNot { it.playerId == playerId || it.subCounterId == damageId },
             activePlayerId = passed.activePlayerId?.takeIf { it != playerId } ?: remaining.first().id.takeIf { passed.options.turnTracking },
             monarchId = passed.monarchId?.takeIf { it != playerId },
@@ -378,7 +421,72 @@ class GameEngine(
             control.bankSeconds != s.options.timeControl?.bankSeconds -> s.players.map { it.copy(clockMillis = control.bankMillis) }
             else -> s.players
         }
-        return s.copy(options = options, timing = timing, players = players)
+        val updated = s.copy(options = options, timing = timing, players = players)
+        // New darts rules start the scores over: old darts and points don't carry into another game.
+        val darts = options.darts
+        if (darts == null || darts == session.options.darts) return updated
+        val start = darts.startScore
+        return updated.copy(
+            players = updated.players.map { it.copy(primaryScore = start) },
+            startingScore = start,
+            darts = emptyList(),
+            historyLog = emptyList(),
+            round = 1,
+        )
+    }
+
+    private fun throwDart(session: GameSession, segment: Int, multiplier: Int): GameSession {
+        if (session.options.darts == null || session.outcome().finished) return session
+        val active = session.activePlayerId?.let(session::player) ?: return session
+        if (segment !in 0..20 && segment != BULL) return session
+        val ring = when (segment) {
+            0 -> 1
+            BULL -> multiplier.coerceIn(1, 2)
+            else -> multiplier.coerceIn(1, 3)
+        }
+        val open = session.dartsState().openVisit?.takeIf { it.playerId == active.id }
+        val visit = open?.number ?: ((session.darts.maxOfOrNull { it.visit } ?: 0) + 1)
+        val dart = Dart(newId(), active.id, visit, session.round, segment, ring)
+        val thrown = withDartScores(session.copy(darts = session.darts + dart), batch = dart.id)
+        val after = thrown.dartsState()
+        return if (after.visits.last().closed && !after.finished) passTurn(thrown, forward = true) else thrown
+    }
+
+    /** Fills the active seat's visit with misses, which passes the turn. */
+    private fun endVisit(session: GameSession): GameSession {
+        if (session.options.darts == null) return session
+        val active = session.activePlayerId ?: return session
+        val thrown = session.dartsState().openVisit?.takeIf { it.playerId == active }?.darts?.size ?: 0
+        return (thrown until DARTS_PER_VISIT).fold(session) { s, _ ->
+            if (s.activePlayerId == active) throwDart(s, 0, 1) else s
+        }
+    }
+
+    /** Takes back the last dart and gives the turn back to whoever threw it. */
+    private fun undoDart(session: GameSession): GameSession {
+        val last = session.darts.last()
+        val trimmed = withDartScores(
+            session.copy(darts = session.darts.dropLast(1), historyLog = session.historyLog.filterNot { it.batchId == last.id }),
+            batch = null,
+        )
+        val back = if (trimmed.activePlayerId == last.playerId || trimmed.player(last.playerId) == null) trimmed
+        else handOver(trimmed, last.playerId)
+        return back.copy(round = last.round)
+    }
+
+    /** Sets every seat's score from its darts; with a [batch], logs the changes under it. */
+    private fun withDartScores(session: GameSession, batch: String?): GameSession {
+        val seats = session.dartsState().seats
+        val now = clock()
+        val entries = mutableListOf<ScoreHistoryEntry>()
+        val players = session.players.map { p ->
+            val score = seats[p.id]?.score ?: return@map p
+            if (batch != null && score != p.primaryScore) {
+                entries += ScoreHistoryEntry(newId(), now, session.round, p.id, null, score - p.primaryScore, score, batch)
+            }
+            p.copy(primaryScore = score)
+        }
+        return session.copy(players = players, historyLog = session.historyLog + entries)
     }
 
     /** Timer mode: knocks the active seat out once its bank is empty, if the match says so. */
@@ -461,8 +569,19 @@ class GameEngine(
     }
 }
 
-/** Seat timers, the turn limit and timer mode only make sense with an active seat. */
-fun MatchOptions.sanitized(): MatchOptions = copy(
+/**
+ * Seat timers, the turn limit and timer mode only make sense with an active seat. Darts
+ * always track turns, use the board instead of the round sheet, and decide the result themselves.
+ */
+fun MatchOptions.sanitized(): MatchOptions = (darts?.let { d ->
+    copy(
+        turnTracking = true,
+        sheetMode = false,
+        winRule = WinRule(),
+        darts = d.copy(start = d.start.coerceIn(MIN_X01_START, MAX_X01_START), rounds = d.rounds.coerceIn(1, 20)),
+    )
+} ?: this).run { copy(
+    handCalculator = handCalculator?.takeIf { sheetMode },
     seatTimers = seatTimers && turnTracking,
     turnLimitSeconds = turnLimitSeconds?.takeIf { turnTracking }?.coerceIn(5, Limits.MAX_TURN_LIMIT_SECONDS),
     timeControl = timeControl?.takeIf { turnTracking }?.let {
@@ -472,7 +591,21 @@ fun MatchOptions.sanitized(): MatchOptions = copy(
         )
     },
     winRule = winRule.copy(target = winRule.target.coerceIn(Limits.MIN_VALUE, Limits.MAX_VALUE)),
-)
+) }
+
+/** Low starts are allowed for checkout practice. */
+private const val MIN_X01_START = 2
+private const val MAX_X01_START = 1001
+
+/** Points each seat scored in each round, from the score changes logged in that round. */
+fun GameSession.roundPoints(): Map<Pair<Int, String>, Int> =
+    historyLog.filter { it.subCounterId == null }
+        .groupBy { it.round to it.playerId }
+        .mapValues { (_, entries) -> entries.sumOf { it.delta } }
+
+/** Points [playerId] scored in [round]. */
+fun GameSession.pointsIn(round: Int, playerId: String): Int =
+    historyLog.filter { it.playerId == playerId && it.subCounterId == null && it.round == round }.sumOf { it.delta }
 
 private fun GameSession.updatePlayer(id: String, transform: (Player) -> Player): GameSession =
     copy(players = players.map { if (it.id == id) transform(it) else it })
@@ -508,5 +641,10 @@ private fun String?.cleanGameName(): String? =
 
 private fun List<String>.cleanCounterNames(): List<String> =
     map { it.cleanName("Counter") }.distinctBy { it.lowercase() }.take(Limits.MAX_SUB_COUNTERS)
+
+/** Trimmed, non-empty names, at most [Limits.MAX_TEAM_MEMBERS]. */
+internal fun List<TeamMember>.cleanMembers(): List<TeamMember> =
+    mapNotNull { m -> m.name.trim().take(Limits.MAX_NAME_LENGTH).takeIf { it.isNotEmpty() }?.let { m.copy(name = it) } }
+        .take(Limits.MAX_TEAM_MEMBERS)
 
 private fun Player.hasCounter(name: String) = subCounters.any { it.name.equals(name, ignoreCase = true) }

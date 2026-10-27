@@ -2,6 +2,7 @@ package io.chronoscore.engine
 
 import io.chronoscore.model.GameSession
 import io.chronoscore.model.Profile
+import io.chronoscore.model.WinMode
 
 /** One player's record across saved matches. */
 data class PlayerStats(
@@ -28,23 +29,32 @@ data class PlayerStats(
  */
 fun computeStats(sessions: List<GameSession>, profiles: List<Profile>, game: String? = null): List<PlayerStats> {
     val byId = profiles.associateBy { it.id }
-    data class Row(val key: String, val name: String, val color: String, val isProfile: Boolean, val score: Int, val won: Boolean?, val time: Long)
+    data class Row(val key: String, val name: String, val color: String, val isProfile: Boolean, val score: Int, val won: Boolean?, val time: Long, val lowerIsBetter: Boolean)
 
     val rows = sessions
         .filter { game == null || it.gameName.equals(game, ignoreCase = true) }
         .flatMap { s ->
             val outcome = s.outcome()
-            s.players.map { p ->
-                val profile = p.profileId?.let(byId::get)
-                Row(
-                    key = profile?.id ?: ("name:" + p.name.lowercase()),
-                    name = profile?.name ?: p.name,
-                    color = profile?.colorHex ?: p.colorHex,
-                    isProfile = profile != null,
-                    score = p.primaryScore,
-                    won = if (outcome.finished) p.id in outcome.winners else null,
-                    time = p.timeMillis,
-                )
+            // Penalty games (Hearts, Scala 40, Skyjo): the best score is the lowest.
+            val rule = s.options.winRule
+            val lowerIsBetter = rule.lowestWins || rule.mode == WinMode.ELIMINATION_ABOVE
+            s.players.flatMap { p ->
+                val won = if (outcome.finished) p.id in outcome.winners else null
+                // A team seat counts once for each member, with the team's score and result.
+                val people = if (p.isTeam) p.members.map { it.name to it.profileId } else listOf(p.name to p.profileId)
+                people.map { (name, profileId) ->
+                    val profile = profileId?.let(byId::get)
+                    Row(
+                        key = profile?.id ?: ("name:" + name.lowercase()),
+                        name = profile?.name ?: name,
+                        color = profile?.colorHex ?: p.colorHex,
+                        isProfile = profile != null,
+                        score = p.primaryScore,
+                        won = won,
+                        time = p.timeMillis,
+                        lowerIsBetter = lowerIsBetter,
+                    )
+                }
             }
         }
 
@@ -59,7 +69,7 @@ fun computeStats(sessions: List<GameSession>, profiles: List<Profile>, game: Str
             decided = list.count { it.won != null },
             wins = list.count { it.won == true },
             averageScore = list.map { it.score }.average(),
-            bestScore = list.maxOf { it.score },
+            bestScore = if (list.all { it.lowerIsBetter }) list.minOf { it.score } else list.maxOf { it.score },
             timeMillis = list.sumOf { it.time },
         )
     }.sortedWith(compareByDescending<PlayerStats> { it.wins }.thenByDescending { it.played }.thenBy { it.name.lowercase() })

@@ -5,12 +5,15 @@ import io.chronoscore.engine.normalizedRotation
 import io.chronoscore.engine.sanitized
 import io.chronoscore.model.Accents
 import io.chronoscore.model.CounterTarget
+import io.chronoscore.model.Dart
 import io.chronoscore.model.DayNight
 import io.chronoscore.model.GamePreset
 import io.chronoscore.model.GameSession
 import io.chronoscore.model.Limits
 import io.chronoscore.model.MatchOptions
+import io.chronoscore.engine.cleanMembers
 import io.chronoscore.model.Profile
+import io.chronoscore.model.TeamMember
 import io.chronoscore.model.Timing
 import kotlinx.serialization.EncodeDefault
 import kotlinx.serialization.ExperimentalSerializationApi
@@ -36,6 +39,7 @@ internal data class SessionState(
     val monarchId: String? = null,
     val initiativeId: String? = null,
     val dayNight: DayNight? = null,
+    val darts: List<Dart> = emptyList(),
 )
 
 /** Seat-level extras stored in player.extras_json. */
@@ -48,6 +52,7 @@ internal data class PlayerExtras(
     val clockMillis: Long? = null,
     /** Seat rotation in degrees; null in rows from before 1.2, which only had is_flipped. */
     val rotation: Int? = null,
+    val members: List<TeamMember> = emptyList(),
 )
 
 /** A full local backup: every saved match, preset and player profile. */
@@ -102,6 +107,7 @@ internal fun GameSession.sanitized(): GameSession? {
             subCounters = p.subCounters.take(Limits.MAX_SUB_COUNTERS).map { it.copy(value = it.value.clamp()) },
             timeMillis = p.timeMillis.coerceAtLeast(0),
             rotation = normalizedRotation(p.rotation),
+            members = p.members.cleanMembers(),
         )
     }
     val ids = fixed.map { it.id }.toSet()
@@ -117,6 +123,7 @@ internal fun GameSession.sanitized(): GameSession? {
         activePlayerId = activePlayerId?.takeIf { it in ids },
         monarchId = monarchId?.takeIf { it in ids },
         initiativeId = initiativeId?.takeIf { it in ids },
+        darts = if (opts.darts == null) emptyList() else darts.filter { it.playerId in ids },
     )
 }
 
@@ -126,6 +133,7 @@ internal fun GamePreset.sanitized(): GamePreset = copy(
     startingScore = startingScore.coerceIn(Limits.MIN_VALUE, Limits.MAX_VALUE),
     counters = counters.take(Limits.MAX_SUB_COUNTERS),
     options = options.sanitized(),
+    teamSize = teamSize?.coerceIn(1, Limits.MAX_TEAM_MEMBERS),
 )
 
 /**
@@ -154,7 +162,9 @@ fun matchCsv(session: GameSession, formatTime: (Long) -> String): String {
         }
         append(CRLF)
         val counters = session.players.flatMap { p -> p.subCounters.map { it.name } }.distinctBy { it.lowercase() }
-        appendCsvRow("Player", "Score", *counters.toTypedArray(), "Status")
+        val teams = session.players.any { it.isTeam }
+        val header = listOf("Player") + (if (teams) listOf("Members") else emptyList()) + "Score" + counters + "Status"
+        appendCsvRow(*header.toTypedArray())
         session.players.forEach { p ->
             val status = when (p.id) {
                 in outcome.winners -> "Winner"
@@ -162,7 +172,8 @@ fun matchCsv(session: GameSession, formatTime: (Long) -> String): String {
                 else -> ""
             }
             val values = counters.map { name -> p.subCounters.firstOrNull { it.name.equals(name, true) }?.value?.toString().orEmpty() }
-            appendCsvRow(p.name, p.primaryScore.toString(), *values.toTypedArray(), status)
+            val members = if (teams) listOf(p.members.joinToString(" & ") { it.name }) else emptyList()
+            appendCsvRow(*(listOf(p.name) + members + p.primaryScore.toString() + values + status).toTypedArray())
         }
     }
 }

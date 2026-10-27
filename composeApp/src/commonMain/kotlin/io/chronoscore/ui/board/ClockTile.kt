@@ -3,7 +3,6 @@ package io.chronoscore.ui.board
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -57,7 +56,7 @@ fun ClockTile(
     val low = status.active && !tiles.paused && millis < LOW_TIME_MS
     val tappable = status.active && !status.out && !status.winner
 
-    BoxWithConstraints(modifier.rotatedToFit(angle)) {
+    RotatedSeat(angle, modifier) {
         val compact = maxWidth < COMPACT_WIDTH
         val ring = when {
             low -> c.destructive
@@ -83,19 +82,27 @@ fun ClockTile(
                 if (low && style == SeatStyle.NEUTRAL) c.negative else p.text,
                 Modifier.weight(1f).fillMaxWidth().padding(horizontal = if (compact) 8.dp else 20.dp),
             )
+            // An increment is per seat, so it sits right under every clock; a delay is
+            // table-wide and shows once, in the turn bar.
+            if (tiles.control.bonus == TimeBonus.INCREMENT) {
+                Text(
+                    tiles.control.bonusLabel().orEmpty(),
+                    style = ChronoTheme.type.counter.copy(fontSize = 12.sp),
+                    color = p.muted,
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                )
+            }
             val hint = when {
                 status.out -> "OUT OF TIME"
                 tappable && tiles.paused -> "TAP TO START"
                 tappable -> "TAP TO END TURN"
                 else -> null
             }
-            // Narrow tiles keep only the hint, so the caption never gets cut off.
-            val bonus = tiles.control.bonusLabel()
-            val caption = if (compact) hint ?: bonus.orEmpty() else listOfNotNull(hint, bonus).joinToString(" · ")
             Text(
-                caption,
+                hint.orEmpty(),
                 style = ChronoTheme.type.label.copy(fontSize = if (compact) 10.sp else 12.sp, letterSpacing = 1.sp),
-                color = p.muted,
+                // The hint is the tile's only instruction, so the active tile shows it in full colour.
+                color = if (tappable) p.text else p.muted,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.align(Alignment.CenterHorizontally).padding(bottom = if (compact) 8.dp else 12.dp),
