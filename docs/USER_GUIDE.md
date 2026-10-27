@@ -9,17 +9,21 @@ Everything new in 1.1 (turns, timers, win rules, presets, round sheet, MTG extra
 ## Opening the app
 
 <p>
-  <img src="images/dialog-start.png" width="280" alt="Start screen: continue the last match, new game or saved matches">
-  <img src="images/dialog-new-game.png" width="280" alt="New game setup opened from the start screen">
+  <img src="images/dialog-start.png" width="280" alt="Home: continue the last match, quick start, custom game or saved matches">
+  <img src="images/dialog-new-game.png" width="280" alt="New game setup, step 1: game">
 </p>
 
-When Chronoscore opens, it asks what to play before showing the table:
+When Chronoscore opens, Home asks what to play before showing the table:
 
-- **Continue** (or tap the *Last match* card) puts your most recent match back on the table, with its game, players, round and when it was last played. Closing the screen does the same.
-- **New game** opens the new-game setup: a preset or your own players, starting score and options. See [Menu and new games](#menu-and-new-games).
+- **Continue** (or tap the *Last match* card) puts your most recent match back on the table, with its game, players, round and when it was last played. Closing Home does the same.
+- **Quick start** tiles start a game in **one tap**, with the players already at the table:
+  - *"Catan again"* (the game on the table) starts the same game with the same players and setup.
+  - The other tiles are the games you played most recently, or the first presets.
+  - **Long-press** a tile to open it in the setup first, to change something before starting.
+- **Custom game…** opens the [New game setup](#new-game).
 - **Saved matches** lists every match by game, so you can pick an older one to continue.
 
-Starting a new game never deletes the last match. It stays in Saved matches.
+Starting a new game never deletes the last match. It stays in Saved matches, so there is nothing to confirm.
 
 ## The table
 
@@ -32,8 +36,11 @@ Each player has a **seat**, a card showing their name, their score and any count
 
 - **The left half subtracts and the right half adds.** Tap a half for ±1. Hold it to repeat, and after about a second it switches to steps of ±5.
 - While you count, the **running delta** (for example **−7**) shows next to the name. When you pause, it folds into the match log as one entry, so one undo reverts the whole press.
-- **Seats in the top half are rotated 180°** so they face the players sitting across from the device. To turn a seat by hand, tap its **⟲** rotate button. Each tap turns it 30°, so a seat can face a player at a corner or along the side of the table. *Edit seat* also has **−30° / +30°** and **Flip 180°**. A tilted seat shrinks to stay inside its space.
-- The header buttons are **#** (keypad), **⟲** (rotate) and **✎** (edit seat). On narrow phone seats only ✎ is shown. The other actions are inside the seat editor.
+- **Seats in the top half are rotated 180°** so they face the players sitting across from the device. To turn a seat by hand, tap its **⟲** rotate button. Each tap turns it 30°, so a seat can face a player at a corner or along the side of the table. *Edit seat* also has **−30° / +30°** and **Flip 180°**. A tilted seat shrinks to stay inside its space. On a phone, seats are too small to read at an angle, so they turn in right angles (90°, 180°, 270°).
+- The header buttons are **#** (keypad), **⟲** (rotate) and **✎** (edit seat). On narrow phone seats only ✎ is shown, and the other actions are inside the seat editor.
+- On narrow seats the name gets the whole header. Tags such as **1ST**, **TURN**, **OUT** or **MON**, and the seat timer, sit on a second line below it.
+- **The score always keeps at least half the seat.** When a seat's counters don't fit under it, they shrink to a row of small chips (for example *PSN 0*); tap one to open the keypad. All seats show their score at the same size, so equal scores look equal.
+- A seat that is **out** has no − / + any more. Long-press it to open its editor.
 
 The layout adapts to how many players there are and to the orientation. On a phone, up to 8 seats fit:
 
@@ -41,7 +48,7 @@ The layout adapts to how many players there are and to the orientation. On a pho
 
 ## The center hub
 
-The pill between the two halves of the table holds the shared controls. When the turn tracker or a clock is on, the turn bar sits just above it, and a winner banner appears once a match is decided.
+The pill between the two halves of the table holds the shared controls. When the turn tracker or a clock is on, the turn bar sits just above it. Once a match is decided, the turn bar is replaced by the [result bar](#winning-and-elimination).
 
 | Button | Action |
 | --- | --- |
@@ -49,15 +56,15 @@ The pill between the two halves of the table holds the shared controls. When the
 | ⚄ Dice | Opens the table utilities |
 | ▦ Edit all seats | Changes a score or counter on many seats at once |
 | ☰ Log | Opens the match log, organized by round |
-| ⚌ Menu (sliders) | Current game, match options, saved matches, appearance and new games |
+| ⚌ Menu (sliders) | This match, new game, saved matches, stats and appearance |
 
-When the match has a game name and the screen is wide enough (tablets, landscape, desktop), it shows at the left of the hub (for example **CATAN**). Tap it to open the menu. The name always shows in the menu and in the match log title.
+When the match has a game name and the screen is wide enough (tablets, landscape, desktop), it shows as a small title above the hub (for example **CATAN**). Tap it to open the menu. The name always shows in the menu and in the match log title.
 
 ## Match options
 
 <img src="images/dialog-options.png" width="320" alt="Match options">
 
-Open **Menu → Match options** to change the match on the table (changes apply immediately), or **Menu → New game → Options** for the next match. A [preset](#presets) can set them for you.
+Open **Menu → Match options** to change the match on the table (changes apply immediately), or **Options** in the [New game](#new-game) setup for the next match. Both open the same screen. A [preset](#presets) can set them for you.
 
 ### Turn tracker
 
@@ -66,7 +73,7 @@ Open **Menu → Match options** to change the match on the table (changes apply 
 One seat is active: it gets a ring and a **TURN** tag, and the **turn bar** appears on the center line.
 
 - **Next ›** passes the turn to the next seat. After the last seat, the round advances.
-- **‹ Previous** passes it back. Before the first seat, the round goes back one (never below 1). In darts there is no Previous: **Undo** takes back the last dart and gives the turn back with it.
+- **‹ Previous** passes it back. Before the first seat, the round goes back one (never below 1). In darts Previous is greyed out: **Undo** takes back the last dart and gives the turn back with it.
 - Seats that are out are skipped. A seat that concedes on its own turn hands the turn on.
 - **Edit seat → Give turn** jumps to any seat.
 
@@ -75,7 +82,7 @@ One seat is active: it gets a ring and a **TURN** tag, and the **turn bar** appe
 - **Match clock:** total match time, shown in the turn bar.
 - **Seat timers:** each seat's own time on its turns, like a chess clock (needs the turn tracker).
 - **Turn limit:** a countdown per turn (30 s, 1, 2 or 5 min). Past the limit, the time turns rose and counts overtime.
-- **⏸ / ▶** in the turn bar pauses and resumes. The clock also pauses by itself when you leave the app or close the window.
+- **⏸** in the turn bar pauses. While paused, the turn bar shows a white **▶ Start** button (with the match time, when the match clock is on). The clock also pauses by itself when you leave the app or close the window.
 
 ### Timer mode (chess clock for 1–8 seats)
 
@@ -92,34 +99,45 @@ For any game where each player has a fixed amount of thinking time, such as ches
   - **Seat is out:** the seat is dimmed with *OUT OF TIME* and skipped from then on. The last seat left wins.
   - **Overtime:** the clock keeps going below zero in red, and nobody is knocked out.
 
-The clock starts paused. Tap the active seat's tile (*TAP TO START*) to start it. After that, **tapping your own tile ends your turn** and starts the next seat's clock, just like pressing a chess clock. Other tiles ignore taps, so a stray touch can't pass the turn. The tile turns red in the last 10 seconds. ⏸ in the turn bar pauses everyone. **Edit seat → −1 min / +1 min** corrects a clock, gives a handicap, or brings back a seat that ran out by mistake. Scores are still in the seat editor (*Set score*).
+An increment shows under every clock (for example *+5s*). A delay is the same for everyone, so it shows once, in the turn bar.
+
+The clock starts paused. Tap the active seat's tile (*TAP TO START*) or **Start** in the turn bar to start it. After that, **tapping your own tile ends your turn** and starts the next seat's clock, just like pressing a chess clock. Other tiles ignore taps, so a stray touch can't pass the turn. The tile turns red in the last 10 seconds. ⏸ in the turn bar pauses everyone. **Edit seat → −1 min / +1 min** corrects a clock, gives a handicap, or brings back a seat that ran out by mistake. Scores are still in the seat editor (*Set score*).
 
 Timer mode turns the turn tracker on. Seats take turns in seat order, and the turn bar shows the active seat's remaining time.
 
 ### Winning and elimination
 
-<img src="images/phone-winner.png" width="280" alt="Winner banner">
+<img src="images/phone-winner.png" width="280" alt="Result bar with Rematch and New game">
 
 | Rule | How it works |
 | --- | --- |
 | None | No automatic result. When everyone else is marked out (**Edit seat → Mark as out**), the last seat wins. |
 | Target | The match ends when a seat reaches the target. *Highest wins* or *Lowest wins* (e.g. Hearts to 100). |
-| Out ≤ (elimination) | Seats at or below the threshold (0 by default) are **OUT**. The last seat standing wins. |
-| Out ≥ | For penalty points: seats at or above the threshold (101 by default, as in Scala 40) are **OUT**. The last seat standing wins. |
+| Low out (elimination) | Seats at or below the threshold (0 by default) are **OUT**. The last seat standing wins. |
+| High out | For penalty points: seats at or above the threshold (101 by default, as in Scala 40) are **OUT**. The last seat standing wins. |
 
-Seats that are out are dimmed but stay editable. Results are worked out from the scores, so **Undo brings an eliminated seat back**.
+Seats that are out are dimmed but stay editable from their editor. Results are worked out from the scores, so **Undo brings an eliminated seat back**.
+
+When the match is decided, the **result bar** names the winner and offers:
+
+- **Rematch:** the same game, players and options, with scores back to the start. One tap.
+- **New game** (**+** on a phone): opens the [New game](#new-game) setup.
 
 ### Round sheet
 
 <img src="images/phone-sheet.png" width="280" alt="Round sheet">
 
-A scorepad instead of seat cards: one column per seat, one row per round, totals at the bottom. Tap a cell to enter that seat's points for the round (earlier rounds too). **Next round →** adds a row.
+A scorepad instead of seat cards: one column per seat, one row per round, and totals right after the last round (they stay at the bottom once the rounds fill the screen). Tap a cell to enter that seat's points for the round (earlier rounds too). **Next round →** adds a row.
+
+- The seat in the lead has a line in its colour under its total (the lowest total when lowest wins, as in Hearts).
+- With a target, each total shows it (for example */ 100*) and a thin progress bar.
+- On wide screens the sheet stays at a readable width, centred.
 
 #### Hand calculators
 
 <img src="images/dialog-hand-scopa.png" width="320" alt="Scopa hand calculator">
 
-With a **Hand calculator** chosen (Match options → Layout & games, or set by the card and bocce presets), tapping a round opens a calculator for the whole hand. It shows each seat's points before you **Apply**; applying the current round moves the sheet on to the next one, and one Undo reverts the whole hand. **Type points** goes back to the plain keypad.
+With a **Hand calculator** chosen (Match options → Layout, or set by the card and bocce presets), tapping a round opens a calculator for the whole hand. It shows each seat's points before you **Apply**; applying the current round moves the sheet on to the next one, and one Undo reverts the whole hand. **Type points** goes back to the plain keypad. **How scoring works** shows the card values when you need them.
 
 | Calculator | You enter | Points |
 | --- | --- | --- |
@@ -135,7 +153,7 @@ Card values are listed in each calculator: Burraco jolly 30, pinella 20, ace 15,
 
 <img src="images/phone-darts.png" width="280" alt="Darts 501">
 
-Choose a game under **Match options → Darts** (or a darts preset). Seat scores sit on top, the visit in progress below them, and a keypad at the bottom: pick **Single / Double / Treble**, then the number (the ring goes back to Single after each dart). **25** is the single bull; with Double it is the bull's eye (50). After three darts, a bust or a win the turn passes by itself; **Next** in the turn bar ends a visit early, counting the darts not thrown as misses. **Undo** takes back one dart, and a bust or a win with it.
+Choose a game under **Match options → Darts game** (or a darts preset). Seat scores sit on top, then the **visit** in progress (its three darts and their total) and the last three visits, and a keypad at the bottom: pick **Single / Double / Treble**, then the number (the ring goes back to Single after each dart). **25** is the single bull; with Double it is the bull's eye (50). After three darts, a bust or a win the turn passes by itself; **Next** in the turn bar ends a visit early, counting the darts not thrown as misses. The outlined **↶** key, set apart from Miss, takes back one dart, and a bust or a win with it. In Cricket the marks sit in a column under each player; when they run under the keypad, a fade at the bottom shows there is more to scroll.
 
 | Game | Rules |
 | --- | --- |
@@ -148,20 +166,20 @@ Changing the darts settings starts the scores over.
 
 ### Teams
 
-A seat can be a team whose members share its score: choose **Teams of 2** (or 3) under **Menu → New game**, or **Edit seat → Make this seat a team**. Add members by name or from your saved players, and remove them in the same place (remove all of them to make it a single seat again). Member names show under the team name, and **Players & stats** counts a team's result for each member.
+A seat can be a team whose members share its score: choose **Teams of 2** (or 3) in step 2 of [New game](#new-game), or **Edit seat → Make this seat a team**. Add members by name or from your saved players, and remove them in the same place (remove all of them to make it a single seat again). Member names show under the team name, and **Players & stats** counts a team's result for each member.
 
 ### Magic: The Gathering extras
 
 <img src="images/dialog-commander.png" width="320" alt="Commander damage">
 
-- **Commander damage:** each seat has a **CMDR** chip; tap it to track damage from each opponent's commander. It also comes off that seat's life, as one undo step.
-- **Monarch** and **Initiative:** assign from a seat's editor.
-- **Day / Night:** set in Table utilities; shown in the turn bar.
+- **Commander damage:** each seat has a **CMDR ›** chip; tap it to track damage from each opponent's commander. It also comes off that seat's life, as one undo step.
+- **Monarch** (with a crown) and **Initiative:** assign from a seat's editor, under *In this match*.
+- **Day / Night:** set in Table utilities; shown in the turn bar as a sun or a moon.
 - With Elimination on, **21 commander damage** from one commander or **10 Poison** also knocks a seat out.
 
 ## Presets
 
-Pick a preset under **Menu → New game** to fill in players, starting score, counters and options:
+Pick a preset in step 1 of [New game](#new-game) to fill in players, starting score, counters and options, or start one in one tap from Home. Presets are grouped: *Your presets*, *Card games*, *Board games*, *Darts*, *Timers* and *Bocce & boules*.
 
 | Preset | Setup |
 | --- | --- |
@@ -182,7 +200,7 @@ Pick a preset under **Menu → New game** to fill in players, starting score, co
 | Burraco | 2 teams of 2, Round sheet with the Burraco calculator, Target 2005 |
 | Darts 501 / 301, Cricket, Around the Clock, Shanghai | 2 players, darts board |
 
-**Save as preset** stores your own setup. Select a saved preset to delete it.
+**Save as preset** (at the bottom of New game) stores your own setup. Select a saved preset to delete it.
 
 ## Keypad
 
@@ -190,7 +208,7 @@ Pick a preset under **Menu → New game** to fill in players, starting score, co
 
 Open it with **#** on a seat, or by tapping a counter's value.
 
-- **Set** replaces the value, and **+ Add** / **− Sub** change it by the amount you type.
+- **Set** replaces the value, and **+ Add** / **− Sub** change it by the amount you type. The preview reads *old → new*, for example *40 → 33*.
 - **±** makes a Set value negative.
 - **Only *name* / All seats** chooses the scope: the change applies to this seat only, or to every seat at once.
 
@@ -198,7 +216,7 @@ A keypad opened from a flipped seat is turned to face that player.
 
 ## Counters
 
-Each seat holds up to **4 counters** (for example Poison, Commander, Energy, VP, Fouls, Tax, or one you name yourself). To add them to one seat, use **+ COUNTER** or **✎ → Counters**. To add them to the whole table, use **Menu → Counters on every seat**:
+Each seat holds up to **4 counters** (for example Poison, Commander, Energy, VP, Fouls, Tax, or one you name yourself). To add them to one seat, use **✎ → Counters**, or on desktop **+ COUNTER**, which shows while the pointer is over a seat. To add them to the whole table, use **Menu → Counters on every seat**:
 
 <img src="images/dialog-counters-all.png" width="320" alt="Counters on every seat">
 
@@ -212,7 +230,7 @@ Turning a counter on adds it to every seat at 0. A half-filled switch means the 
 2. Pick what to change: **Score** or a counter by name.
 3. Choose **Set to**, **+ Add** or **− Sub**.
 
-Each seat shows its preview as *old → new*. **Apply** writes one log entry per seat, and a single **Undo** reverts all of them.
+Each seat shows its preview as *old → new*. Seats the change leaves as they are are dimmed, and aren't counted in **Apply to n seats**. Apply writes one log entry per seat, and a single **Undo** reverts all of them.
 
 ## Table utilities
 
@@ -225,6 +243,8 @@ Each seat shows its preview as *old → new*. **Apply** writes one log entry per
 - **First player:** picks a random seat. That seat gets a ring and a **FIRST** tag for a few seconds.
 - **Turn order:** a random order of all players.
 - **Day / Night** (MTG extras on).
+
+**Roll** is for the custom dX; tapping d4–d20 rolls straight away.
 
 ## Match log
 
@@ -239,12 +259,12 @@ Every change is listed under its round, with the player, what changed, the chang
 
 <img src="images/dialog-library.png" width="320" alt="Saved matches">
 
-Every match is saved automatically and kept until you delete it. Each match has its own players, counters and log. In **Saved matches** (from the menu or the log):
+Every match is saved automatically and kept until you delete it. Each match has its own players, counters and log. In **Saved matches** (from Home or the menu):
 
 - Matches are **grouped by game** and sorted with the most recently played first.
-- **Continue** brings a match back to the table exactly as you left it.
+- **Tap a match** to bring it back to the table exactly as you left it.
 - The 🗑 button deletes a match. You have to tap it a second time to confirm.
-- The 🗑 next to a game's name deletes the whole game: every match filed under it, for good (tap **Delete game** to confirm). If the match on the table is one of them, your most recent remaining match comes back to the table, or a new match starts. Presets with that game name are kept.
+- **⋯** next to a game's name offers **Delete all … matches**: every match filed under that game, for good. If the match on the table is one of them, your most recent remaining match comes back to the table, or a new match starts. Presets with that game name are kept.
 - **This match belongs to** files the current match under a game. You can type a name or tap a game you've played before.
 
 ### Backup, import and CSV
@@ -262,44 +282,62 @@ Nothing is uploaded, and uninstalling the Android app deletes its data, so keep 
 **Menu → Players & stats** lists every player across saved matches: matches played, wins and win rate, average and best score, time on turns. Filter by game with the chips.
 
 - Wins count only matches with a result (a win rule, or everyone else marked out).
-- In **Edit seat → Saved player**, save a seat as a player or pick an existing one, so stats follow them even if the seat is renamed. Other seats are counted by name.
+- In **Edit seat → Saved player**, save a seat as a player or pick an existing one, so stats follow them even if the seat is renamed. Other seats are counted by name and tagged **Unsaved**.
 
-## Menu and new games
+## Menu
 
-<img src="images/dialog-menu.png" width="320" alt="Menu">
+<p>
+  <img src="images/dialog-menu.png" width="280" alt="Menu">
+  <img src="images/dialog-appearance.png" width="280" alt="Appearance">
+</p>
 
-The menu has three sections:
+The menu fits on one phone screen:
 
-- **Current game:**
-  - **This match's game:** names the game on the table (for example Catan). It's saved right away, shown on the hub and in the match log, and used to group the match in Saved matches. A note confirms where the match is filed.
-  - Edit all seats and Counters on every seat.
-  - Add seat, and Reset scores (tap it twice to confirm).
-  - Match options, Saved matches, and Players & stats.
-- **Appearance:**
-  - **Seat style:** *Neutral* (dark cards with a color bar) or *Colored* (each card filled with the seat's color).
-  - **Theme:** System, Dark or Light.
-- **New game:**
-  - A **preset**, or your own setup.
-  - An optional **game for the new match**. This only names the next match; to rename the current one, use *This match's game* above.
-  - The number of players and a starting score (20, 30, 40 or a custom value).
-  - **Options** for the new match, and **Save as preset**.
-  - **Start new game** asks for a second tap.
+- **This match:**
+  - **This match's game:** names the game on the table (for example Catan). It's saved right away, shown on the hub and in the match log, and used to group the match in Saved matches. A note confirms where the match is filed. Games you played before show as suggestions while you type.
+  - **Match options** (with how many are on), **Counters on every seat** and **Add seat**.
+- **New game**, **Saved matches**, **Players & stats** and **Appearance**.
+- **Reset scores**, set apart at the bottom. Tap it twice to confirm.
 
-  The **New game** button on the start screen opens this same setup on its own.
+**Edit all seats** is on the hub (▦), next to the table.
 
-  Starting a new game clears the table but never deletes a match. The one you leave stays in Saved matches, so you can continue it.
+### Appearance
+
+- **Seat style:** *Neutral* (dark cards with a color bar) or *Colored* (each card filled with the seat's color).
+- **Theme:** System, Dark or Light.
+
+## New game
+
+<p>
+  <img src="images/dialog-new-game.png" width="280" alt="New game, step 1: game">
+  <img src="images/dialog-new-game-players.png" width="280" alt="New game, step 2: players">
+</p>
+
+Open it from **Home → Custom game…**, **Menu → New game**, or **New game** in the result bar. It has two steps; switch between them at the top:
+
+1. **Game:** a [preset](#presets), or your own setup: an optional game name, the **starting score** (20, 30, 40 or *Custom*), and **Options** for the new match.
+2. **Players:** the number of players, or of teams (*One per seat*, *Teams of 2*, *Teams of 3*), and a row per seat with its **name** and **colour** (tap the dot for the next colour). The rows start from the players at the table.
+
+**Start new game** stays at the bottom of both steps and starts in one tap. **Save as preset** under it keeps the setup for next time.
+
+Starting a new game clears the table but never deletes a match. The one you leave stays in Saved matches, so you can continue it.
 
 ## Editing a seat
 
 <img src="images/dialog-editor.png" width="320" alt="Edit seat">
 
-Tap a seat's name or **✎** to rename it, set its score, turn it (30° steps, or flip 180°), change its color, manage its counters, or remove the seat (tap twice to confirm). Depending on the match options it also has **Give turn**, **Mark as out / Back in**, **Clock −1 min / +1 min** (timer mode), **Monarch**, **Initiative**, and **Saved player**.
+Tap a seat's name or **✎** to edit it. The actions are in two groups:
+
+- **Seat:** set its score, flip it 180° or turn it in 30° steps.
+- **In this match** (depending on the match options): **Give turn**, **Mark as out / Back in**, **Clock −1 min / +1 min** (timer mode), **Monarch** and **Initiative**.
+
+Below them: rename the seat, link it to a **Saved player** or make it a team, change its color, manage its counters, or remove the seat (tap twice to confirm).
 
 ## Desktop
 
 <img src="images/desktop-neutral.png" width="720" alt="Desktop, Neutral style">
 
-The desktop app works the same way. Click the halves to count, and click and hold to repeat. On wide windows the seat headers show the keypad and rotate buttons directly. Closing the window saves the match and pauses its clock.
+The desktop app works the same way. Click the halves to count, and click and hold to repeat. On wide windows the seat headers show the keypad and rotate buttons directly, the − half of each seat is faintly tinted, and **+ COUNTER** shows while the pointer is over a seat. Closing the window saves the match and pauses its clock.
 
 ## Your data
 

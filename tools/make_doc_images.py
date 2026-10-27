@@ -22,8 +22,17 @@ TABLES = {
     "feature_darts_501_phone": "phone-darts",
     "feature_darts_cricket_phone": "phone-cricket",
     "feature_teams_phone": "phone-teams",
+    "feature_winner_phone": "phone-winner",
+    "feature_commander_phone": "phone-commander",
+    "feature_sheet_phone": "phone-sheet",
+    "feature_chess_clock_phone": "phone-chess-clock",
+    "feature_commander_desktop": "desktop-commander",
+    "feature_sheet_desktop": "desktop-sheet",
 }
-DIALOGS = ["start", "new_game", "keypad", "utilities", "log", "menu", "edit_all", "counters_all", "library", "editor", "hand_scopa"]
+DIALOGS = [
+    "start", "new_game", "new_game_players", "keypad", "utilities", "log", "menu", "appearance", "edit_all",
+    "counters_all", "library", "editor", "hand_scopa", "options", "stats", "commander",
+]
 
 
 def save(img: Image.Image, name: str, max_width: int):

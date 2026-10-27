@@ -10,9 +10,9 @@
 </p>
 
 <p align="center">
-  <img src="docs/images/android-table-dark.png" width="260" alt="Four-player table on Android, dark theme">
+  <img src="docs/images/phone-neutral.png" width="260" alt="Four-player Commander table, Neutral seat style">
   <img src="docs/images/phone-colored.png" width="260" alt="Four-player table, Colored seat style">
-  <img src="docs/images/android-table-light.png" width="260" alt="Four-player table on Android, light theme">
+  <img src="docs/images/phone-winner.png" width="260" alt="A decided match with Rematch and New game">
 </p>
 
 ## Download
@@ -75,9 +75,29 @@ New in 1.3:
 - **Hand calculators** for the round sheet: tap a round to score a hand of **Scopa / Scopone** (cards, denari, settebello, primiera, scope), **Burraco** (burrachi, closing, pozzetto, cards on the table and in hand), **Briscola** (61 of 120), **bocce** (points for the closest side) or **Scala 40** (penalties, 100 for not opening).
 - **Out at or above** a score, for penalty games like Scala 40 (out at 101).
 - **New presets:** Bocce · Raffa (12), Pétanque (13), Briscola, Scopa (11), Scopone, Scala 40, Burraco (2005), Darts 501 and 301, Cricket, Around the Clock and Shanghai.
+- **Faster from launch to the table:**
+  - **Home** has *Quick start* tiles: the game on the table and your recent games or presets start in **one tap**, with the same players. Long-press a tile to change the setup first.
+  - **New game** is a two-step setup, *Game* then *Players*, where you name and colour each seat before the match starts. **Start** stays in view and needs one tap.
+  - A decided match offers **Rematch** and **New game** right in the result bar.
+  - The **Menu** fits one phone screen. **Appearance** has its own screen, and *Reset scores* sits apart at the bottom.
+- **Easier to read at the table:**
+  - The score always keeps at least half its seat. Counters that don't fit shrink to small chips, and every seat shows its score at the same size.
+  - On phones, names get the whole seat header (tags and timers move to a line below), and seats turn in right angles.
+  - The turn bar shows a white **Start** button while paused, and a sun or moon for Day/Night.
+  - The round sheet marks the leader and shows progress toward the target.
+  - Darts has bigger keys, the last three visits, a separate Undo key, and cricket marks lined up under each player.
+  - Presets are grouped by category, and selected options carry a check mark.
 
 <p align="center">
-  <img src="docs/images/dialog-start.png" width="300" alt="Start screen: continue, new game or saved matches">
+  <img src="docs/images/dialog-start.png" width="260" alt="Home: continue, quick start, custom game or saved matches">
+  <img src="docs/images/dialog-new-game.png" width="260" alt="New game, step 1: game and presets">
+  <img src="docs/images/dialog-new-game-players.png" width="260" alt="New game, step 2: players">
+</p>
+
+<p align="center">
+  <img src="docs/images/phone-sheet.png" width="260" alt="Round sheet with leader and target progress">
+  <img src="docs/images/phone-darts.png" width="260" alt="Darts 501 with recent visits">
+  <img src="docs/images/dialog-menu.png" width="260" alt="Menu">
 </p>
 
 See the **[illustrated HTML guide](docs/guide/index.html)** (open it in a browser) or the **[User guide](docs/USER_GUIDE.md)** for a walkthrough with screenshots.
