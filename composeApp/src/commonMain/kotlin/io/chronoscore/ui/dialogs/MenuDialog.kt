@@ -148,7 +148,7 @@ fun MenuDialog(
                 onClick = onStats,
             )
 
-            SectionLabel("Appearance", Modifier.padding(top = 8.dp))
+            SectionLabel("Appearance")
             Text("Seat style", style = ChronoTheme.type.body, color = ChronoTheme.colors.text)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 SeatStylePreview(SeatStyle.NEUTRAL, seatStyle == SeatStyle.NEUTRAL, Modifier.weight(1f)) { onSeatStyle(SeatStyle.NEUTRAL) }
@@ -161,7 +161,7 @@ fun MenuDialog(
                 onSelect = { onThemeMode(ThemeMode.entries[it]) },
             )
 
-            SectionLabel("New game", Modifier.padding(top = 8.dp))
+            SectionLabel("New game")
         }
         if (presets.isNotEmpty()) {
             Text("Preset", style = ChronoTheme.type.body, color = ChronoTheme.colors.text)

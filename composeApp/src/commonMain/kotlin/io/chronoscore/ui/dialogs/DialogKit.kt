@@ -37,6 +37,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -51,6 +52,7 @@ import io.chronoscore.ui.theme.MinTouch
 /**
  * One frame for all dialogs: 10 px radius, 1 px outline, uppercase title, 44 px close.
  * [rotated] turns the whole dialog 180° to face a player sitting across the table.
+ * [footer] stays pinned under the scrolling content, so the main action is always in view.
  */
 @Composable
 fun DialogFrame(
@@ -59,6 +61,7 @@ fun DialogFrame(
     rotated: Boolean = false,
     scrollable: Boolean = true,
     maxWidth: Dp = 440.dp,
+    footer: (@Composable ColumnScope.() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
@@ -86,11 +89,20 @@ fun DialogFrame(
             Box(Modifier.fillMaxWidth().height(1.dp).background(c.outline))
             Column(
                 Modifier
+                    .weight(1f, fill = false)
                     .then(if (scrollable) Modifier.verticalScroll(rememberScrollState()) else Modifier)
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 content = content,
             )
+            if (footer != null) {
+                Box(Modifier.fillMaxWidth().height(1.dp).background(c.outline))
+                Column(
+                    Modifier.fillMaxWidth().padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    content = footer,
+                )
+            }
         }
     }
 }
@@ -118,7 +130,9 @@ enum class PillStyle { PRIMARY, SECONDARY, DESTRUCTIVE }
 
 /**
  * Primary (white fill) · Secondary (surface + outline) · Destructive (rose, used for the
- * confirm state of destructive actions) · disabled. [selected] draws a text-colored ring.
+ * confirm state of destructive actions) · disabled. [selected] raises the fill, draws a
+ * text-colored ring and leads with a check, so it reads as on next to plain pills.
+ * Keep PRIMARY for the one action that finishes a screen.
  */
 @Composable
 fun Pill(
@@ -138,6 +152,7 @@ fun Pill(
         !enabled -> c.surface to c.muted.copy(alpha = 0.45f)
         style == PillStyle.PRIMARY -> c.primary to c.onPrimary
         style == PillStyle.DESTRUCTIVE -> c.destructive to Color.White
+        selected -> c.raised to c.text
         else -> c.surface to c.text
     }
     val border = when {
@@ -160,9 +175,10 @@ fun Pill(
             Box(Modifier.size(width = 3.dp, height = 16.dp).background(accent))
             Spacer(Modifier.width(8.dp))
         }
-        if (leadingIcon != null) {
-            Icon(leadingIcon, null, Modifier.size(18.dp), tint = fg)
-            Spacer(Modifier.width(10.dp))
+        val lead = leadingIcon ?: if (selected && style == PillStyle.SECONDARY) ChronoIcons.Check else null
+        if (lead != null) {
+            Icon(lead, null, Modifier.size(if (leadingIcon == null) 16.dp else 18.dp), tint = fg)
+            Spacer(Modifier.width(if (leadingIcon == null) 6.dp else 10.dp))
         }
         Text(
             text, style = ChronoTheme.type.body, color = fg, maxLines = 1,
@@ -218,6 +234,31 @@ fun Segmented(
                 )
             }
         }
+    }
+}
+
+/** A row that opens another screen: secondary style, leading icon, trailing arrow. */
+@Composable
+fun NavRow(text: String, icon: ImageVector?, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    Pill(
+        text, modifier.fillMaxWidth(), leadingIcon = icon, trailingIcon = ChronoIcons.ArrowRight,
+        textAlign = TextAlign.Start, onClick = onClick,
+    )
+}
+
+/** Plain text action, for secondary actions in a dialog footer. */
+@Composable
+fun TextAction(text: String, modifier: Modifier = Modifier, enabled: Boolean = true, onClick: () -> Unit) {
+    val c = ChronoTheme.colors
+    Box(
+        modifier.heightIn(min = MinTouch).clip(ChronoShapes.control)
+            .clickable(enabled = enabled, onClick = onClick).padding(horizontal = 8.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text, style = ChronoTheme.type.body.copy(fontSize = 14.sp),
+            color = if (enabled) c.text else c.muted, textDecoration = if (enabled) TextDecoration.Underline else null,
+        )
     }
 }
 
@@ -314,12 +355,12 @@ fun ChronoSwitch(state: SwitchState, onToggle: () -> Unit, description: String) 
                 .size(width = 52.dp, height = 28.dp)
                 .clip(CircleShape)
                 .background(if (state == SwitchState.ON) c.primary else c.raised)
-                .border(1.dp, c.outline, CircleShape),
+                .border(1.5.dp, if (state == SwitchState.ON) c.primary else c.muted.copy(alpha = 0.6f), CircleShape),
             contentAlignment = Alignment.CenterStart,
         ) {
             Box(
                 Modifier.offset(x = knobX).size(22.dp).clip(CircleShape)
-                    .background(if (state == SwitchState.ON) c.onPrimary else c.muted),
+                    .background(if (state == SwitchState.ON) c.onPrimary else c.text.copy(alpha = 0.6f)),
                 contentAlignment = Alignment.Center,
             ) {
                 if (state == SwitchState.PARTIAL) Box(Modifier.size(width = 10.dp, height = 2.dp).background(c.raised))
@@ -328,9 +369,10 @@ fun ChronoSwitch(state: SwitchState, onToggle: () -> Unit, description: String) 
     }
 }
 
+/** Section heading; [topGap] sets it apart from the control above so groups read as groups. */
 @Composable
-fun SectionLabel(text: String, modifier: Modifier = Modifier) {
-    Text(text.uppercase(), style = ChronoTheme.type.label, color = ChronoTheme.colors.muted, modifier = modifier)
+fun SectionLabel(text: String, modifier: Modifier = Modifier, topGap: Dp = 12.dp) {
+    Text(text.uppercase(), style = ChronoTheme.type.label, color = ChronoTheme.colors.muted, modifier = modifier.padding(top = topGap))
 }
 
 @Composable

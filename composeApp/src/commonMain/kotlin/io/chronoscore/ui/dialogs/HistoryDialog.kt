@@ -65,7 +65,7 @@ fun HistoryDialog(
             .entries
             .sortedByDescending { it.key }
             .forEach { (round, entries) ->
-                SectionLabel("Round $round", Modifier.padding(top = 4.dp))
+                SectionLabel("Round $round")
                 Column {
                     entries.asReversed().forEachIndexed { i, e ->
                         if (i > 0) Hairline()

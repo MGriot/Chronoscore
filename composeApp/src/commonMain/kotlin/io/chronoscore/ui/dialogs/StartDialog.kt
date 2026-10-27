@@ -33,7 +33,7 @@ fun StartDialog(
     val c = ChronoTheme.colors
     // Dismissing keeps the match on the table, same as Continue.
     DialogFrame("Chronoscore", onContinue, maxWidth = 420.dp) {
-        SectionLabel("Last match")
+        SectionLabel("Last match", topGap = 0.dp)
         Column(
             Modifier
                 .fillMaxWidth()

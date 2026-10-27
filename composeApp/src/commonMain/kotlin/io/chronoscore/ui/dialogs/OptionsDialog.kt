@@ -50,7 +50,7 @@ fun OptionsDialog(options: MatchOptions, onChange: (MatchOptions) -> Unit, onDis
 fun OptionsEditor(options: MatchOptions, onChange: (MatchOptions) -> Unit) {
     val set = { o: MatchOptions -> onChange(o.sanitized()) }
 
-    SectionLabel("Turns & time")
+    SectionLabel("Turns & time", topGap = 0.dp)
     SwitchRow("Turn tracker", "Highlights whose turn it is. Previous and Next pass the turn; after the last seat the round advances.", options.turnTracking) {
         set(options.copy(turnTracking = it))
     }
@@ -78,7 +78,7 @@ fun OptionsEditor(options: MatchOptions, onChange: (MatchOptions) -> Unit) {
     // Darts decide the result themselves.
     if (options.darts != null) return
 
-    SectionLabel("Winning", Modifier.padding(top = 8.dp))
+    SectionLabel("Winning")
     val rule = options.winRule
     Segmented(
         options = listOf("None", "Target", "Out ≤", "Out ≥"),
@@ -115,7 +115,7 @@ fun OptionsEditor(options: MatchOptions, onChange: (MatchOptions) -> Unit) {
         }
     }
 
-    SectionLabel("Layout & games", Modifier.padding(top = 8.dp))
+    SectionLabel("Layout & games")
     SwitchRow("Round sheet", "A scorepad: enter each seat's points per round, totals add up.", options.sheetMode) {
         set(options.copy(sheetMode = it))
     }
@@ -222,7 +222,7 @@ private fun TimerModeEditor(options: MatchOptions, set: (MatchOptions) -> Unit) 
 @Composable
 private fun DartsEditor(options: MatchOptions, set: (MatchOptions) -> Unit) {
     val darts = options.darts
-    SectionLabel("Darts", Modifier.padding(top = 8.dp))
+    SectionLabel("Darts")
     Segmented(
         options = listOf("Off") + DartsGames.map { it.second },
         selectedIndex = darts?.let { d -> DartsGames.indexOfFirst { it.first == d.game } + 1 } ?: 0,

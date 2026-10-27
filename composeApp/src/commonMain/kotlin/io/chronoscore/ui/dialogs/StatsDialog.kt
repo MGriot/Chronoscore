@@ -69,7 +69,7 @@ fun StatsDialog(
         stats.forEach { s -> StatsRow(s) }
 
         if (profiles.isNotEmpty()) {
-            SectionLabel("Saved players", Modifier.padding(top = 8.dp))
+            SectionLabel("Saved players")
             Note("Pick a saved player from a seat's editor so stats follow them between matches.")
             profiles.forEach { profile ->
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {

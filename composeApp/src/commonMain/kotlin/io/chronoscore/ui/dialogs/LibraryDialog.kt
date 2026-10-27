@@ -75,7 +75,7 @@ fun LibraryDialog(
             onClick = onStats,
         )
         if (filesAvailable) {
-            SectionLabel("Backup", Modifier.padding(top = 4.dp))
+            SectionLabel("Backup")
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Pill("Export all", Modifier.weight(1f), leadingIcon = ChronoIcons.Export, onClick = onExportBackup)
                 Pill("Import", Modifier.weight(1f), leadingIcon = ChronoIcons.Import, onClick = onImportBackup)
@@ -103,6 +103,7 @@ fun LibraryDialog(
                 SectionLabel(
                     (name ?: "No game") + "  ·  ${group.size} " + if (group.size == 1) "match" else "matches",
                     Modifier.weight(1f),
+                    topGap = 0.dp,
                 )
                 if (name != null) {
                     val onDeleteThisGame = {

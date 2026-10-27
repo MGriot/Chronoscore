@@ -59,7 +59,7 @@ fun HandDialog(
         }
 
         if (points != null) {
-            SectionLabel("Points this hand", Modifier.padding(top = 8.dp))
+            SectionLabel("Points this hand")
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 seats.forEachIndexed { i, p ->
                     Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {

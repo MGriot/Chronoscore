@@ -49,7 +49,7 @@ fun UtilitiesDialog(
     DialogFrame("Table utilities", onDismiss, maxWidth = 420.dp) {
         ResultPanel(state.last)
 
-        SectionLabel("Select dice")
+        SectionLabel("Select dice", topGap = 0.dp)
         TableRng.STANDARD_DICE.chunked(3).forEach { row ->
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 row.forEach { d ->

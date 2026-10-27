@@ -79,7 +79,7 @@ fun EditAllSeatsDialog(
     val affected = targets.count { p -> p.currentValue()?.let { next(it) != it } == true }
 
     DialogFrame("Edit all seats", onDismiss, maxWidth = 440.dp) {
-        SectionLabel("Seats")
+        SectionLabel("Seats", topGap = 0.dp)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             val all = selected.size == session.players.size
             Pill("All", selected = all) { selected = if (all) emptySet() else session.players.map { it.id }.toSet() }
