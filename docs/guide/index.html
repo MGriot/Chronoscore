@@ -237,6 +237,7 @@
   <a href="#overview">Overview</a>
   <a href="#install">Install</a>
   <a href="#quick-start">Quick start</a>
+  <a href="#new-game">New game</a>
   <div class="group">The table</div>
   <a href="#seats">Seats and layouts</a>
   <a href="#counting">Counting</a>
@@ -291,6 +292,7 @@
     <span class="pill new">New: teams</span>
     <span class="pill new">New: darts</span>
     <span class="pill new">New: hand calculators</span>
+    <span class="pill new">New: one-tap start &amp; rematch</span>
   </div>
   <div class="note"><strong>Every match option is optional.</strong> With every match option off, Chronoscore looks and works exactly like 1.0: a plain, fast counter. Turn on only what your game needs.</div>
 </section>
@@ -310,16 +312,30 @@
 <section id="quick-start">
   <h2>Quick start</h2>
   <ol class="steps">
-    <li>Open Chronoscore. The start screen offers <strong>Continue</strong> (your last match), <strong>New game</strong> or <strong>Saved matches</strong>. On a first launch, Continue gives you a 4-player table at 20.</li>
-    <li>Tap <strong>New game</strong> (or later, <strong>Menu</strong> in the center pill, under <em>New game</em>). Tap a <strong>preset</strong> such as <em>Commander</em> or <em>Hearts</em>, or set the players and starting score yourself.</li>
-    <li>Optionally tap <strong>Options</strong> to turn on the turn tracker, timers or a win rule, then <strong>Start new game</strong>.</li>
+    <li>Open Chronoscore. <strong>Home</strong> offers <strong>Continue</strong> (your last match), <strong>Quick start</strong> tiles, <strong>Custom game…</strong> and <strong>Saved matches</strong>. On a first launch, Continue gives you a 4-player table at 20.</li>
+    <li>Tap a <strong>Quick start</strong> tile, such as <em>Commander</em> or <em>"Catan again"</em>. The game starts in one tap, with the players already at the table. Long-press a tile to change the setup first.</li>
+    <li>For anything else, tap <strong>Custom game…</strong>: pick the game and options, then name the players, and tap <strong>Start new game</strong>. See <a href="#new-game">New game</a>.</li>
     <li>Tap a seat's <strong>left half to subtract</strong> and its <strong>right half to add</strong>. Hold to count faster.</li>
-    <li>Made a mistake? Tap <strong>Undo</strong> in the center pill. Every match saves itself as you play.</li>
+    <li>Made a mistake? Tap <strong>Undo</strong> in the center pill. Every match saves itself as you play. When a match is decided, <strong>Rematch</strong> starts it again in one tap.</li>
   </ol>
   <div class="figs">
-    <figure class="dialog"><img src="../images/dialog-start.png" alt="Start screen"><figcaption>The start screen: continue the last match, start a new one, or open Saved matches.</figcaption></figure>
-    <figure class="dialog"><img src="../images/dialog-new-game.png" alt="New game setup"><figcaption>New game from the start screen: presets, players, starting score and options.</figcaption></figure>
+    <figure class="dialog"><img src="../images/dialog-start.png" alt="Home"><figcaption>Home: continue the last match, start a recent game or preset in one tap, set up a custom game, or open Saved matches.</figcaption></figure>
   </div>
+</section>
+
+<section id="new-game">
+  <h2>New game</h2>
+  <p>Open it from <em>Home → Custom game…</em>, <em>Menu → New game</em>, or <em>New game</em> in the result bar. It has two steps, switched at the top:</p>
+  <ol class="steps">
+    <li><strong>Game:</strong> a <a href="#presets">preset</a>, or your own setup: an optional game name (games you played before show as suggestions), the <strong>starting score</strong> (20, 30, 40 or <em>Custom</em>) and <strong>Options</strong> for the new match.</li>
+    <li><strong>Players:</strong> how many players, or teams (<em>One per seat</em>, <em>Teams of 2</em>, <em>Teams of 3</em>), and a row per seat with its <strong>name</strong> and <strong>colour</strong>. Tap a dot for the next colour. The rows start from the players at the table.</li>
+  </ol>
+  <p><strong>Start new game</strong> stays at the bottom of both steps and starts in one tap. <strong>Save as preset</strong> under it keeps the setup for next time.</p>
+  <div class="figs">
+    <figure class="dialog"><img src="../images/dialog-new-game.png" alt="New game, step 1"><figcaption>Step 1: presets by category, game name, starting score and options.</figcaption></figure>
+    <figure class="dialog"><img src="../images/dialog-new-game-players.png" alt="New game, step 2"><figcaption>Step 2: players or teams, with a name and colour per seat.</figcaption></figure>
+  </div>
+  <div class="note tip">Starting a new game never deletes anything: the match you leave stays in <a href="#library">Saved matches</a>, so there is nothing to confirm.</div>
 </section>
 
 <section id="seats">
@@ -331,8 +347,10 @@
   <p>Each player has a <strong>seat</strong>: a card with their name, their score and any counters. The grid adapts to how many players there are (1 to 8) and to portrait or landscape.</p>
   <ul>
     <li><strong>Seats in the top half are rotated 180°</strong> so they face the players sitting across from the device.</li>
-    <li>To turn a seat by hand, tap its <kbd>⟲</kbd> rotate button. Each tap turns it <strong>30°</strong>, so a seat can face a player at a corner or along the side of the table. <em>Edit seat</em> also has <strong>−30° / +30°</strong> and <strong>Flip 180°</strong>. A tilted seat shrinks to stay inside its space.</li>
+    <li>To turn a seat by hand, tap its <kbd>⟲</kbd> rotate button. Each tap turns it <strong>30°</strong>, so a seat can face a player at a corner or along the side of the table. <em>Edit seat</em> also has <strong>−30° / +30°</strong> and <strong>Flip 180°</strong>. A tilted seat shrinks to stay inside its space. Phone seats are too small to read at an angle, so they turn in right angles.</li>
     <li>Header buttons: <kbd>#</kbd> keypad, <kbd>⟲</kbd> rotate and <kbd>✎</kbd> edit. On narrow phone seats only ✎ is shown; the rest is inside the seat editor.</li>
+    <li>On narrow seats the name gets the whole header. Tags such as <span class="tag">1ST</span>, <span class="tag rose">TURN</span> or <span class="tag outline">OUT</span>, and the seat timer, sit on a line below it.</li>
+    <li><strong>The score always keeps at least half the seat.</strong> When counters don't fit under it, they shrink to small chips (for example <em>PSN 0</em>) that open the keypad. Every seat shows its score at the same size.</li>
   </ul>
 </section>
 
@@ -347,14 +365,14 @@
 
 <section id="hub">
   <h2>The center hub</h2>
-  <p>The pill on the line between the two halves of the table holds the shared controls. When the turn tracker or a clock is on, the <a href="#turns">turn bar</a> appears just above it, and a <a href="#winning">winner banner</a> appears when a match is decided.</p>
+  <p>The pill on the line between the two halves of the table holds the shared controls. When the turn tracker or a clock is on, the <a href="#turns">turn bar</a> appears just above it. When a match is decided, the <a href="#winning">result bar</a> takes its place. On wide screens the game name shows as a small title above the pill.</p>
   <div class="table-wrap"><table>
     <tr><th>Button</th><th>Action</th></tr>
     <tr><td>↶ Undo</td><td>Reverts the last change, or the last batch. Dimmed when the log is empty.</td></tr>
     <tr><td>⚄ Dice</td><td>Opens the <a href="#utilities">table utilities</a>.</td></tr>
     <tr><td>▦ Edit all seats</td><td>Changes a score or counter on many seats at once.</td></tr>
     <tr><td>☰ Log</td><td>Opens the <a href="#log">match log</a>, organized by round.</td></tr>
-    <tr><td>⚌ Menu</td><td>Current game, match options, saved matches, appearance and new games.</td></tr>
+    <tr><td>⚌ Menu</td><td>This match (game name, match options, counters, add seat), New game, Saved matches, Players &amp; stats, Appearance, and Reset scores at the bottom.</td></tr>
   </table></div>
 </section>
 
@@ -364,7 +382,7 @@
     <div>
       <p>Open it with <kbd>#</kbd> on a seat, or by tapping a counter's value.</p>
       <ul>
-        <li><strong>Set</strong> replaces the value. <strong>+ Add</strong> and <strong>− Sub</strong> change it by the amount you type.</li>
+        <li><strong>Set</strong> replaces the value. <strong>+ Add</strong> and <strong>− Sub</strong> change it by the amount you type. The preview reads <em>old → new</em>, for example <em>40 → 33</em>.</li>
         <li><strong>±</strong> makes a Set value negative.</li>
         <li><strong>Only <em>name</em> / All seats</strong> chooses whether the change applies to this seat or every seat.</li>
       </ul>
@@ -380,7 +398,7 @@
     <div>
       <p>Each seat holds up to <strong>4 counters</strong>: Poison, Commander, Energy, VP, Fouls, Tax, or one you name yourself.</p>
       <ul>
-        <li>One seat: tap <strong>+ COUNTER</strong> on the seat, or <em>✎ → Counters</em>.</li>
+        <li>One seat: <em>✎ → Counters</em>, or on desktop <strong>+ COUNTER</strong>, which shows while the pointer is over a seat.</li>
         <li>Whole table: <em>Menu → Counters on every seat</em>. Turning a counter on adds it to every seat at 0. A half-filled switch means it's only on some seats. Seats that already hold 4 counters are skipped and named.</li>
         <li>Counters count like the score: tap − or +, hold to repeat, or tap the value for the keypad.</li>
       </ul>
@@ -398,7 +416,7 @@
         <li>Pick what to change: <strong>Score</strong> or a counter by name.</li>
         <li>Choose <strong>Set to</strong>, <strong>+ Add</strong> or <strong>− Sub</strong> and enter the amount.</li>
       </ol>
-      <p>Each seat previews <em>old → new</em>. <strong>Apply</strong> writes one log entry per seat, and a single <strong>Undo</strong> reverts all of them.</p>
+      <p>Each seat previews <em>old → new</em>; seats the change leaves as they are are dimmed. <strong>Apply</strong> writes one log entry per seat, and a single <strong>Undo</strong> reverts all of them.</p>
     </div>
     <figure class="dialog"><img src="../images/dialog-edit-all.png" alt="Edit all seats"></figure>
   </div>
@@ -408,13 +426,13 @@
   <h2>Editing a seat</h2>
   <div class="split">
     <div>
-      <p>Tap a seat's name or <kbd>✎</kbd>. From here you can:</p>
+      <p>Tap a seat's name or <kbd>✎</kbd>. The actions are grouped into <strong>Seat</strong> and <strong>In this match</strong>. From here you can:</p>
       <ul>
         <li>Rename the seat, set its score, or turn it (30° steps, or flip 180°).</li>
         <li><strong>Clock −1 min / +1 min</strong> (timer mode): correct a clock, give a handicap, or bring back a seat that ran out by mistake.</li>
         <li><strong>Give turn</strong> makes it the active seat (turn tracker on).</li>
         <li><strong>Mark as out</strong> or <strong>Back in</strong>: concede, or undo a concession.</li>
-        <li><strong>Monarch</strong> and <strong>Initiative</strong> (MTG extras on).</li>
+        <li><strong>Monarch</strong> (with a crown) and <strong>Initiative</strong> (MTG extras on).</li>
         <li><strong>Saved player</strong>: save this seat as a player, or pick an existing one. It takes that player's name and color, and the seat's results count toward their <a href="#stats">stats</a>.</li>
         <li>Choose a color, manage counters, or remove the seat (tap twice to confirm).</li>
       </ul>
@@ -430,18 +448,19 @@
       <p>Match options belong to one match. Set them in either place:</p>
       <ul>
         <li><strong>For the match on the table:</strong> <em>Menu → Match options</em>. Changes apply immediately, mid-game included.</li>
-        <li><strong>For a new match:</strong> <em>Menu → New game → Options</em>, or pick a <a href="#presets">preset</a> that sets them for you.</li>
+        <li><strong>For a new match:</strong> <em>Options</em> in <a href="#new-game">New game</a> (the same screen), or pick a <a href="#presets">preset</a> that sets them for you.</li>
       </ul>
-      <p>The <em>Match options</em> button shows a short summary of what's on, for example <em>Turns · Clock · Elimination</em>.</p>
+      <p>The <em>Match options</em> row in the menu shows how many options are on, for example <em>Match options · 3 on</em>.</p>
       <div class="table-wrap"><table>
         <tr><th>Option</th><th>What it does</th></tr>
         <tr><td>Turn tracker</td><td>One active seat, with Previous / Next buttons.</td></tr>
         <tr><td>Match clock</td><td>Total match time, with pause and resume.</td></tr>
         <tr><td>Seat timers</td><td>Each seat's own time on its turns (needs the turn tracker).</td></tr>
         <tr><td>Turn limit</td><td>A countdown per turn: 30 s, 1, 2 or 5 min (needs the turn tracker).</td></tr>
-        <tr><td>Winning</td><td>None, Target score, or Elimination.</td></tr>
-        <tr><td>Round sheet</td><td>A scorepad layout instead of seat cards.</td></tr>
-        <tr><td>MTG extras</td><td>Commander damage, Monarch, Initiative, Day/Night.</td></tr>
+        <tr><td>Darts game</td><td>Off, X01, Cricket, Around the Clock or Shanghai.</td></tr>
+        <tr><td>Winning</td><td>None, Target score, Low out or High out.</td></tr>
+        <tr><td>Game extras</td><td>MTG extras: commander damage, Monarch, Initiative, Day/Night.</td></tr>
+        <tr><td>Layout</td><td>Round sheet (a scorepad instead of seat cards), with an optional hand calculator.</td></tr>
       </table></div>
     </div>
     <figure class="dialog"><img src="../images/dialog-options.png" alt="Match options"></figure>
@@ -454,7 +473,7 @@
   <p>With the turn tracker on, one seat is <strong>active</strong>. It gets a colored ring and a <span class="tag rose">TURN</span> tag, and the <strong>turn bar</strong> appears above the center hub.</p>
   <ul>
     <li><strong>Next ›</strong> passes the turn to the next seat in seat order. After the last seat, the <strong>round advances</strong> automatically.</li>
-    <li><strong>‹ Previous</strong> passes it back. Going back past the first seat returns to the previous round (never below round 1). Use it if someone tapped Next too early.</li>
+    <li><strong>‹ Previous</strong> passes it back. Going back past the first seat returns to the previous round (never below round 1). Use it if someone tapped Next too early. In darts it is greyed out: Undo takes the turn back with the last dart.</li>
     <li>Seats that are <strong>out</strong> are skipped. A seat that concedes on its own turn hands the turn to the next seat.</li>
     <li>To jump to any seat, open its editor and tap <strong>Give turn</strong>.</li>
   </ul>
@@ -469,8 +488,8 @@
     <div class="card"><h4>Turn limit</h4><p>A countdown for each turn. Past the limit, the time turns rose and counts into negative overtime.</p></div>
   </div>
   <ul>
-    <li><strong>⏸ Pause / ▶ Resume</strong> in the turn bar stops and starts all timing.</li>
-    <li>The clock <strong>pauses by itself</strong> when you leave the app on Android, or close the window on desktop, so time isn't counted while nobody is playing. Tap ▶ to resume.</li>
+    <li><strong>⏸</strong> in the turn bar pauses all timing. While paused, the turn bar shows a white <strong>▶ Start</strong> button (with the match time when the match clock is on).</li>
+    <li>The clock <strong>pauses by itself</strong> when you leave the app on Android, or close the window on desktop, so time isn't counted while nobody is playing. Tap <strong>Start</strong> to resume.</li>
     <li>When the turn passes, the outgoing seat's turn time is added to its seat timer and the turn time starts again at zero.</li>
     <li>Seat time is kept with the match, and the <a href="#stats">stats</a> show each player's total time on turns.</li>
   </ul>
@@ -488,7 +507,8 @@
         <li><strong>Delay:</strong> the first seconds of each turn are free, and only time past the delay comes off the bank.</li>
         <li><strong>Seat is out</strong> when time runs out: the tile is dimmed with <em>OUT OF TIME</em> and skipped, and the last seat left wins. Or choose <strong>Overtime</strong>: the clock keeps going below zero in red, and nobody is knocked out.</li>
       </ul>
-      <p>The clock starts paused. Tap the active tile (<em>TAP TO START</em>) to start it. After that, <strong>tapping your own tile ends your turn</strong>, like pressing a chess clock. Other tiles ignore taps, so a stray touch can't pass the turn. The tile turns red in the last 10 seconds, and ⏸ in the turn bar pauses everyone.</p>
+      <p>An increment shows under every clock (for example <em>+5s</em>); a delay is the same for everyone, so it shows once in the turn bar.</p>
+      <p>The clock starts paused. Tap the active tile (<em>TAP TO START</em>) or <strong>Start</strong> in the turn bar to start it. After that, <strong>tapping your own tile ends your turn</strong>, like pressing a chess clock. Other tiles ignore taps, so a stray touch can't pass the turn. The tile turns red in the last 10 seconds, and ⏸ in the turn bar pauses everyone.</p>
     </div>
     <figure class="phone"><img src="../images/phone-timer.png" alt="Timer mode with eight seats"><figcaption>Board game timer, eight seats</figcaption></figure>
   </div>
@@ -498,19 +518,20 @@
 <section id="winning">
   <h2>Winning and elimination</h2>
   <div class="figs">
-    <figure class="phone"><img src="../images/phone-winner.png" alt="Winner banner on a phone"><figcaption>Last seat standing: dimmed seats are out, and the banner names the winner.</figcaption></figure>
+    <figure class="phone"><img src="../images/phone-winner.png" alt="Result bar on a phone"><figcaption>Last seat standing: dimmed seats are out, and the result bar names the winner with Rematch and New game.</figcaption></figure>
   </div>
   <p>Choose a rule under <em>Match options → Winning</em>:</p>
   <div class="table-wrap"><table>
     <tr><th>Rule</th><th>How it works</th><th>Good for</th></tr>
     <tr><td><strong>None</strong></td><td>No automatic result. A seat can still <em>Mark as out</em>; when only one seat is left, it wins.</td><td>Most games</td></tr>
     <tr><td><strong>Target</strong></td><td>The match ends when a seat reaches the target score (counting up or down, depending on where you started). Then <em>Highest wins</em> or <em>Lowest wins</em> decides.</td><td>Race to 10 VP; Hearts (to 100, lowest wins)</td></tr>
-    <tr><td><strong>Out ≤</strong> (elimination)</td><td>A seat at or below the threshold (0 by default) is <span class="tag outline">OUT</span>. The last seat standing wins.</td><td>Life-total games, Magic</td></tr>
-    <tr><td><strong>Out ≥</strong></td><td>For penalty points: a seat at or above the threshold (101 by default) is <span class="tag outline">OUT</span>. The last seat standing wins.</td><td>Scala 40</td></tr>
+    <tr><td><strong>Low out</strong> (elimination)</td><td>A seat at or below the threshold (0 by default) is <span class="tag outline">OUT</span>. The last seat standing wins.</td><td>Life-total games, Magic</td></tr>
+    <tr><td><strong>High out</strong></td><td>For penalty points: a seat at or above the threshold (101 by default) is <span class="tag outline">OUT</span>. The last seat standing wins.</td><td>Scala 40</td></tr>
   </table></div>
   <ul>
-    <li>Seats that are out are <strong>dimmed</strong> but stay editable, so you can still fix mistakes.</li>
-    <li>The winner gets a ring and a <span class="tag">WINNER</span> tag, and a banner appears on the center line. A tie names everyone tied; if nobody is left standing, it's a draw.</li>
+    <li>Seats that are out are <strong>dimmed</strong> and lose their − / +, but stay editable: long-press one, or tap ✎, to fix a mistake.</li>
+    <li>The winner gets a ring and a <span class="tag">WINNER</span> tag, and the <strong>result bar</strong> replaces the turn bar. A tie names everyone tied; if nobody is left standing, it's a draw.</li>
+    <li><strong>Rematch</strong> in the result bar starts the same game, players and options again in one tap. <strong>New game</strong> (<strong>+</strong> on a phone) opens the <a href="#new-game">setup</a>.</li>
     <li>Results come from the scores, so <strong>Undo brings an eliminated seat back</strong>, and correcting a score can reopen a finished match.</li>
   </ul>
 </section>
@@ -521,7 +542,8 @@
     <div>
       <p>For games scored at the end of each round (Hearts, Rummy, Yahtzee-style games), turn on <em>Round sheet</em>. Seat cards are replaced by a scorepad:</p>
       <ul>
-        <li>One column per seat and one row per round. <strong>TOTAL</strong> at the bottom is each seat's score.</li>
+        <li>One column per seat and one row per round. <strong>TOTAL</strong> follows the last round (and stays at the bottom once the rounds fill the screen).</li>
+        <li>The seat in the lead has a line in its colour under its total. With a target, each total shows it (<em>/ 100</em>) with a thin progress bar.</li>
         <li>Tap a cell to enter that seat's points for the round. <em>Set</em> replaces the round's points and <em>+ Add</em> adds to them. Earlier rounds can be corrected the same way.</li>
         <li><strong>Next round →</strong> adds a row. With the turn tracker on, Next after the last seat does the same.</li>
         <li>Tap a name in the header to edit that seat.</li>
@@ -536,11 +558,11 @@
   <h2>Hand calculators</h2>
   <div class="split">
     <div>
-      <p>For card games and bocce, pick a <em>Hand calculator</em> under <em>Match options → Layout &amp; games</em> (with the Round sheet on), or start from one of their <a href="#presets">presets</a>. Tapping a round then opens a calculator for the whole hand instead of the keypad:</p>
+      <p>For card games and bocce, pick a <em>Hand calculator</em> under <em>Match options → Layout</em> (with the Round sheet on), or start from one of their <a href="#presets">presets</a>. Tapping a round then opens a calculator for the whole hand instead of the keypad:</p>
       <ul>
         <li>Enter what happened in the hand; the points for each seat show at the bottom before you tap <strong>Apply</strong>.</li>
         <li>Applying the current round moves the sheet on to the next one. One <strong>Undo</strong> reverts the whole hand.</li>
-        <li><strong>Type points</strong> goes back to the plain keypad for that cell.</li>
+        <li><strong>Type points</strong> goes back to the plain keypad for that cell. <strong>How scoring works</strong> shows the card values.</li>
       </ul>
     </div>
     <figure class="dialog"><img src="../images/dialog-hand-scopa.png" alt="Scopa hand calculator"></figure>
@@ -560,11 +582,12 @@
   <h2>Darts</h2>
   <div class="split">
     <div>
-      <p>Choose a game under <em>Match options → Darts</em>, or a darts <a href="#presets">preset</a>. The table becomes a darts board: seat scores on top, the visit in progress below them, and a keypad at the bottom.</p>
+      <p>Choose a game under <em>Match options → Darts game</em>, or a darts <a href="#presets">preset</a>. The table becomes a darts board: seat scores on top, then the <strong>visit</strong> in progress (three darts and their total) and the last three visits, and a keypad at the bottom.</p>
       <ul>
         <li>Pick <strong>Single / Double / Treble</strong>, then the number. The ring goes back to Single after each dart. <strong>25</strong> is the single bull; with Double it is the bull's eye (50).</li>
         <li>After three darts, a bust or a win, the turn passes by itself. <strong>Next</strong> in the turn bar ends a visit early; the darts not thrown count as misses.</li>
-        <li><strong>Undo</strong> takes back one dart, and a bust or a win with it.</li>
+        <li>The outlined <strong>↶</strong> key, set apart from Miss, takes back one dart, and a bust or a win with it.</li>
+        <li>In Cricket the marks sit in a column under each player. When they run under the keypad, a fade at the bottom shows there's more to scroll.</li>
       </ul>
     </div>
     <figure class="phone"><img src="../images/phone-darts.png" alt="Darts 501 board"></figure>
@@ -585,7 +608,7 @@
     <div>
       <p>A seat can be a team whose members share its score, as in Scopone, Burraco in pairs or bocce teams.</p>
       <ul>
-        <li>Choose <strong>Teams of 2</strong> (or 3) under <em>Menu → New game</em>, or tap <em>Edit seat → Make this seat a team</em>.</li>
+        <li>Choose <strong>Teams of 2</strong> (or 3) in step 2 of <a href="#new-game">New game</a>, or tap <em>Edit seat → Make this seat a team</em>.</li>
         <li>Add members by name or from your saved players; remove them in the same place. Removing every member makes it a single seat again.</li>
         <li>Member names show under the team name, on the table and on the round sheet.</li>
         <li><a href="#stats">Players and stats</a> count a team's result for each member, and the CSV export lists the members.</li>
@@ -602,14 +625,14 @@
       <p>Turn on <em>Magic: The Gathering extras</em> (the <em>Commander</em> and <em>Magic 1v1</em> presets do this for you). It adds:</p>
       <h3>Commander damage</h3>
       <ul>
-        <li>Each seat shows a <strong>CMDR</strong> chip with the most damage it has taken from a single commander.</li>
+        <li>Each seat shows a <strong>CMDR ›</strong> chip with the most damage it has taken from a single commander.</li>
         <li>Tap it to open the tracker, which has one row per opponent in their seat color.</li>
         <li>Each change also takes the same amount <strong>off that seat's life</strong>, and the two are one Undo step.</li>
       </ul>
       <h3>Monarch and Initiative</h3>
       <p>Assign them from a seat's editor. The holder shows a <span class="tag outline">MONARCH</span> or <span class="tag outline">INITIATIVE</span> tag. Only one seat holds each at a time.</p>
       <h3>Day / Night</h3>
-      <p>Set it in <em>Table utilities</em>. The current state shows in the turn bar.</p>
+      <p>Set it in <em>Table utilities</em>. The turn bar shows a sun or a moon.</p>
       <div class="note warn"><strong>Lethal rules:</strong> with Elimination on, a seat is also out at <strong>21 commander damage</strong> from one commander, or at <strong>10 Poison</strong> (a counter named "Poison").</div>
     </div>
     <figure class="dialog"><img src="../images/dialog-commander.png" alt="Commander damage tracker"></figure>
@@ -618,7 +641,7 @@
 
 <section id="presets">
   <h2>Presets</h2>
-  <p>A preset is a ready-made match setup: number of players, starting score, counters on every seat, game name, and match options. Pick one under <em>Menu → New game</em>. It fills in the form, which you can still adjust before starting.</p>
+  <p>A preset is a ready-made match setup: number of players, starting score, counters on every seat, game name, and match options. Start one in one tap from <a href="#quick-start">Home</a>, or pick one in step 1 of <a href="#new-game">New game</a>, where it fills in the setup and you can still adjust it. Presets are grouped: <em>Your presets</em>, <em>Card games</em>, <em>Board games</em>, <em>Darts</em>, <em>Timers</em> and <em>Bocce &amp; boules</em>.</p>
   <div class="table-wrap"><table>
     <tr><th>Built-in preset</th><th>Setup</th></tr>
     <tr><td>Commander</td><td>4 players at 40, Poison counter, turn tracker, Elimination, MTG extras</td></tr>
@@ -635,11 +658,11 @@
     <tr><td>Darts 501 / 301, Cricket, Around the Clock, Shanghai</td><td>2 players, darts board</td></tr>
   </table></div>
   <ul>
-    <li><strong>Save as preset</strong> (under the New game form) stores your current setup under its game name.</li>
+    <li><strong>Save as preset</strong> (at the bottom of New game) stores your current setup under its game name.</li>
     <li>Pick one of your saved presets to see <strong>Delete this preset</strong>. Built-in presets can't be deleted.</li>
     <li>Saved presets are included in <a href="#backup">backups</a>.</li>
   </ul>
-  <figure class="dialog"><img src="../images/dialog-menu.png" alt="Menu with presets and match options"><figcaption>The menu: Current game (with Match options and Players &amp; stats), Appearance, and New game with presets.</figcaption></figure>
+  <figure class="dialog"><img src="../images/dialog-menu.png" alt="Menu"><figcaption>The menu fits one phone screen: this match, then New game, Saved matches, Players &amp; stats and Appearance, with Reset scores apart at the bottom.</figcaption></figure>
 </section>
 
 <section id="utilities">
@@ -652,6 +675,7 @@
         <li><strong>First player:</strong> picks a random seat, which gets a ring and a <span class="tag">FIRST</span> tag for a few seconds.</li>
         <li><strong>Turn order:</strong> a random order of all players.</li>
         <li><strong>Day / Night</strong> appears here when MTG extras are on.</li>
+        <li>Tapping d4–d20 rolls straight away; <strong>Roll</strong> is for the custom dX.</li>
       </ul>
     </div>
     <figure class="dialog"><img src="../images/dialog-utilities.png" alt="Table utilities"></figure>
@@ -676,13 +700,14 @@
   <h2>Saved matches</h2>
   <div class="split">
     <div>
-      <p>Every match saves itself and is kept until you delete it, with its own players, counters, options, timers and log. Open <em>Menu → Saved matches</em> (or the link in the log):</p>
+      <p>Every match saves itself and is kept until you delete it, with its own players, counters, options, timers and log. Open <em>Saved matches</em> from Home or the menu:</p>
       <ul>
         <li>Matches are <strong>grouped by game</strong>, most recently played first.</li>
-        <li><strong>Continue</strong> brings a match back exactly as you left it.</li>
+        <li><strong>Tap a match</strong> to bring it back exactly as you left it.</li>
         <li>🗑 deletes a match. Tap a second time to confirm.</li>
+        <li><strong>⋯</strong> next to a game's name offers <em>Delete all … matches</em>, every match filed under that game.</li>
         <li><strong>This match belongs to</strong> (here, or <em>This match's game</em> in the menu) files the current match under a game. The name is saved right away and shows on the hub and in the match log.</li>
-        <li>Starting a new game never loses the current one; it stays here. <em>Start new game</em> asks for a second tap.</li>
+        <li>Starting a new game never loses the current one; it stays here.</li>
       </ul>
     </div>
     <figure class="dialog"><img src="../images/dialog-library.png" alt="Saved matches with backup buttons"></figure>
@@ -697,7 +722,7 @@
       <ul>
         <li>Filter by game with the chips at the top.</li>
         <li><strong>Wins count only matches with a result</strong>: a win rule decided it, or everyone else was marked out.</li>
-        <li>Seats linked to a <strong>saved player</strong> are counted together even if the seat name changed. Other seats are grouped by name and marked <em>by name</em>, so matches from 1.0 count too.</li>
+        <li>Seats linked to a <strong>saved player</strong> are counted together even if the seat name changed. Other seats are grouped by name and tagged <span class="tag outline">Unsaved</span>, so matches from 1.0 count too.</li>
         <li>Remove a saved player from the list at the bottom. Their past matches stay and are counted by name.</li>
       </ul>
     </div>
@@ -728,11 +753,16 @@
     <figure class="phone"><img src="../images/phone-colored.png" alt="Colored seat style"><figcaption>Colored seat style</figcaption></figure>
     <figure class="phone"><img src="../images/android-table-light.png" alt="Light theme"><figcaption>Light theme</figcaption></figure>
   </div>
-  <ul>
-    <li><strong>Seat style:</strong> <em>Neutral</em> (dark cards with a color bar) or <em>Colored</em> (each card filled with the seat's color).</li>
-    <li><strong>Theme:</strong> System, Dark or Light.</li>
-  </ul>
-  <p>Both are in <em>Menu → Appearance</em> and apply to every match.</p>
+  <div class="split">
+    <div>
+      <ul>
+        <li><strong>Seat style:</strong> <em>Neutral</em> (dark cards with a color bar) or <em>Colored</em> (each card filled with the seat's color).</li>
+        <li><strong>Theme:</strong> System, Dark or Light.</li>
+      </ul>
+      <p>Both are in <em>Menu → Appearance</em> and apply to every match.</p>
+    </div>
+    <figure class="dialog"><img src="../images/dialog-appearance.png" alt="Appearance"></figure>
+  </div>
 </section>
 
 <section id="desktop">
@@ -740,7 +770,8 @@
   <figure><img src="../images/desktop-sheet.png" alt="Round sheet on desktop" style="width:100%;max-width:820px"><figcaption>The round sheet in a desktop window.</figcaption></figure>
   <ul>
     <li>Everything works the same as on Android. Click the halves to count, and click and hold to repeat.</li>
-    <li>On wide windows, seat headers show the keypad and rotate buttons and spell tags out in full (<em>MONARCH</em> instead of <em>MON</em>).</li>
+    <li>On wide windows, seat headers show the keypad and rotate buttons and spell tags out in full (<em>MONARCH</em> instead of <em>MON</em>). The − half of each seat is faintly tinted, and <strong>+ COUNTER</strong> shows while the pointer is over a seat.</li>
+    <li>The round sheet keeps a readable width, centred in the window.</li>
     <li>Closing the window saves the match and pauses its clock.</li>
     <li>Export and import use the normal Windows or Linux file dialog.</li>
   </ul>
@@ -760,8 +791,8 @@
 
 <section id="faq">
   <h2>Questions</h2>
-  <h3>The clock shows PAUSED or isn't moving.</h3>
-  <p>It pauses itself when you leave the app or close the window. Tap ▶ in the turn bar.</p>
+  <h3>The clock isn't moving.</h3>
+  <p>It pauses itself when you leave the app or close the window. Tap <strong>▶ Start</strong> in the turn bar.</p>
   <h3>A seat is dimmed and marked OUT, but it shouldn't be.</h3>
   <p>Check the win rule threshold in <em>Match options</em>, or tap <em>Undo</em>. If the seat was marked out by hand, use <em>Edit seat → Back in</em>.</p>
   <h3>I can't find the turn bar.</h3>
