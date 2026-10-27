@@ -155,6 +155,23 @@ class MatchFeaturesTest {
     }
 
     @Test
+    fun targetEqualToTheStartingScoreIsNotReachedAtTheStart() {
+        val s = engine.newSession(2, 10, options = MatchOptions(winRule = WinRule(WinMode.TARGET_SCORE, target = 10)))
+        assertFalse(s.outcome().finished)
+        assertFalse(s.apply(GameAction.Adjust(s.id(0), CounterTarget.Primary, 3)).outcome().finished)
+    }
+
+    @Test
+    fun statsBestScoreIsTheLowestInPenaltyGames() {
+        val hearts = MatchOptions(sheetMode = true, winRule = WinRule(WinMode.TARGET_SCORE, 100, lowestWins = true))
+        fun match(score: Int) = engine.newSession(2, 0, "Hearts", hearts).let { s ->
+            s.apply(GameAction.SetValue(s.id(0), CounterTarget.Primary, score))
+        }
+        val best = computeStats(listOf(match(40), match(80)), emptyList()).first { it.name == "Player 1" }.bestScore
+        assertEquals(40, best)
+    }
+
+    @Test
     fun roundPointsAreLoggedInTheirRound() {
         val s = engine.newSession(2, 0, options = MatchOptions(sheetMode = true))
         val p = s.id(0)

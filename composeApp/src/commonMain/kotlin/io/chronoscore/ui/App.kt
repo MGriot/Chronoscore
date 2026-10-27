@@ -221,6 +221,7 @@ fun App(viewModel: GameViewModel, files: FileBridge = NoFileBridge) {
                 onNextRound = { dispatch(GameAction.NextRound) },
                 onOpenLibrary = { dialog = OpenDialog.Library },
                 onDismiss = dismiss,
+                canUndo = session.canUndo,
             )
             OpenDialog.Menu, OpenDialog.NewGame -> MenuDialog(
                 session = session,
@@ -377,6 +378,9 @@ fun App(viewModel: GameViewModel, files: FileBridge = NoFileBridge) {
     }
 }
 
+/** Undo has something to take back: a logged change, or a dart (misses aren't logged). */
+private val GameSession.canUndo: Boolean get() = historyLog.isNotEmpty() || darts.isNotEmpty()
+
 /** What a seat shows for the optional features that are on. */
 private fun seatStatus(session: GameSession, outcome: Outcome, player: Player, now: Long): SeatStatus {
     val o = session.options
@@ -428,7 +432,9 @@ private fun CenterStrip(
         }
         CenterHub(
             gameName = session.gameName,
-            canUndo = session.historyLog.isNotEmpty() || session.darts.isNotEmpty(),
+            canUndo = session.canUndo,
+            // Darts scores come from the darts thrown, so they can't be edited by hand.
+            canEditAll = session.options.darts == null,
             onUndo = { dispatch(GameAction.Undo) },
             onDice = onDice,
             onEditAll = onEditAll,
@@ -443,6 +449,7 @@ private fun CenterStrip(
 private fun CenterHub(
     gameName: String?,
     canUndo: Boolean,
+    canEditAll: Boolean,
     onUndo: () -> Unit,
     onDice: () -> Unit,
     onEditAll: () -> Unit,
@@ -473,7 +480,7 @@ private fun CenterHub(
             }
             IconTap(ChronoIcons.Undo, "Undo", enabled = canUndo, onClick = onUndo)
             IconTap(ChronoIcons.Dice, "Dice & utilities", onClick = onDice)
-            IconTap(ChronoIcons.Grid, "Edit all seats", onClick = onEditAll)
+            if (canEditAll) IconTap(ChronoIcons.Grid, "Edit all seats", onClick = onEditAll)
             IconTap(ChronoIcons.Log, "Match log", onClick = onLog)
             IconTap(ChronoIcons.Menu, "Menu", onClick = onMenu)
         }

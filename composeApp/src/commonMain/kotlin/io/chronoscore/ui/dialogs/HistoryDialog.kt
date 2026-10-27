@@ -36,17 +36,27 @@ fun HistoryDialog(
     onNextRound: () -> Unit,
     onOpenLibrary: () -> Unit,
     onDismiss: () -> Unit,
+    /** Darts misses aren't logged, so the table says whether there is anything to undo. */
+    canUndo: Boolean = session.historyLog.isNotEmpty(),
 ) {
     val c = ChronoTheme.colors
+    val o = session.options
     DialogFrame("${session.gameName ?: "Match log"} · Round ${session.round}", onDismiss, maxWidth = 440.dp) {
         Note((if (session.gameName == null) "No game set" else "Match log") + " · started ${formatDateTime(session.timestamp)}")
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Pill("Undo", Modifier.weight(1f), enabled = session.historyLog.isNotEmpty(), leadingIcon = ChronoIcons.Undo, onClick = onUndo)
-            Pill("Next round →", Modifier.weight(1f), style = PillStyle.PRIMARY, onClick = onNextRound)
+            Pill("Undo", Modifier.weight(1f), enabled = canUndo, leadingIcon = ChronoIcons.Undo, onClick = onUndo)
+            // With the turn tracker, passing the last seat's turn advances the round.
+            if (!o.turnTracking) Pill("Next round →", Modifier.weight(1f), style = PillStyle.PRIMARY, onClick = onNextRound)
         }
 
         if (session.historyLog.isEmpty()) {
-            Note("No score changes yet. Tap a seat's left or right half to count.")
+            Note(
+                when {
+                    o.darts != null -> "No score changes yet. Enter each dart on the board keypad."
+                    o.sheetMode -> "No score changes yet. Tap a cell of the round sheet to enter points."
+                    else -> "No score changes yet. Tap a seat's left or right half to count."
+                },
+            )
         }
 
         val players = session.players.associateBy { it.id }

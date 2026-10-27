@@ -66,7 +66,7 @@ Open **Menu → Match options** to change the match on the table (changes apply 
 One seat is active: it gets a ring and a **TURN** tag, and the **turn bar** appears on the center line.
 
 - **Next ›** passes the turn to the next seat. After the last seat, the round advances.
-- **‹ Previous** passes it back. Before the first seat, the round goes back one (never below 1).
+- **‹ Previous** passes it back. Before the first seat, the round goes back one (never below 1). In darts there is no Previous: **Undo** takes back the last dart and gives the turn back with it.
 - Seats that are out are skipped. A seat that concedes on its own turn hands the turn on.
 - **Edit seat → Give turn** jumps to any seat.
 
@@ -169,6 +169,10 @@ Pick a preset under **Menu → New game** to fill in players, starting score, co
 | Magic 1v1 | 2 at 20, Poison, Elimination, MTG extras |
 | Hearts | 4 at 0, Round sheet, Target 100, lowest wins |
 | Race to 10 | 4 at 0, turn tracker, Target 10 |
+| Catan | 4 at 0, turn tracker, Target 10 |
+| Carcassonne | 4 at 0, turn tracker |
+| Uno / Rummy 500 | 4 at 0, Round sheet, Target 500 |
+| Skyjo | 4 at 0, Round sheet, Target 100, lowest wins |
 | Chess clock | 2 players, timer mode: 10 min each, +5 s increment, out on time |
 | Board game timer | 4 players, timer mode: 20 min each, 10 s delay, overtime; match clock |
 | Bocce · Raffa / Pétanque | 2 sides, Round sheet with the bocce calculator, Target 12 / 13 |
@@ -228,7 +232,7 @@ Each seat shows its preview as *old → new*. **Apply** writes one log entry per
 
 Every change is listed under its round, with the player, what changed, the change (green for up, red for down) and the resulting value.
 
-- **Next round →** starts a new round.
+- **Next round →** starts a new round. With the turn tracker on it is hidden, because passing the last seat's turn already moves the round on.
 - **Undo** reverts the most recent entry.
 
 ## Saved matches and game history

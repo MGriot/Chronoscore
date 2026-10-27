@@ -209,23 +209,28 @@ fun MenuDialog(
             selectedIndex = TeamSizes.indexOf(teamSize).coerceAtLeast(0),
             onSelect = { teamSize = TeamSizes[it]; presetSaved = false },
         )
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            ScorePresets.forEach { s ->
-                Pill("Start $s", Modifier.weight(1f), selected = customScore.isEmpty() && startingScore == s) {
-                    startingScore = s; customScore = ""
+        if (newOptions.darts != null) {
+            // The engine takes the start from the darts game (X01 start, otherwise 0).
+            Note("The darts game sets the starting score.")
+        } else {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                ScorePresets.forEach { s ->
+                    Pill("Start $s", Modifier.weight(1f), selected = customScore.isEmpty() && startingScore == s) {
+                        startingScore = s; customScore = ""
+                    }
                 }
             }
+            ChronoTextField(
+                value = customScore,
+                onValueChange = { v ->
+                    customScore = v.filter(Char::isDigit).take(5)
+                    customScore.toIntOrNull()?.let { startingScore = it }
+                },
+                placeholder = "Custom starting score",
+                keyboardType = KeyboardType.Number,
+                showCounter = false,
+            )
         }
-        ChronoTextField(
-            value = customScore,
-            onValueChange = { v ->
-                customScore = v.filter(Char::isDigit).take(5)
-                customScore.toIntOrNull()?.let { startingScore = it }
-            },
-            placeholder = "Custom starting score",
-            keyboardType = KeyboardType.Number,
-            showCounter = false,
-        )
         Pill(
             "Options · ${newOptions.summary()}", Modifier.fillMaxWidth(),
             leadingIcon = ChronoIcons.Options, trailingIcon = if (showOptions) ChronoIcons.Minus else ChronoIcons.Plus,

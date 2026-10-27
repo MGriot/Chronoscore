@@ -61,6 +61,9 @@ data class DartsState(
 fun GameSession.dartsState(): DartsState {
     val rules = options.darts ?: DartsRules()
     val order = players.sortedBy { it.seatIndex }.map { it.id }
+    // Seats marked out stop throwing, so they neither hold up nor take part in the result.
+    val conceded = players.filter { it.conceded }.map { it.id }.toSet()
+    val playing = order.filterNot { it in conceded }
     val seats = order.associateWith { initialSeat(rules) }.toMutableMap()
     val visits = mutableListOf<DartVisit>()
     var winners = emptyList<String>()
@@ -87,9 +90,9 @@ fun GameSession.dartsState(): DartsState {
                     }
                 }
                 DartsGame.CRICKET -> {
-                    seat = cricket(seat, dart, seats.filterKeys { it != playerId }.values)
+                    seat = cricket(seat, dart, seats.filterKeys { it != playerId && it !in conceded }.values)
                     seats[playerId] = seat
-                    val others = seats.filterKeys { it != playerId }.values
+                    val others = seats.filterKeys { it != playerId && it !in conceded }.values
                     won = CricketTargets.all(seat::closed) && others.all { seat.score >= it.score }
                 }
                 DartsGame.AROUND_THE_CLOCK -> {
@@ -111,11 +114,11 @@ fun GameSession.dartsState(): DartsState {
     }
 
     // Shanghai without a knockout: highest score after the last round, ties shared.
-    if (winners.isEmpty() && rules.game == DartsGame.SHANGHAI && order.isNotEmpty() &&
-        order.all { (seats.getValue(it).visits) >= rules.rounds } && visits.lastOrNull()?.closed != false
+    if (winners.isEmpty() && rules.game == DartsGame.SHANGHAI && playing.isNotEmpty() &&
+        playing.all { (seats.getValue(it).visits) >= rules.rounds } && visits.lastOrNull()?.closed != false
     ) {
-        val best = order.maxOf { seats.getValue(it).score }
-        winners = order.filter { seats.getValue(it).score == best }
+        val best = playing.maxOf { seats.getValue(it).score }
+        winners = playing.filter { seats.getValue(it).score == best }
         return DartsState(seats, visits, winners, finished = true)
     }
     return DartsState(seats, visits, winners, finished = winners.isNotEmpty())
@@ -129,7 +132,11 @@ private fun initialSeat(rules: DartsRules) = when (rules.game) {
 
 /** The seat after an X01 dart, or null for a bust. */
 private fun x01(seat: DartsSeat, dart: Dart, rules: DartsRules): DartsSeat? {
-    if (!seat.opened) return if (dart.isDouble) seat.copy(score = seat.score - dart.points, opened = true).takeIf { it.score >= 0 } else seat
+    if (!seat.opened) {
+        if (!dart.isDouble) return seat
+        val left = seat.score - dart.points
+        return if (left < 0 || (rules.doubleOut && left == 1)) null else seat.copy(score = left, opened = true)
+    }
     val left = seat.score - dart.points
     return when {
         left < 0 -> null

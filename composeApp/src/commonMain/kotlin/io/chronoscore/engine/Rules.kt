@@ -38,8 +38,12 @@ fun GameSession.outcome(): Outcome {
         val darts = dartsState()
         if (darts.finished) return Outcome(eliminated, darts.winners, finished = true)
     } else if (rule.mode == WinMode.TARGET_SCORE) {
-        val ascending = rule.target >= startingScore
-        val reached = alive.any { if (ascending) it.primaryScore >= rule.target else it.primaryScore <= rule.target }
+        // A target equal to the starting score can't be "reached": every seat starts on it.
+        val reached = when {
+            rule.target > startingScore -> alive.any { it.primaryScore >= rule.target }
+            rule.target < startingScore -> alive.any { it.primaryScore <= rule.target }
+            else -> false
+        }
         if (reached || (players.size > 1 && alive.size <= 1)) {
             val best = if (rule.lowestWins) alive.minOfOrNull { it.primaryScore } else alive.maxOfOrNull { it.primaryScore }
             return Outcome(eliminated, alive.filter { it.primaryScore == best }.map { it.id }, finished = true)

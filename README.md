@@ -47,7 +47,7 @@ New in 1.1. Each of these is optional and set per match:
 - **Turn tracker:** an active seat with Previous / Next buttons. After the last seat the round advances.
 - **Timers:** a match clock, seat timers (chess-clock style) and an optional turn limit, with pause and resume.
 - **Win rules:** first to a target score (highest or lowest wins), elimination, or (1.3) out at or above a score. Dimmed seats are out, a banner names the winner, and Undo revives.
-- **Presets:** Commander, Magic 1v1, Hearts, Race to 10, Chess clock and Board game timer, plus your own.
+- **Presets:** Commander, Magic 1v1, Hearts, Race to 10, Catan, Carcassonne, Uno, Rummy 500, Skyjo, Chess clock and Board game timer, plus your own.
 - **Round sheet:** a scorepad of points per round with totals.
 - **Magic: The Gathering extras:** per-opponent commander damage, Monarch, Initiative and Day/Night.
 - **Players & stats:** saved players and their wins, win rate, averages and time on turns.

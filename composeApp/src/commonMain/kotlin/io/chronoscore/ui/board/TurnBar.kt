@@ -65,7 +65,8 @@ fun TurnBar(
                 .padding(horizontal = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            if (o.turnTracking) IconTap(ChronoIcons.ChevronLeft, "Previous turn", onClick = onPrevious)
+            // In darts, Undo on the keypad takes the turn back with the last dart.
+            if (o.turnTracking && o.darts == null) IconTap(ChronoIcons.ChevronLeft, "Previous turn", onClick = onPrevious)
             Row(Modifier.weight(1f).heightIn(min = MinTouch), verticalAlignment = Alignment.CenterVertically) {
                 if (o.turnTracking && active != null) {
                     Box(Modifier.size(width = 4.dp, height = 22.dp).background(parseHex(active.colorHex)))

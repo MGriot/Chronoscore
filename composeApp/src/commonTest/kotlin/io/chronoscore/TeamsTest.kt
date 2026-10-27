@@ -16,6 +16,7 @@ import io.chronoscore.model.WinRule
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /** 1.3: team seats, out-at-or-above (Scala 40) and the card and bocce presets. */
@@ -111,6 +112,10 @@ class TeamsTest {
         }
         assertEquals(WinRule(WinMode.ELIMINATION_ABOVE, 101), byId.getValue("scala40").options.winRule)
         assertEquals("Raffa", byId.getValue("raffa").gameName)
+        assertEquals(WinRule(WinMode.TARGET_SCORE, 500), byId.getValue("uno").options.winRule)
+        assertEquals(WinRule(WinMode.TARGET_SCORE, 100, lowestWins = true), byId.getValue("skyjo").options.winRule)
+        assertNull(byId.getValue("uno").options.handCalculator)
+        assertTrue(byId.getValue("catan").options.turnTracking)
 
         val scopone = byId.getValue("scopone")
         val s = engine.newSession().apply(

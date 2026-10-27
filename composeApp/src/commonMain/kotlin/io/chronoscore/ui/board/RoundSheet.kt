@@ -114,8 +114,9 @@ fun RoundSheet(
                                 .clickable(onClickLabel = "Points for ${p.name}, round $round") { onCell(p.id, round) },
                             contentAlignment = Alignment.Center,
                         ) {
+                            // A 0 isn't logged, so an empty past cell scored nothing.
                             Text(
-                                value?.let(::signed) ?: if (current) "+" else "–",
+                                value?.let(::signed) ?: if (current) "+" else "0",
                                 style = ChronoTheme.type.counter.copy(fontSize = 17.sp, fontWeight = FontWeight.Medium),
                                 color = if (value == null) c.muted.copy(alpha = 0.6f) else c.text,
                                 textAlign = TextAlign.Center,

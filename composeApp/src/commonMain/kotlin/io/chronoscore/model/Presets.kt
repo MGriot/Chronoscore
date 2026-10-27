@@ -59,6 +59,26 @@ object BuiltInPresets {
                 timeControl = TimeControl(bankSeconds = 20 * 60, bonus = TimeBonus.DELAY, bonusSeconds = 10, outOnTimeout = false),
             ),
         ),
+        GamePreset(
+            id = ID_PREFIX + "catan",
+            name = "Catan",
+            gameName = "Catan",
+            playerCount = 4,
+            startingScore = 0,
+            options = MatchOptions(turnTracking = true, winRule = WinRule(WinMode.TARGET_SCORE, 10)),
+        ),
+        GamePreset(
+            id = ID_PREFIX + "carcassonne",
+            name = "Carcassonne",
+            gameName = "Carcassonne",
+            playerCount = 4,
+            startingScore = 0,
+            options = MatchOptions(turnTracking = true),
+        ),
+        sheet(id = "uno", name = "Uno", seats = 4, target = 500),
+        sheet(id = "rummy500", name = "Rummy 500", seats = 4, target = 500),
+        // Penalty points: the match ends when a seat reaches 100, and the lowest total wins.
+        sheet(id = "skyjo", name = "Skyjo", seats = 4, target = 100, lowestWins = true),
         sheet(id = "raffa", name = "Bocce · Raffa", seats = 2, target = 12, calc = HandCalc.BOCCE),
         sheet(id = "petanque", name = "Pétanque", seats = 2, target = 13, calc = HandCalc.BOCCE),
         // Points are hands won: the hand goes to whoever takes 61 of the 120 card points.
@@ -84,22 +104,23 @@ object BuiltInPresets {
         options = MatchOptions(turnTracking = true, darts = rules),
     )
 
-    /** A round-sheet game that starts at 0, with a hand calculator. */
+    /** A round-sheet game that starts at 0, with a hand calculator when [calc] is set. */
     private fun sheet(
         id: String,
         name: String,
         seats: Int,
         target: Int,
-        calc: HandCalc,
+        calc: HandCalc? = null,
         mode: WinMode = WinMode.TARGET_SCORE,
         teamSize: Int? = null,
+        lowestWins: Boolean = false,
     ) = GamePreset(
         id = ID_PREFIX + id,
         name = name,
         gameName = name.substringAfter("· "),
         playerCount = seats,
         startingScore = 0,
-        options = MatchOptions(sheetMode = true, winRule = WinRule(mode, target), handCalculator = calc),
+        options = MatchOptions(sheetMode = true, winRule = WinRule(mode, target, lowestWins), handCalculator = calc),
         teamSize = teamSize,
     )
 

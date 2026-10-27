@@ -186,6 +186,23 @@ class DartsTest {
     }
 
     @Test
+    fun x01DoubleInOpeningThatLeavesOneBusts() {
+        val g = game(DartsRules(start = 41, doubleIn = true, doubleOut = true))
+        val r = g.apply(d(20))
+        assertEquals(41, r.score(0))
+        assertTrue(r.dartsState().visits.single().bust)
+        assertFalse(r.dartsState().seats.getValue(g.id(0)).opened)
+    }
+
+    @Test
+    fun shanghaiEndsWithoutTheSeatsThatAreOut() {
+        val g = game(DartsRules(DartsGame.SHANGHAI, rounds = 1), seats = 3)
+        val r = g.apply(miss, miss, miss, GameAction.SetConceded(g.id(2), true), s(1), miss, miss)
+        assertTrue(r.outcome().finished, "the seat that is out doesn't hold the game open")
+        assertEquals(listOf(g.id(1)), r.outcome().winners)
+    }
+
+    @Test
     fun shanghaiEndsAfterTheLastRoundWithTiesShared() {
         val g = game(DartsRules(DartsGame.SHANGHAI, rounds = 2))
         val r = g.apply(s(1), miss, miss, s(1), miss, miss, d(2), miss, miss)

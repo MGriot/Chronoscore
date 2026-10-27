@@ -69,9 +69,16 @@ fun DartsBoard(
 
     Column(modifier.clip(shape).background(c.surface).border(1.dp, c.outline, shape)) {
         Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState())) {
-            Row(Modifier.fillMaxWidth().padding(4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                players.forEach { p ->
-                    SeatCard(session, state, rules, outcome, p, Modifier.weight(1f), compact = rules.game == DartsGame.CRICKET) { onEditSeat(p.id) }
+            // At most four cards a row, so scores stay readable on a phone with 5–8 players.
+            Column(Modifier.fillMaxWidth().padding(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                players.chunked(SEATS_PER_ROW).forEach { row ->
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        row.forEach { p ->
+                            SeatCard(session, state, rules, outcome, p, Modifier.weight(1f), compact = rules.game == DartsGame.CRICKET) { onEditSeat(p.id) }
+                        }
+                        // Keep a short last row's cards the same width as the rows above.
+                        if (players.size > SEATS_PER_ROW) repeat(SEATS_PER_ROW - row.size) { Box(Modifier.weight(1f)) }
+                    }
                 }
             }
             if (rules.game == DartsGame.CRICKET) CricketMarks(state, players)
@@ -86,6 +93,8 @@ fun DartsBoard(
         )
     }
 }
+
+private const val SEATS_PER_ROW = 4
 
 @Composable
 private fun SeatCard(

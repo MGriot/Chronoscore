@@ -295,6 +295,8 @@ fun SwitchRow(title: String, note: String?, checked: Boolean, enabled: Boolean =
 @Composable
 private fun NumberField(label: String, value: Int, onValue: (Int) -> Unit) {
     var text by remember { mutableStateOf(value.toString()) }
+    // Follow outside changes (another preset picked), but leave text being typed ("-", "") alone.
+    if (text.toIntOrNull()?.let { it != value } == true) text = value.toString()
     ChronoTextField(
         value = text,
         onValueChange = { v ->

@@ -72,10 +72,14 @@ fun PlayerEditorDialog(
     DialogFrame("Edit seat", close, rotated = rotated, maxWidth = 420.dp) {
         ChronoTextField(value = name, onValueChange = { name = it }, label = "Name", maxLength = Limits.MAX_NAME_LENGTH)
 
+        // In darts the score comes from the darts thrown; a typed score would be overwritten by the next dart.
+        val darts = options.darts != null
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Pill("Set score", Modifier.weight(1f), leadingIcon = ChronoIcons.Keypad) {
-                commitName()
-                onSetScore()
+            if (!darts) {
+                Pill("Set score", Modifier.weight(1f), leadingIcon = ChronoIcons.Keypad) {
+                    commitName()
+                    onSetScore()
+                }
             }
             Pill("Flip 180°", Modifier.weight(1f), leadingIcon = ChronoIcons.Rotate) {
                 dispatch(GameAction.RotateSeat(player.id, 180))
@@ -92,7 +96,8 @@ fun PlayerEditorDialog(
         }
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            if (options.turnTracking) {
+            // Darts pass the turn after each visit; Undo on the keypad gives it back.
+            if (options.turnTracking && !darts) {
                 Pill(if (isActive) "Their turn" else "Give turn", Modifier.weight(1f), enabled = !isActive) {
                     dispatch(GameAction.SetActivePlayer(player.id))
                     close()
