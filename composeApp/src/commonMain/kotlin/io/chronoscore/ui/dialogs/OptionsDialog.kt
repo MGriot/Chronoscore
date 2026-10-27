@@ -16,6 +16,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.chronoscore.engine.sanitized
@@ -27,6 +28,7 @@ import io.chronoscore.model.TimeBonus
 import io.chronoscore.model.TimeControl
 import io.chronoscore.model.WinMode
 import io.chronoscore.ui.board.bonusLabel
+import io.chronoscore.ui.theme.ChronoIcons
 import io.chronoscore.ui.theme.ChronoTheme
 
 private val TurnLimits = listOf(null, 30, 60, 120, 300)
@@ -35,10 +37,18 @@ private val TurnLimitLabels = listOf("Off", "30s", "1m", "2m", "5m")
 private val BankMinutes = listOf(1, 3, 5, 10, 15, 30, 60)
 private val BonusSeconds = listOf(2, 5, 10, 30)
 
-/** Match options for the match on the table; every change applies immediately. */
+/**
+ * Match options; every change applies immediately. The same screen edits the match on the
+ * table ("Match options") and the setup of a new game, with a different [title].
+ */
 @Composable
-fun OptionsDialog(options: MatchOptions, onChange: (MatchOptions) -> Unit, onDismiss: () -> Unit) {
-    DialogFrame("Match options", onDismiss, maxWidth = 440.dp) {
+fun OptionsDialog(
+    options: MatchOptions,
+    onChange: (MatchOptions) -> Unit,
+    onDismiss: () -> Unit,
+    title: String = "Match options",
+) {
+    DialogFrame(title, onDismiss, maxWidth = 440.dp, footer = { Pill("Done", Modifier.fillMaxWidth(), style = PillStyle.PRIMARY, onClick = onDismiss) }) {
         OptionsEditor(options, onChange)
         Note("Everything here is optional. With all of it off, the table works like a plain counter.")
     }
@@ -81,7 +91,7 @@ fun OptionsEditor(options: MatchOptions, onChange: (MatchOptions) -> Unit) {
     SectionLabel("Winning")
     val rule = options.winRule
     Segmented(
-        options = listOf("None", "Target", "Out ≤", "Out ≥"),
+        options = listOf("None", "Target", "Low out", "High out"),
         selectedIndex = rule.mode.ordinal,
         onSelect = { i ->
             val mode = WinMode.entries[i]
@@ -115,7 +125,14 @@ fun OptionsEditor(options: MatchOptions, onChange: (MatchOptions) -> Unit) {
         }
     }
 
-    SectionLabel("Layout & games")
+    SectionLabel("Game extras")
+    SwitchRow(
+        "Magic: The Gathering extras",
+        "Commander damage per opponent, Monarch, Initiative and Day/Night. With elimination on, 21 commander damage or 10 poison knocks a seat out.",
+        options.mtgExtras,
+    ) { set(options.copy(mtgExtras = it)) }
+
+    SectionLabel("Layout")
     SwitchRow("Round sheet", "A scorepad: enter each seat's points per round, totals add up.", options.sheetMode) {
         set(options.copy(sheetMode = it))
     }
@@ -129,16 +146,19 @@ fun OptionsEditor(options: MatchOptions, onChange: (MatchOptions) -> Unit) {
         }
         Note("Tapping a round works out the hand's points from what happened in it: scope and settebello, burrachi, card points, bocce or penalties.")
     }
-    SwitchRow(
-        "Magic: The Gathering extras",
-        "Commander damage per opponent, Monarch, Initiative and Day/Night. With elimination on, 21 commander damage or 10 poison knocks a seat out.",
-        options.mtgExtras,
-    ) { set(options.copy(mtgExtras = it)) }
 }
 
 /** Short description of the options that are on, e.g. "Turns · Clock · Target 10". */
 fun MatchOptions.summary(): String {
-    val parts = buildList {
+    val parts = summaryParts()
+    return if (parts.isEmpty()) "Off" else parts.joinToString(" · ")
+}
+
+/** "3 on", or "Off": fits on a menu row where the full summary would be cut. */
+fun MatchOptions.shortSummary(): String = summaryParts().size.let { if (it == 0) "Off" else "$it on" }
+
+private fun MatchOptions.summaryParts(): List<String> =
+    buildList {
         if (turnTracking) add("Turns")
         if (matchClock) add("Clock")
         if (seatTimers) add("Seat timers")
@@ -163,8 +183,6 @@ fun MatchOptions.summary(): String {
         if (sheetMode) add(handCalculator?.let { "${it.title} sheet" } ?: "Round sheet")
         if (mtgExtras) add("MTG")
     }
-    return if (parts.isEmpty()) "Off" else parts.joinToString(" · ")
-}
 
 /**
  * Timer mode: a chess clock for every seat. Turning it on also turns on the turn tracker,
@@ -222,14 +240,23 @@ private fun TimerModeEditor(options: MatchOptions, set: (MatchOptions) -> Unit) 
 @Composable
 private fun DartsEditor(options: MatchOptions, set: (MatchOptions) -> Unit) {
     val darts = options.darts
+    var picking by remember { mutableStateOf(false) }
     SectionLabel("Darts")
-    Segmented(
-        options = listOf("Off") + DartsGames.map { it.second },
-        selectedIndex = darts?.let { d -> DartsGames.indexOfFirst { it.first == d.game } + 1 } ?: 0,
-        onSelect = { i ->
-            set(options.copy(darts = if (i == 0) null else (darts ?: DartsRules()).copy(game = DartsGames[i - 1].first)))
-        },
-    )
+    val current = darts?.let { d -> DartsGames.first { it.first == d.game }.second } ?: "Off"
+    Pill(
+        "Darts game · $current", Modifier.fillMaxWidth(), textAlign = TextAlign.Start,
+        trailingIcon = if (picking) ChronoIcons.ChevronUp else ChronoIcons.ArrowRight,
+    ) { picking = !picking }
+    if (picking) {
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            (listOf<Pair<DartsGame?, String>>(null to "Off") + DartsGames).forEach { (game, label) ->
+                Pill(label, Modifier.fillMaxWidth(), selected = darts?.game == game, textAlign = TextAlign.Start) {
+                    set(options.copy(darts = game?.let { (darts ?: DartsRules()).copy(game = it) }))
+                    picking = false
+                }
+            }
+        }
+    }
     if (darts == null) {
         Note("Enter every dart on a board keypad: X01 with double-out, Cricket, Around the Clock or Shanghai.")
         return
@@ -265,7 +292,7 @@ private fun DartsEditor(options: MatchOptions, set: (MatchOptions) -> Unit) {
 private val DartsGames = listOf(
     DartsGame.X01 to "X01",
     DartsGame.CRICKET to "Cricket",
-    DartsGame.AROUND_THE_CLOCK to "Clock",
+    DartsGame.AROUND_THE_CLOCK to "Around the Clock",
     DartsGame.SHANGHAI to "Shanghai",
 )
 private val X01Starts = listOf(301, 501, 701)

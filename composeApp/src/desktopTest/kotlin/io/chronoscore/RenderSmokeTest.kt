@@ -26,6 +26,8 @@ import io.chronoscore.ui.dialogs.HistoryDialog
 import io.chronoscore.ui.dialogs.KeypadDialog
 import io.chronoscore.ui.dialogs.LibraryDialog
 import io.chronoscore.ui.dialogs.MenuDialog
+import io.chronoscore.ui.dialogs.NewGameDialog
+import io.chronoscore.ui.dialogs.AppearanceDialog
 import io.chronoscore.ui.dialogs.PlayerEditorDialog
 import io.chronoscore.ui.dialogs.UtilitiesDialog
 import io.chronoscore.ui.theme.ChronoscoreTheme
@@ -115,15 +117,12 @@ class RenderSmokeTest {
             "utilities" to { UtilitiesDialog(vm.utility.value, { _, _ -> }, {}, {}, {}, {}) },
             "log" to { HistoryDialog(session, {}, {}, {}, {}) },
             "menu" to {
-                MenuDialog(session, ThemeMode.DARK, SeatStyle.NEUTRAL, listOf("Commander", "Catan"), noop, {}, {}, {}, {}, {}, {})
+                MenuDialog(session, listOf("Commander", "Catan"), noop, {}, {}, {})
             },
-            "start" to { StartDialog(session, summaries[0], {}, {}, {}) },
-            "new_game" to {
-                MenuDialog(
-                    session, ThemeMode.DARK, SeatStyle.NEUTRAL, listOf("Commander", "Catan"), noop, {}, {}, {}, {}, {}, {},
-                    presets = BuiltInPresets.all, newGameOnly = true,
-                )
-            },
+            "start" to { StartDialog(session, summaries[0], {}, {}, {}, quickStarts = BuiltInPresets.all.take(3)) },
+            "new_game" to { NewGameDialog(session, listOf("Commander", "Catan"), BuiltInPresets.all, {}, {}) },
+            "new_game_players" to { NewGameDialog(session, listOf("Commander"), BuiltInPresets.all, {}, {}, initialStep = 1) },
+            "appearance" to { AppearanceDialog(ThemeMode.DARK, SeatStyle.NEUTRAL, {}, {}, {}) },
             "edit_all" to { EditAllSeatsDialog(session, noop) {} },
             "counters_all" to { CountersAllSeatsDialog(session, noop) {} },
             "library" to { LibraryDialog(session, summaries, {}, {}, {}, {}) },
@@ -247,12 +246,7 @@ class RenderSmokeTest {
             "options" to { OptionsDialog(session.options, {}, {}) },
             "commander" to { CommanderDialog(session, session.players[1].id, false, noop, {}) },
             "stats" to { StatsDialog(history, profiles, {}, {}) },
-            "menu_presets" to {
-                MenuDialog(
-                    session, ThemeMode.DARK, SeatStyle.NEUTRAL, listOf("Commander"), noop, {}, {}, {}, {}, {}, {},
-                    presets = BuiltInPresets.all,
-                )
-            },
+            "menu_presets" to { MenuDialog(session, listOf("Commander"), noop, {}, {}, {}) },
             "editor_extras" to {
                 PlayerEditorDialog(
                     session.players[0], true, false, noop, {}, {},

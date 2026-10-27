@@ -34,6 +34,7 @@ import io.chronoscore.engine.nowMillis
 import io.chronoscore.engine.outcome
 import io.chronoscore.engine.pointsIn
 import io.chronoscore.model.CounterTarget
+import io.chronoscore.model.GamePreset
 import io.chronoscore.model.GameSession
 import io.chronoscore.model.Limits
 import io.chronoscore.model.Player
@@ -48,6 +49,7 @@ import io.chronoscore.ui.board.TurnBar
 import io.chronoscore.ui.board.gridFor
 import io.chronoscore.ui.board.rememberNow
 import io.chronoscore.ui.board.showsTurnBar
+import io.chronoscore.ui.dialogs.AppearanceDialog
 import io.chronoscore.ui.dialogs.CommanderDialog
 import io.chronoscore.ui.dialogs.CountersAllSeatsDialog
 import io.chronoscore.ui.dialogs.EditAllSeatsDialog
@@ -57,6 +59,8 @@ import io.chronoscore.ui.dialogs.IconTap
 import io.chronoscore.ui.dialogs.KeypadDialog
 import io.chronoscore.ui.dialogs.LibraryDialog
 import io.chronoscore.ui.dialogs.MenuDialog
+import io.chronoscore.ui.dialogs.NewGameDialog
+import io.chronoscore.ui.dialogs.rematch
 import io.chronoscore.ui.dialogs.OptionsDialog
 import io.chronoscore.ui.dialogs.PlayerEditorDialog
 import io.chronoscore.ui.dialogs.StartDialog
@@ -72,7 +76,9 @@ import io.chronoscore.viewmodel.GameViewModel
 private sealed interface OpenDialog {
     data object None : OpenDialog
     data object Start : OpenDialog
-    data object NewGame : OpenDialog
+    /** [preset] prefills the setup (long-press on a Home tile). */
+    data class NewGame(val preset: GamePreset? = null) : OpenDialog
+    data object Appearance : OpenDialog
     data object Utilities : OpenDialog
     data object History : OpenDialog
     data object Menu : OpenDialog
@@ -113,7 +119,7 @@ fun App(viewModel: GameViewModel, files: FileBridge = NoFileBridge) {
 
     // The library list is refreshed whenever a dialog that shows saved games opens.
     LaunchedEffect(dialog) {
-        if (dialog == OpenDialog.Start || dialog == OpenDialog.Menu || dialog == OpenDialog.NewGame || dialog == OpenDialog.Library) {
+        if (dialog == OpenDialog.Start || dialog == OpenDialog.Menu || dialog is OpenDialog.NewGame || dialog == OpenDialog.Library) {
             viewModel.refreshLibrary()
         }
         if (dialog == OpenDialog.Stats) viewModel.refreshStats()
@@ -132,6 +138,7 @@ fun App(viewModel: GameViewModel, files: FileBridge = NoFileBridge) {
                     dispatch = dispatch,
                     onDice = { dialog = OpenDialog.Utilities },
                     onEditAll = { dialog = OpenDialog.EditAllSeats },
+                    onNewGame = { dialog = OpenDialog.NewGame() },
                     onLog = { dialog = OpenDialog.History },
                     onMenu = { dialog = OpenDialog.Menu },
                 )
@@ -200,8 +207,44 @@ fun App(viewModel: GameViewModel, files: FileBridge = NoFileBridge) {
                 session = session,
                 summary = library.firstOrNull { it.id == session.id },
                 onContinue = dismiss,
-                onNewGame = { dialog = OpenDialog.NewGame },
+                onNewGame = { dialog = OpenDialog.NewGame() },
                 onSavedMatches = { dialog = OpenDialog.Library },
+                quickStarts = quickStartPresets(session, knownGames(library), presets),
+                onQuickStart = {
+                    dispatch(it)
+                    dismiss()
+                },
+                onCustomize = { dialog = OpenDialog.NewGame(it) },
+            )
+            is OpenDialog.NewGame -> NewGameDialog(
+                session = session,
+                knownGames = knownGames(library),
+                presets = presets,
+                onStart = { setup ->
+                    dispatch(setup.action)
+                    // Names and colors typed in setup go onto the seats the engine just made.
+                    val seats = viewModel.session.value.players
+                    setup.names.forEach { (i, name) ->
+                        val seat = seats.getOrNull(i) ?: return@forEach
+                        if (name.trim() != seat.name) {
+                            dispatch(GameAction.RenamePlayer(seat.id, name))
+                            // A renamed seat is someone else, so its saved player no longer applies.
+                            if (seat.profileId != null) dispatch(GameAction.SetProfile(seat.id, null))
+                        }
+                    }
+                    setup.colors.forEach { (i, hex) -> seats.getOrNull(i)?.let { dispatch(GameAction.SetColor(it.id, hex)) } }
+                },
+                onDismiss = dismiss,
+                onSavePreset = viewModel::savePreset,
+                onDeletePreset = viewModel::deletePreset,
+                initialPreset = d.preset,
+            )
+            OpenDialog.Appearance -> AppearanceDialog(
+                themeMode = themeMode,
+                seatStyle = seatStyle,
+                onThemeMode = viewModel::setThemeMode,
+                onSeatStyle = viewModel::setSeatStyle,
+                onDismiss = dismiss,
             )
             OpenDialog.Utilities -> UtilitiesDialog(
                 state = utility,
@@ -222,24 +265,17 @@ fun App(viewModel: GameViewModel, files: FileBridge = NoFileBridge) {
                 onDismiss = dismiss,
                 canUndo = session.canUndo,
             )
-            OpenDialog.Menu, OpenDialog.NewGame -> MenuDialog(
+            OpenDialog.Menu -> MenuDialog(
                 session = session,
-                themeMode = themeMode,
-                seatStyle = seatStyle,
                 knownGames = knownGames(library),
                 dispatch = dispatch,
-                onThemeMode = viewModel::setThemeMode,
-                onSeatStyle = viewModel::setSeatStyle,
-                onEditAllSeats = { dialog = OpenDialog.EditAllSeats },
                 onCountersAllSeats = { dialog = OpenDialog.CountersAllSeats },
                 onOpenLibrary = { dialog = OpenDialog.Library },
                 onDismiss = dismiss,
-                presets = presets,
+                onNewGame = { dialog = OpenDialog.NewGame() },
                 onMatchOptions = { dialog = OpenDialog.Options },
                 onStats = { dialog = OpenDialog.Stats },
-                onSavePreset = viewModel::savePreset,
-                onDeletePreset = viewModel::deletePreset,
-                newGameOnly = d == OpenDialog.NewGame,
+                onAppearance = { dialog = OpenDialog.Appearance },
             )
             OpenDialog.Options -> OptionsDialog(
                 options = session.options,
@@ -377,6 +413,19 @@ fun App(viewModel: GameViewModel, files: FileBridge = NoFileBridge) {
     }
 }
 
+/**
+ * Home's quick-start tiles: presets for the games played most recently (other than the one on
+ * the table, which has its own tile), topped up with the first presets.
+ */
+private fun quickStartPresets(session: GameSession, recentGames: List<String>, presets: List<GamePreset>): List<GamePreset> {
+    val current = session.gameName?.lowercase()
+    val recent = recentGames.filter { it.lowercase() != current }.mapNotNull { game ->
+        presets.firstOrNull { it.gameName.equals(game, ignoreCase = true) || it.name.equals(game, ignoreCase = true) }
+    }
+    val fill = presets.filter { it.gameName?.lowercase() != current }
+    return (recent + fill).distinctBy { it.id }.take(3)
+}
+
 /** Undo has something to take back: a logged change, or a dart (misses aren't logged). */
 private val GameSession.canUndo: Boolean get() = historyLog.isNotEmpty() || darts.isNotEmpty()
 
@@ -414,12 +463,13 @@ private fun CenterStrip(
     dispatch: (GameAction) -> Unit,
     onDice: () -> Unit,
     onEditAll: () -> Unit,
+    onNewGame: () -> Unit,
     onLog: () -> Unit,
     onMenu: () -> Unit,
 ) {
     Column {
-        ResultBanner(session, outcome)
-        if (session.showsTurnBar()) {
+        ResultBanner(session, outcome, onRematch = { dispatch(session.rematch()) }, onNewGame = onNewGame)
+        if (session.showsTurnBar() && !outcome.finished) {
             TurnBar(
                 session = session,
                 now = now,

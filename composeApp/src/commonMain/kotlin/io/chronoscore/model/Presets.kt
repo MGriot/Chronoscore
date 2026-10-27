@@ -126,3 +126,23 @@ object BuiltInPresets {
 
     fun isBuiltIn(preset: GamePreset) = preset.id.startsWith(ID_PREFIX)
 }
+
+/** Groups for the preset list, in display order. Saved presets come first. */
+enum class PresetCategory(val title: String) {
+    SAVED("Your presets"),
+    CARDS("Card games"),
+    BOARD("Board games"),
+    DARTS("Darts"),
+    TIMERS("Timers"),
+    BOULES("Bocce & boules"),
+}
+
+/** Where a preset is listed, worked out from what it turns on. */
+fun GamePreset.category(): PresetCategory = when {
+    !BuiltInPresets.isBuiltIn(this) -> PresetCategory.SAVED
+    options.darts != null -> PresetCategory.DARTS
+    options.timeControl != null -> PresetCategory.TIMERS
+    options.handCalculator == HandCalc.BOCCE -> PresetCategory.BOULES
+    options.sheetMode || options.mtgExtras -> PresetCategory.CARDS
+    else -> PresetCategory.BOARD
+}

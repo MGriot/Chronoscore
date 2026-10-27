@@ -40,6 +40,7 @@ object ChronoIcons {
     val Trash = icon("Trash", "M4 7h16", "M10 11v6", "M14 11v6", "M6 7l1 13h10l1-13", "M9 7V4h6v3")
     val ChevronLeft = icon("ChevronLeft", "M15 5l-7 7 7 7")
     val ChevronRight = icon("ChevronRight", "M9 5l7 7-7 7")
+    val ChevronUp = icon("ChevronUp", "M5 15l7-7 7 7")
     val Play = icon("Play", "M8 5.5v13l10.5-6.5z")
     val Pause = icon("Pause", "M8.5 5.5v13", "M15.5 5.5v13")
     val Timer = icon("Timer", "M12 21a8 8 0 1 1 0-16a8 8 0 1 1 0 16z", "M12 9v4l2.5 1.5", "M10 2.5h4")

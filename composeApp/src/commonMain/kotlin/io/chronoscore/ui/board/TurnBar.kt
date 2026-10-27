@@ -30,6 +30,8 @@ import io.chronoscore.engine.Outcome
 import io.chronoscore.model.DayNight
 import io.chronoscore.model.GameSession
 import io.chronoscore.ui.dialogs.IconTap
+import io.chronoscore.ui.dialogs.Pill
+import io.chronoscore.ui.dialogs.PillStyle
 import io.chronoscore.ui.formatDuration
 import io.chronoscore.ui.theme.ChronoIcons
 import io.chronoscore.ui.theme.ChronoShapes
@@ -131,9 +133,12 @@ private fun Chip(text: String) {
     )
 }
 
-/** "Mara wins" (or a draw) once the win rule decides the match. */
+/**
+ * "Mara wins" (or a draw) once the win rule decides the match. It takes the turn bar's place,
+ * with Rematch (same setup and players) and New game, so a finished match isn't a dead end.
+ */
 @Composable
-fun ResultBanner(session: GameSession, outcome: Outcome) {
+fun ResultBanner(session: GameSession, outcome: Outcome, onRematch: () -> Unit, onNewGame: () -> Unit) {
     if (!outcome.finished) return
     val c = ChronoTheme.colors
     val winners = outcome.winners.mapNotNull(session::player)
@@ -143,16 +148,23 @@ fun ResultBanner(session: GameSession, outcome: Outcome) {
         else -> winners.joinToString(" & ") { it.name } + " tie"
     }
     val accent = winners.singleOrNull()?.colorHex?.let(::parseHex)
-    Box(Modifier.fillMaxWidth().padding(vertical = 2.dp), contentAlignment = Alignment.Center) {
+    BoxWithConstraints(Modifier.fillMaxWidth().padding(vertical = 2.dp), contentAlignment = Alignment.Center) {
+        val narrow = maxWidth < 360.dp
         Row(
-            Modifier.clip(ChronoShapes.hub).background(accent ?: c.primary)
-                .padding(horizontal = 16.dp, vertical = 8.dp),
+            Modifier.widthIn(max = 520.dp).fillMaxWidth()
+                .clip(ChronoShapes.hub).background(c.surface).border(1.dp, accent ?: c.outline, ChronoShapes.hub)
+                .padding(start = 14.dp, end = 4.dp, top = 4.dp, bottom = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            val fg = if (accent != null) Color.White else c.onPrimary
-            Icon(ChronoIcons.Trophy, null, Modifier.size(18.dp), tint = fg)
+            Icon(ChronoIcons.Trophy, null, Modifier.size(20.dp), tint = accent ?: c.text)
             Spacer(Modifier.width(8.dp))
-            Text(text, style = ChronoTheme.type.body.copy(fontWeight = FontWeight.SemiBold), color = fg, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(
+                text, style = ChronoTheme.type.body.copy(fontWeight = FontWeight.SemiBold), color = c.text,
+                maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f),
+            )
+            Pill(if (narrow) "New" else "New game", onClick = onNewGame)
+            Spacer(Modifier.width(4.dp))
+            Pill("Rematch", style = PillStyle.PRIMARY, onClick = onRematch)
         }
     }
 }
