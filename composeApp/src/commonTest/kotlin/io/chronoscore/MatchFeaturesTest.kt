@@ -4,7 +4,6 @@ import io.chronoscore.data.BackupCodec
 import io.chronoscore.data.Backup
 import io.chronoscore.data.matchCsv
 import io.chronoscore.engine.GameAction
-import io.chronoscore.engine.GameEngine
 import io.chronoscore.engine.computeStats
 import io.chronoscore.engine.outcome
 import io.chronoscore.model.CounterTarget
@@ -21,14 +20,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /** 1.1 features: turns, clocks, win rules, round sheet, MTG extras, profiles, backups. */
-class MatchFeaturesTest {
-
-    private var now = 1_000_000L
-    private var nextId = 0
-    private val engine = GameEngine(clock = { now }, newId = { "id${nextId++}" })
-
-    private fun GameSession.apply(vararg actions: GameAction) = actions.fold(this) { s, a -> engine.reduce(s, a) }
-    private fun GameSession.id(seat: Int) = players[seat].id
+class MatchFeaturesTest : EngineTest() {
 
     private val turns = MatchOptions(turnTracking = true, seatTimers = true, matchClock = true)
 

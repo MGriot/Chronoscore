@@ -2,7 +2,6 @@ package io.chronoscore
 
 import io.chronoscore.data.matchCsv
 import io.chronoscore.engine.GameAction
-import io.chronoscore.engine.GameEngine
 import io.chronoscore.engine.computeStats
 import io.chronoscore.engine.outcome
 import io.chronoscore.model.BuiltInPresets
@@ -20,13 +19,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /** 1.3: team seats, out-at-or-above (Scala 40) and the card and bocce presets. */
-class TeamsTest {
-
-    private var nextId = 0
-    private val engine = GameEngine(clock = { 1_000_000L }, newId = { "id${nextId++}" })
-
-    private fun GameSession.apply(vararg actions: GameAction) = actions.fold(this) { s, a -> engine.reduce(s, a) }
-    private fun GameSession.id(seat: Int) = players[seat].id
+class TeamsTest : EngineTest() {
 
     @Test
     fun newGameWithTeamSizeMakesTeamSeats() {

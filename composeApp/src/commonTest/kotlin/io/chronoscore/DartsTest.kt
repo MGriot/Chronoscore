@@ -2,7 +2,6 @@ package io.chronoscore
 
 import io.chronoscore.engine.BULL
 import io.chronoscore.engine.GameAction
-import io.chronoscore.engine.GameEngine
 import io.chronoscore.engine.checkout
 import io.chronoscore.engine.dartsState
 import io.chronoscore.engine.outcome
@@ -19,13 +18,8 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /** 1.4: darts mode, entered one dart at a time. */
-class DartsTest {
+class DartsTest : EngineTest() {
 
-    private var nextId = 0
-    private val engine = GameEngine(clock = { 1_000_000L }, newId = { "id${nextId++}" })
-
-    private fun GameSession.apply(vararg actions: GameAction) = actions.fold(this) { s, a -> engine.reduce(s, a) }
-    private fun GameSession.id(seat: Int) = players[seat].id
     private fun GameSession.score(seat: Int) = players[seat].primaryScore
 
     private fun game(rules: DartsRules, seats: Int = 2) = engine.newSession(seats, 0, options = MatchOptions(darts = rules))
