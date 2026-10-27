@@ -507,31 +507,32 @@ private fun CenterHub(
 ) {
     val c = ChronoTheme.colors
     BoxWithConstraints(Modifier.fillMaxWidth().padding(vertical = 2.dp), contentAlignment = Alignment.Center) {
-        // The five buttons need ~250 dp; the name only joins them when it can't push one off.
         val showName = gameName != null && maxWidth >= 400.dp
-        Row(
-            Modifier
-                .clip(ChronoShapes.hub)
-                .background(c.surface)
-                .border(1.dp, c.outline, ChronoShapes.hub)
-                .padding(horizontal = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(2.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            // The game this match is filed under, so a rename shows on the table.
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            // The game this match is filed under, as a title above the toolbar, so a rename shows on the table.
             if (showName) {
                 Text(
                     gameName!!.uppercase(),
                     style = ChronoTheme.type.label.copy(fontSize = 11.sp, letterSpacing = 1.sp),
                     color = c.muted, maxLines = 1, overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.widthIn(max = 120.dp).padding(start = 8.dp, end = 4.dp).clickable(onClick = onMenu),
+                    modifier = Modifier.widthIn(max = 240.dp).padding(bottom = 2.dp).clickable(onClick = onMenu),
                 )
             }
-            IconTap(ChronoIcons.Undo, "Undo", enabled = canUndo, onClick = onUndo)
-            IconTap(ChronoIcons.Dice, "Dice & utilities", onClick = onDice)
-            if (canEditAll) IconTap(ChronoIcons.Grid, "Edit all seats", onClick = onEditAll)
-            IconTap(ChronoIcons.Log, "Match log", onClick = onLog)
-            IconTap(ChronoIcons.Menu, "Menu", onClick = onMenu)
+            Row(
+                Modifier
+                    .clip(ChronoShapes.hub)
+                    .background(c.surface)
+                    .border(1.dp, c.outline, ChronoShapes.hub)
+                    .padding(horizontal = 6.dp),
+                horizontalArrangement = Arrangement.spacedBy(2.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                IconTap(ChronoIcons.Undo, "Undo", enabled = canUndo, onClick = onUndo)
+                IconTap(ChronoIcons.Dice, "Dice & utilities", onClick = onDice)
+                if (canEditAll) IconTap(ChronoIcons.Grid, "Edit all seats", onClick = onEditAll)
+                IconTap(ChronoIcons.Log, "Match log", onClick = onLog)
+                IconTap(ChronoIcons.Menu, "Menu", onClick = onMenu)
+            }
         }
     }
 }

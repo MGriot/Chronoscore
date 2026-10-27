@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -32,40 +34,43 @@ fun PlayerGrid(
     /** Timer mode: seats become clock tiles; null shows the usual score seats. */
     clock: ClockTiles? = null,
 ) {
-    Column(modifier.padding(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        grid.rowsOfSeats().forEachIndexed { rowIndex, seats ->
-            Row(
-                Modifier.weight(1f).fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                seats.forEach { seat ->
-                    val player = players[seat]
-                    val angle = grid.angleOf(seat, player)
-                    val seatModifier = Modifier.weight(1f).fillMaxHeight()
-                    key(player.id) {
-                        if (clock != null) ClockTile(
-                            player = player,
-                            angle = angle,
-                            highlighted = player.id == highlightedPlayerId,
-                            style = style,
-                            status = statusFor(player),
-                            callbacks = callbacksFor(player),
-                            tiles = clock,
-                            modifier = seatModifier,
-                        ) else SeatViewport(
-                            player = player,
-                            angle = angle,
-                            highlighted = player.id == highlightedPlayerId,
-                            style = style,
-                            lastEntry = lastEntry?.takeIf { it.playerId == player.id && it.subCounterId == null },
-                            callbacks = callbacksFor(player),
-                            modifier = seatModifier,
-                            status = statusFor(player),
-                        )
+    val scoreSize = remember { TableScoreSize() }
+    CompositionLocalProvider(LocalTableScoreSize provides scoreSize) {
+        Column(modifier.padding(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            grid.rowsOfSeats().forEachIndexed { rowIndex, seats ->
+                Row(
+                    Modifier.weight(1f).fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    seats.forEach { seat ->
+                        val player = players[seat]
+                        val angle = grid.angleOf(seat, player)
+                        val seatModifier = Modifier.weight(1f).fillMaxHeight()
+                        key(player.id) {
+                            if (clock != null) ClockTile(
+                                player = player,
+                                angle = angle,
+                                highlighted = player.id == highlightedPlayerId,
+                                style = style,
+                                status = statusFor(player),
+                                callbacks = callbacksFor(player),
+                                tiles = clock,
+                                modifier = seatModifier,
+                            ) else SeatViewport(
+                                player = player,
+                                angle = angle,
+                                highlighted = player.id == highlightedPlayerId,
+                                style = style,
+                                lastEntry = lastEntry?.takeIf { it.playerId == player.id && it.subCounterId == null },
+                                callbacks = callbacksFor(player),
+                                modifier = seatModifier,
+                                status = statusFor(player),
+                            )
+                        }
                     }
                 }
+                if (rowIndex == grid.stripAfterRow) centerStrip()
             }
-            if (rowIndex == grid.stripAfterRow) centerStrip()
         }
     }
 }
