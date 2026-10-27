@@ -35,6 +35,7 @@ import io.chronoscore.engine.GameAction
 import io.chronoscore.model.GameSession
 import io.chronoscore.model.Limits
 import io.chronoscore.model.Player
+import io.chronoscore.ui.formatScore
 import io.chronoscore.ui.theme.ChronoShapes
 import io.chronoscore.ui.theme.ChronoTheme
 import io.chronoscore.ui.theme.MinTouch
@@ -112,7 +113,7 @@ fun EditAllSeatsDialog(
             StepKey("−5", Modifier.weight(1f)) { bump(-5) }
             StepKey("−1", Modifier.weight(1f)) { bump(-1) }
             Text(
-                if (value < 0) "−${-value}" else "$value",
+                formatScore(value),
                 style = ChronoTheme.type.score.copy(fontSize = 34.sp, lineHeight = 36.sp),
                 color = c.text, textAlign = TextAlign.Center, modifier = Modifier.weight(2f),
             )

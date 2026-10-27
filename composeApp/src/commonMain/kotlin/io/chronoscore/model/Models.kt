@@ -175,7 +175,10 @@ data class DartsRules(
     val doubleIn: Boolean = false,
     /** Shanghai: visits per player (7 or 20). */
     val rounds: Int = 7,
-)
+) {
+    /** Every seat's score at the start of the game. */
+    val startScore: Int get() = if (game == DartsGame.X01) start else 0
+}
 
 /**
  * One dart thrown in darts mode. [segment] is 1–20, 25 for the bull, or 0 for a miss;

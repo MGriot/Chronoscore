@@ -25,6 +25,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.chronoscore.engine.BulkMode
+import io.chronoscore.ui.formatScore
 import io.chronoscore.ui.theme.ChronoIcons
 import io.chronoscore.ui.theme.ChronoShapes
 import io.chronoscore.ui.theme.ChronoTheme
@@ -81,7 +82,7 @@ fun KeypadDialog(
                 style = ChronoTheme.type.body, color = c.muted, modifier = Modifier.padding(bottom = 6.dp),
             )
             Text(
-                (preview ?: current).let { if (it < 0) "−${-it}" else "$it" },
+                formatScore(preview ?: current),
                 style = ChronoTheme.type.score.copy(fontSize = 48.sp, lineHeight = 52.sp),
                 color = if (preview == null) c.muted else c.text,
                 textAlign = TextAlign.End,

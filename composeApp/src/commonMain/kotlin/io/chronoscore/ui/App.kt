@@ -32,6 +32,7 @@ import io.chronoscore.engine.GameAction
 import io.chronoscore.engine.Outcome
 import io.chronoscore.engine.nowMillis
 import io.chronoscore.engine.outcome
+import io.chronoscore.engine.pointsIn
 import io.chronoscore.model.CounterTarget
 import io.chronoscore.model.GameSession
 import io.chronoscore.model.Limits
@@ -46,7 +47,6 @@ import io.chronoscore.ui.board.SeatStatus
 import io.chronoscore.ui.board.TurnBar
 import io.chronoscore.ui.board.gridFor
 import io.chronoscore.ui.board.rememberNow
-import io.chronoscore.ui.board.roundPoints
 import io.chronoscore.ui.board.showsTurnBar
 import io.chronoscore.ui.dialogs.CommanderDialog
 import io.chronoscore.ui.dialogs.CountersAllSeatsDialog
@@ -335,7 +335,7 @@ fun App(viewModel: GameViewModel, files: FileBridge = NoFileBridge) {
                         onDismiss = dismiss,
                     )
                 } else {
-                    val current = session.roundPoints()[d.round to d.playerId] ?: 0
+                    val current = session.pointsIn(d.round, d.playerId)
                     KeypadDialog(
                         playerName = player.name,
                         playerColor = player.colorHex,

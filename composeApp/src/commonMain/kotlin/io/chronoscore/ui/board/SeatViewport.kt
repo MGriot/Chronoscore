@@ -54,6 +54,7 @@ import io.chronoscore.model.Limits
 import io.chronoscore.model.Player
 import io.chronoscore.model.ScoreHistoryEntry
 import io.chronoscore.model.SubCounter
+import io.chronoscore.ui.formatScore
 import io.chronoscore.ui.theme.ChronoIcons
 import io.chronoscore.ui.theme.ChronoShapes
 import io.chronoscore.ui.theme.ChronoTheme
@@ -179,7 +180,7 @@ fun SeatViewport(
                     ) { EdgeIcon(ChronoIcons.Plus, p.muted, compact) }
                 }
                 AutoSizeText(
-                    player.primaryScore.let { if (it < 0) "−${-it}" else it.toString() }, p.text,
+                    formatScore(player.primaryScore), p.text,
                     Modifier.fillMaxSize().padding(horizontal = if (compact) 30.dp else 52.dp),
                 )
             }

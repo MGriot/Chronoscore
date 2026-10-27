@@ -29,17 +29,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.chronoscore.engine.Outcome
+import io.chronoscore.engine.roundPoints
 import io.chronoscore.model.GameSession
 import io.chronoscore.ui.dialogs.Pill
 import io.chronoscore.ui.dialogs.PillStyle
+import io.chronoscore.ui.formatScore
 import io.chronoscore.ui.theme.ChronoTheme
 import io.chronoscore.ui.theme.parseHex
-
-/** Points each seat scored in each round, from the score changes logged in that round. */
-fun GameSession.roundPoints(): Map<Pair<Int, String>, Int> =
-    historyLog.filter { it.subCounterId == null }
-        .groupBy { it.round to it.playerId }
-        .mapValues { (_, entries) -> entries.sumOf { it.delta } }
 
 /**
  * Scorepad layout (Round sheet option): one column per seat, one row per round, totals at
@@ -116,7 +112,7 @@ fun RoundSheet(
                         ) {
                             // A 0 isn't logged, so an empty past cell scored nothing.
                             Text(
-                                value?.let(::signed) ?: if (current) "+" else "0",
+                                value?.let { formatScore(it, plus = true) } ?: if (current) "+" else "0",
                                 style = ChronoTheme.type.counter.copy(fontSize = 17.sp, fontWeight = FontWeight.Medium),
                                 color = if (value == null) c.muted.copy(alpha = 0.6f) else c.text,
                                 textAlign = TextAlign.Center,
@@ -133,7 +129,7 @@ fun RoundSheet(
             RoundCell("TOTAL")
             players.forEach { p ->
                 Text(
-                    signed(p.primaryScore, plus = false),
+                    formatScore(p.primaryScore),
                     style = ChronoTheme.type.score.copy(fontSize = 24.sp, lineHeight = 26.sp),
                     color = c.text, textAlign = TextAlign.Center, maxLines = 1,
                     modifier = Modifier.weight(1f),
@@ -162,10 +158,4 @@ private fun RoundCell(text: String) {
 @Composable
 private fun Divider() {
     Box(Modifier.fillMaxWidth().height(1.dp).background(ChronoTheme.colors.outline))
-}
-
-private fun signed(value: Int, plus: Boolean = true): String = when {
-    value < 0 -> "−${-value}"
-    plus && value > 0 -> "+$value"
-    else -> "$value"
 }

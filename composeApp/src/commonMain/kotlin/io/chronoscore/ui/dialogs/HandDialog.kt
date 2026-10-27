@@ -29,6 +29,7 @@ import io.chronoscore.engine.scala40Penalty
 import io.chronoscore.engine.scopaPoints
 import io.chronoscore.model.HandCalc
 import io.chronoscore.model.Player
+import io.chronoscore.ui.formatScore
 import io.chronoscore.ui.theme.ChronoTheme
 import io.chronoscore.ui.theme.parseHex
 
@@ -64,7 +65,7 @@ fun HandDialog(
                     Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(p.name, style = ChronoTheme.type.label.copy(fontSize = 11.sp), color = parseHex(p.colorHex), maxLines = 1)
                         Text(
-                            signed(points[i]), style = ChronoTheme.type.counter.copy(fontSize = 22.sp, fontWeight = FontWeight.Bold),
+                            formatScore(points[i], plus = true), style = ChronoTheme.type.counter.copy(fontSize = 22.sp, fontWeight = FontWeight.Bold),
                             color = ChronoTheme.colors.text, textAlign = TextAlign.Center,
                         )
                     }
@@ -217,10 +218,4 @@ private fun IntField(label: String, value: Int, modifier: Modifier, max: Int = 9
         showCounter = false,
         modifier = modifier,
     )
-}
-
-private fun signed(value: Int) = when {
-    value > 0 -> "+$value"
-    value < 0 -> "−${-value}"
-    else -> "0"
 }

@@ -100,7 +100,7 @@ object BuiltInPresets {
         name = name,
         gameName = name,
         playerCount = 2,
-        startingScore = if (rules.game == DartsGame.X01) rules.start else 0,
+        startingScore = rules.startScore,
         options = MatchOptions(turnTracking = true, darts = rules),
     )
 

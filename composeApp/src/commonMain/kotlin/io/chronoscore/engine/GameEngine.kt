@@ -180,9 +180,7 @@ class GameEngine(
 
         is GameAction.SetRoundPoints -> {
             val round = action.round.coerceIn(1, session.round)
-            val current = session.historyLog
-                .filter { it.playerId == action.playerId && it.subCounterId == null && it.round == round }
-                .sumOf { it.delta }
+            val current = session.pointsIn(round, action.playerId)
             adjust(session, action.playerId, CounterTarget.Primary, action.points - current, coalesce = false, round = round)
         }
 
@@ -361,9 +359,7 @@ class GameEngine(
         var result = session
         val entries = mutableListOf<ScoreHistoryEntry>()
         session.players.filter { it.id in action.points }.forEach { p ->
-            val scored = session.historyLog
-                .filter { it.playerId == p.id && it.subCounterId == null && it.round == round }
-                .sumOf { it.delta }
+            val scored = session.pointsIn(round, p.id)
             val next = (p.primaryScore + action.points.getValue(p.id) - scored).clampValue()
             if (next == p.primaryScore) return@forEach
             result = result.withValue(p.id, CounterTarget.Primary, next)
@@ -573,9 +569,6 @@ class GameEngine(
     }
 }
 
-/** Every seat's score at the start of a darts game. */
-val DartsRules.startScore: Int get() = if (game == DartsGame.X01) start else 0
-
 /**
  * Seat timers, the turn limit and timer mode only make sense with an active seat. Darts
  * always track turns, use the board instead of the round sheet, and decide the result themselves.
@@ -603,6 +596,16 @@ fun MatchOptions.sanitized(): MatchOptions = (darts?.let { d ->
 /** Low starts are allowed for checkout practice. */
 private const val MIN_X01_START = 2
 private const val MAX_X01_START = 1001
+
+/** Points each seat scored in each round, from the score changes logged in that round. */
+fun GameSession.roundPoints(): Map<Pair<Int, String>, Int> =
+    historyLog.filter { it.subCounterId == null }
+        .groupBy { it.round to it.playerId }
+        .mapValues { (_, entries) -> entries.sumOf { it.delta } }
+
+/** Points [playerId] scored in [round]. */
+fun GameSession.pointsIn(round: Int, playerId: String): Int =
+    historyLog.filter { it.playerId == playerId && it.subCounterId == null && it.round == round }.sumOf { it.delta }
 
 private fun GameSession.updatePlayer(id: String, transform: (Player) -> Player): GameSession =
     copy(players = players.map { if (it.id == id) transform(it) else it })
