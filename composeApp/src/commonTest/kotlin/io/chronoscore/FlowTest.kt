@@ -7,10 +7,13 @@ import io.chronoscore.model.GamePreset
 import io.chronoscore.model.MatchOptions
 import io.chronoscore.model.PresetCategory
 import io.chronoscore.model.category
+import io.chronoscore.model.sameSetupAs
+import io.chronoscore.model.seatsLabel
 import io.chronoscore.ui.dialogs.newGameAction
 import io.chronoscore.ui.dialogs.rematch
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 /** Launch-to-board flow: preset groups, one-tap quick start and Rematch. */
@@ -29,6 +32,19 @@ class FlowTest : EngineTest() {
         assertEquals(PresetCategory.SAVED, GamePreset(id = "mine", name = "House rules").category())
         // Every built-in preset lands in a shipped group.
         assertTrue(BuiltInPresets.all.none { it.category() == PresetCategory.SAVED })
+    }
+
+    @Test
+    fun presetEditsAreSpottedButRenamesAreNot() {
+        val catan = builtIn("Catan")
+        // A saved copy under another name and id is the same setup.
+        assertTrue(catan.sameSetupAs(catan.copy(id = "mine", name = "Catan night")))
+        // One seat per seat stored as 1 or null is the same.
+        assertTrue(catan.sameSetupAs(catan.copy(teamSize = 1)))
+        assertFalse(catan.sameSetupAs(catan.copy(playerCount = 5)))
+        assertFalse(catan.sameSetupAs(catan.copy(options = catan.options.copy(matchClock = true))))
+        assertEquals("4 players", catan.seatsLabel())
+        assertEquals("2 teams of 2", builtIn("Scopone").seatsLabel())
     }
 
     @Test

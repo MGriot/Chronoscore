@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -58,6 +59,7 @@ fun MenuDialog(
     var currentGame by remember { mutableStateOf(session.gameName.orEmpty()) }
     var currentGameChanged by remember { mutableStateOf(false) }
     var confirmReset by remember { mutableStateOf(false) }
+    var seatsAdded by remember { mutableIntStateOf(0) }
 
     DialogFrame("Menu", onDismiss, maxWidth = 420.dp) {
         SectionLabel("This match", topGap = 0.dp)
@@ -80,8 +82,21 @@ fun MenuDialog(
         }
         NavRow("Match options · ${session.options.shortSummary()}", ChronoIcons.Options, onClick = onMatchOptions)
         NavRow("Counters on every seat", ChronoIcons.Plus, onClick = onCountersAllSeats)
-        Pill("Add seat", Modifier.fillMaxWidth(), leadingIcon = ChronoIcons.Person, enabled = session.players.size < Limits.MAX_PLAYERS) {
+        val seats = session.players.size
+        val full = seats >= Limits.MAX_PLAYERS
+        Pill(
+            if (full) "Table full · $seats of ${Limits.MAX_PLAYERS}" else "Add seat · $seats of ${Limits.MAX_PLAYERS}",
+            Modifier.fillMaxWidth(), leadingIcon = ChronoIcons.Person, enabled = !full,
+        ) {
             dispatch(GameAction.AddPlayer)
+            seatsAdded++
+        }
+        // The Menu covers the board, so say what the tap did.
+        if (seatsAdded > 0) {
+            Note(
+                (if (seatsAdded == 1) "Added \"${session.players.last().name}\"." else "Added $seatsAdded seats.") +
+                    " Close the menu to see it on the board; tap a seat there to rename it.",
+            )
         }
 
         SectionLabel("Chronoscore")
