@@ -122,6 +122,14 @@ class RenderSmokeTest {
             "start" to { StartDialog(session, summaries[0], {}, {}, {}, quickStarts = BuiltInPresets.all.take(3)) },
             "new_game" to { NewGameDialog(session, listOf("Commander", "Catan"), BuiltInPresets.all, {}, {}) },
             "new_game_players" to { NewGameDialog(session, listOf("Commander"), BuiltInPresets.all, {}, {}, initialStep = 1) },
+            "new_game_preset" to {
+                NewGameDialog(session, listOf("Catan"), BuiltInPresets.all, {}, {}, initialPreset = BuiltInPresets.all.first { it.name == "Catan" })
+            },
+            // A saved preset opened with one more seat than it stores: shows the edited state.
+            "new_game_preset_edited" to {
+                val mine = BuiltInPresets.all.first { it.name == "Catan" }.copy(id = "mine", name = "Catan night")
+                NewGameDialog(session, listOf("Catan"), BuiltInPresets.all + mine, {}, {}, initialPreset = mine.copy(playerCount = 5))
+            },
             "appearance" to { AppearanceDialog(ThemeMode.DARK, SeatStyle.NEUTRAL, {}, {}, {}) },
             "edit_all" to { EditAllSeatsDialog(session, noop) {} },
             "counters_all" to { CountersAllSeatsDialog(session, noop) {} },

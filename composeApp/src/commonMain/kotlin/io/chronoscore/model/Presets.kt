@@ -137,6 +137,17 @@ enum class PresetCategory(val title: String) {
     BOULES("Bocce & boules"),
 }
 
+/** "4 players", or "2 teams of 2" for team games. */
+fun GamePreset.seatsLabel(): String =
+    teamSize?.takeIf { it > 1 }?.let { "$playerCount teams of $it" }
+        ?: "$playerCount " + if (playerCount == 1) "player" else "players"
+
+/** True when [other] sets up the same match: everything but the id and preset name matches. */
+fun GamePreset.sameSetupAs(other: GamePreset): Boolean {
+    fun GamePreset.setup() = copy(id = "", name = "", teamSize = teamSize?.takeIf { it > 1 })
+    return setup() == other.setup()
+}
+
 /** Where a preset is listed, worked out from what it turns on. */
 fun GamePreset.category(): PresetCategory = when {
     !BuiltInPresets.isBuiltIn(this) -> PresetCategory.SAVED

@@ -159,11 +159,13 @@ class GameViewModel(
     }
 
     /** Saves a preset (a new one when [GamePreset.id] is blank); built-ins can't be overwritten. */
-    fun savePreset(preset: GamePreset) {
-        val repo = repository ?: return
+    /** Saves [preset] (a new id unless it is already a saved one) and returns it as stored. */
+    fun savePreset(preset: GamePreset): GamePreset {
         val toSave = if (preset.id.isBlank() || BuiltInPresets.isBuiltIn(preset)) preset.copy(id = randomId()) else preset
+        val repo = repository ?: return toSave
         repo.savePreset(toSave)
         _presets.value = BuiltInPresets.all + repo.presets()
+        return toSave
     }
 
     fun deletePreset(id: String) {

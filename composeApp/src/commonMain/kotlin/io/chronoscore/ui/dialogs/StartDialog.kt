@@ -25,6 +25,7 @@ import io.chronoscore.engine.GameAction
 import io.chronoscore.model.GamePreset
 import io.chronoscore.model.GameSession
 import io.chronoscore.model.SessionSummary
+import io.chronoscore.model.seatsLabel
 import io.chronoscore.ui.formatDateTime
 import io.chronoscore.ui.theme.ChronoIcons
 import io.chronoscore.ui.theme.ChronoShapes
@@ -102,8 +103,7 @@ fun StartDialog(
 }
 
 private fun presetLine(preset: GamePreset): String =
-    (preset.teamSize?.takeIf { it > 1 }?.let { "${preset.playerCount} teams" } ?: "${preset.playerCount} players") +
-        if (preset.options.darts == null) " · start ${preset.startingScore}" else ""
+    preset.seatsLabel() + if (preset.options.darts == null) " · start ${preset.startingScore}" else ""
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable

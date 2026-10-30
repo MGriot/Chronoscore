@@ -200,7 +200,12 @@ Pick a preset in step 1 of [New game](#new-game) to fill in players, starting sc
 | Burraco | 2 teams of 2, Round sheet with the Burraco calculator, Target 2005 |
 | Darts 501 / 301, Cricket, Around the Clock, Shanghai | 2 players, darts board |
 
-**Save as preset** (at the bottom of New game) stores your own setup. Select a saved preset to delete it.
+When a preset is selected, a card under the list shows what it sets: game, players, starting score, counters and options. A preset doesn't store player names or colors; those come from the table. If you change any of those values afterwards, the card is marked **Edited** and each changed row says *changed*. The changes apply to this game only unless you save them.
+
+At the bottom of New game:
+- **Save as new preset** stores the setup on screen under *Your presets* and selects it.
+- With one of your presets selected and edited, **Update "…"** saves the changes into that preset instead.
+- Select one of your presets to delete it.
 
 ## Keypad
 
@@ -295,7 +300,8 @@ The menu fits on one phone screen:
 
 - **This match:**
   - **This match's game:** names the game on the table (for example Catan). It's saved right away, shown on the hub and in the match log, and used to group the match in Saved matches. A note confirms where the match is filed. Games you played before show as suggestions while you type.
-  - **Match options** (with how many are on), **Counters on every seat** and **Add seat**.
+  - **Match options** (with how many are on) and **Counters on every seat**.
+  - **Add seat** shows how many seats the table has out of 8, for example *Add seat · 4 of 8*. After a tap, a note names the new seat. Close the menu to see it on the board. At 8 seats the button reads *Table full*.
 - **New game**, **Saved matches**, **Players & stats** and **Appearance**.
 - **Reset scores**, set apart at the bottom. Tap it twice to confirm.
 
@@ -318,7 +324,7 @@ Open it from **Home → Custom game…**, **Menu → New game**, or **New game**
 1. **Game:** a [preset](#presets), or your own setup: an optional game name, the **starting score** (20, 30, 40 or *Custom*), and **Options** for the new match.
 2. **Players:** the number of players, or of teams (*One per seat*, *Teams of 2*, *Teams of 3*), and a row per seat with its **name** and **colour** (tap the dot for the next colour). The rows start from the players at the table.
 
-**Start new game** stays at the bottom of both steps and starts in one tap. **Save as preset** under it keeps the setup for next time.
+**Start new game** stays at the bottom of both steps and starts in one tap. **Save as new preset** (or **Update "…"** for one of your presets) under it keeps the setup for next time; see [Presets](#presets).
 
 Starting a new game clears the table but never deletes a match. The one you leave stays in Saved matches, so you can continue it.
 
