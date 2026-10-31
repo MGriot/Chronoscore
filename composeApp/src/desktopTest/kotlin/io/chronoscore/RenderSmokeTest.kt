@@ -198,12 +198,19 @@ class RenderSmokeTest {
             ImageComposeScene(1280, 800, Density(1.5f)) { App(timer) }.use { it.snapshot("feature_${tag}_desktop") }
         }
 
-        // Seats turned in 30° steps still fit their cells.
+        // Seats turned in 30° steps keep their angle on a phone and still fill their cells.
         val angled = offlineVm().also { a ->
             a.dispatch(GameAction.NewGame(4, 20))
             a.session.value.players.forEachIndexed { i, p -> a.dispatch(GameAction.RotateSeat(p.id, 30 * (i + 1))) }
         }
         ImageComposeScene(420, 880, Density(1.5f)) { App(angled) }.use { it.snapshot("feature_rotation_phone") }
+        ImageComposeScene(1280, 800, Density(1.5f)) { App(angled) }.use { it.snapshot("feature_rotation_desktop") }
+        val tiltedCounters = viewModel(4).also { a ->
+            a.session.value.players.forEach { p -> a.dispatch(GameAction.RotateSeat(p.id, 30)) }
+        }
+        ImageComposeScene(420, 880, Density(1.5f)) { App(tiltedCounters) }.use { it.snapshot("feature_rotation_30_phone") }
+        // A 410 dp-wide phone, at its own pixel density.
+        ImageComposeScene(920, 2000, Density(2.25f)) { App(tiltedCounters) }.use { it.snapshot("feature_rotation_30_phone_large") }
     }
 
     /** A new match from a built-in preset, by name. */
@@ -317,6 +324,31 @@ class RenderSmokeTest {
 
             vm.dispatch(GameAction.Undo)
             assertEquals(40, player().primaryScore, "one undo reverts the whole hold")
+        }
+    }
+
+    @Test
+    fun slantedSeatIsTappableToItsCorners() {
+        val vm = viewModel(1)
+        val id = vm.session.value.players.single().id
+        vm.dispatch(GameAction.RotateSeat(id, 30))
+        ImageComposeScene(600, 600, Density(1f)) { App(vm) }.use { scene ->
+            scene.render()
+            fun tap(x: Float, y: Float) {
+                scene.sendPointerEvent(PointerEventType.Press, Offset(x, y))
+                scene.render()
+                scene.sendPointerEvent(PointerEventType.Release, Offset(x, y))
+                scene.render()
+            }
+            // Turned 30° clockwise, the player's right points to the lower right. The cell's
+            // corners lie outside the slanted card but still split into − and +.
+            val score = { vm.session.value.players.single().primaryScore }
+            val centreY = 300f
+            tap(560f, centreY + 120f)
+            assertEquals(41, score(), "lower right → +1")
+            tap(40f, centreY - 120f)
+            assertEquals(40, score(), "upper left → −1")
+            scene.snapshot("slanted_single")
         }
     }
 }

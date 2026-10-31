@@ -238,7 +238,7 @@ class GameEngine(
                 )
                 when {
                     teamSize == null -> carried
-                    teamSize == 1 -> carried.copy(members = emptyList())
+                    teamSize == 1 -> carried.copy(name = soloSeatName(old, p.seatIndex), members = emptyList())
                     // A team of the same size carries over as it was.
                     carried.members.size == teamSize -> carried
                     else -> carried.copy(
@@ -631,6 +631,17 @@ fun normalizedRotation(degrees: Int): Int {
     val step = Limits.ROTATION_STEP
     val snapped = kotlin.math.round(degrees.toDouble() / step).toInt() * step
     return ((snapped % 360) + 360) % 360
+}
+
+private val AutoTeamName = Regex("""Team \d+""")
+
+/**
+ * Name of seat [seat] in a one-per-seat game: [old]'s name carries over, unless [old] was a team
+ * or still has an automatic "Team n" name — a team's name isn't a player's.
+ */
+fun soloSeatName(old: Player?, seat: Int): String = when {
+    old == null || old.isTeam || AutoTeamName.matches(old.name.trim()) -> "Player ${seat + 1}"
+    else -> old.name
 }
 
 private fun String.cleanName(fallback: String): String =
