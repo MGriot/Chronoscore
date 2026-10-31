@@ -21,9 +21,9 @@ Get the latest build from [**Releases**](https://github.com/MGriot/Chronoscore/r
 
 | Platform | File | Notes |
 | --- | --- | --- |
-| Android 7.0+ | `Chronoscore-1.3.1.apk` | Signed release build. Allow installs from your browser or file manager, then open the file. |
-| Windows x64 | `Chronoscore-1.3.1.exe` | Installer with its own Java runtime, so you don't need Java. Adds Chronoscore to the Start menu. |
-| Windows x64 (portable) | `Chronoscore-windows-x64-1.3.1.jar` | Needs Java 17+. Run it with `java -jar Chronoscore-windows-x64-1.3.1.jar`. |
+| Android 7.0+ | `Chronoscore-1.3.2.apk` | Signed release build. Allow installs from your browser or file manager, then open the file. |
+| Windows x64 | `Chronoscore-1.3.2.exe` | Installer with its own Java runtime, so you don't need Java. Adds Chronoscore to the Start menu. |
+| Windows x64 (portable) | `Chronoscore-windows-x64-1.3.2.jar` | Needs Java 17+. Run it with `java -jar Chronoscore-windows-x64-1.3.2.jar`. |
 
 To get a Linux build, build it from source (see below).
 
@@ -82,7 +82,8 @@ New in 1.3:
   - The **Menu** fits one phone screen. **Appearance** has its own screen, and *Reset scores* sits apart at the bottom.
 - **Easier to read at the table:**
   - The score always keeps at least half its seat. Counters that don't fit shrink to small chips, and every seat shows its score at the same size.
-  - On phones, names get the whole seat header (tags and timers move to a line below), and seats turn in right angles.
+  - On phones, names get the whole seat header (tags and timers move to a line below).
+  - A tilted seat still fills its space: the whole cell counts − and + along the player's own left and right, and ✎ / ⟲ sit in the corners the tilt leaves free.
   - The turn bar shows a white **Start** button while paused, and a sun or moon for Day/Night.
   - The round sheet marks the leader and shows progress toward the target.
   - Darts has bigger keys, the last three visits, a separate Undo key, and cricket marks lined up under each player.
