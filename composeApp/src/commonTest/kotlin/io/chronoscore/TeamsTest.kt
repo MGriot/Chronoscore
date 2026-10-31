@@ -36,6 +36,19 @@ class TeamsTest : EngineTest() {
     }
 
     @Test
+    fun singleSeatsAfterTeamsArePlayersAgain() {
+        val teams = engine.newSession(2, 0).apply(GameAction.NewGame(2, 0, teamSize = 2))
+        val solo = teams.apply(GameAction.NewGame(3, 0, teamSize = 1))
+        assertEquals(listOf("Player 1", "Player 2", "Player 3"), solo.players.map { it.name })
+
+        // A leftover automatic team name goes too; a real player name stays.
+        val plain = engine.newSession(2, 0).let { s ->
+            s.apply(GameAction.RenamePlayer(s.id(0), "Team 1"), GameAction.RenamePlayer(s.id(1), "Anna"))
+        }
+        assertEquals(listOf("Player 1", "Anna"), plain.apply(GameAction.NewGame(2, 0, teamSize = 1)).players.map { it.name })
+    }
+
+    @Test
     fun teamMembersAreCleaned() {
         val s = engine.newSession(2, 0)
         val long = "x".repeat(40)

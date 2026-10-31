@@ -1,7 +1,5 @@
 package io.chronoscore.ui.board
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -11,15 +9,16 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.min
 import androidx.compose.ui.unit.sp
+import io.chronoscore.model.Limits
 import io.chronoscore.model.Player
 import io.chronoscore.model.TimeBonus
 import io.chronoscore.model.TimeControl
 import io.chronoscore.ui.formatDuration
+import io.chronoscore.ui.theme.ChronoIcons
 import io.chronoscore.ui.theme.ChronoTheme
 import io.chronoscore.viewmodel.SeatStyle
 
@@ -56,27 +55,33 @@ fun ClockTile(
     val low = status.active && !tiles.paused && millis < LOW_TIME_MS
     val tappable = status.active && !status.out && !status.winner
 
-    RotatedSeat(angle, modifier) {
-        val compact = maxWidth < COMPACT_WIDTH
-        val ring = when {
+    RotatedSeat(
+        angle,
+        modifier.then(
+            if (tappable) Modifier.clickable(onClickLabel = if (tiles.paused) "Start clock" else "End turn", onClick = tiles.onTap)
+            else Modifier,
+        ),
+        fill = p.fill,
+        alpha = if (status.out) OUT_ALPHA else if (status.active || status.winner) 1f else 0.8f,
+        ring = when {
             low -> c.destructive
             highlighted || status.active || status.winner -> p.ring
             else -> null
-        }
-        Column(
-            Modifier
-                .fillMaxSize()
-                .alpha(if (status.out) OUT_ALPHA else if (status.active || status.winner) 1f else 0.8f)
-                .clip(SeatShape)
-                .background(p.fill)
-                .then(if (ring != null) Modifier.border(4.dp, ring, SeatShape) else Modifier)
-                .then(
-                    if (tappable) Modifier.clickable(onClickLabel = if (tiles.paused) "Start clock" else "End turn", onClick = tiles.onTap)
-                    else Modifier,
-                ),
-        ) {
+        },
+        // Room for "m:ss" under the name line and above the hint.
+        quality = { w, h -> min((w - 16.dp) / (4 * 0.68f), (h - NAME_LINE - 30.dp) * 0.78f).value },
+        corners = { (first, second) ->
+            CornerIcon(first) { HeaderIcon(ChronoIcons.Edit, "Edit seat", p.muted, callbacks.onEdit) }
+            CornerIcon(second) { HeaderIcon(ChronoIcons.Rotate, "Rotate ${Limits.ROTATION_STEP}°", p.muted, callbacks.onRotate) }
+        },
+    ) { corners ->
+        val compact = maxWidth < COMPACT_WIDTH
+        Column(Modifier.fillMaxSize()) {
             // The clock is the tile's figure, so the tags leave the time label out.
-            SeatHeader(player, p, compact, highlighted, status.copy(timeLabel = null), lastEntry = null, callbacks, showKeypad = false)
+            SeatHeader(
+                player, p, compact, highlighted, status.copy(timeLabel = null), lastEntry = null, callbacks,
+                showKeypad = false, buttons = corners == null,
+            )
             AutoSizeText(
                 formatDuration(millis),
                 if (low && style == SeatStyle.NEUTRAL) c.negative else p.text,

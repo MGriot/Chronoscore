@@ -31,6 +31,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.chronoscore.engine.GameAction
+import io.chronoscore.engine.soloSeatName
 import io.chronoscore.model.Accents
 import io.chronoscore.model.BuiltInPresets
 import io.chronoscore.model.GamePreset
@@ -138,13 +139,12 @@ fun NewGameDialog(
         savedMessage = message(saved)
     }
 
-    /** The name the engine gives seat [i]: carried over, or "Team n" / "Player n" for new seats. */
+    /** The name the engine gives seat [i]: carried over, or "Team n" / "Player n" when the seat changes kind. */
     fun defaultName(i: Int): String {
         val old = session.players.getOrNull(i)
         return when {
-            teamSize > 1 && old?.members?.size != teamSize -> "Team ${i + 1}"
-            old != null -> old.name
-            else -> "Player ${i + 1}"
+            teamSize > 1 -> if (old != null && old.members.size == teamSize) old.name else "Team ${i + 1}"
+            else -> soloSeatName(old, i)
         }
     }
 
