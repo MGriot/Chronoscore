@@ -32,6 +32,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.chronoscore.engine.BulkMode
+import io.chronoscore.engine.Entry
 import io.chronoscore.engine.GameAction
 import io.chronoscore.model.GameSession
 import io.chronoscore.model.Limits
@@ -41,8 +42,6 @@ import io.chronoscore.ui.theme.ChronoShapes
 import io.chronoscore.ui.theme.ChronoTheme
 import io.chronoscore.ui.theme.MinTouch
 import io.chronoscore.ui.theme.parseHex
-
-private val Modes = listOf("Set to", "+ Add", "− Sub")
 
 /**
  * Edit all seats (UI kit · Menu & all seats): one score or counter for many seats in one step,
@@ -58,23 +57,18 @@ fun EditAllSeatsDialog(
     val c = ChronoTheme.colors
     var selected by remember { mutableStateOf(session.players.map { it.id }.toSet()) }
     var counter by remember { mutableStateOf<String?>(null) }
-    var mode by remember { mutableIntStateOf(0) }
-    var setValue by remember { mutableIntStateOf(session.startingScore) }
-    var amount by remember { mutableIntStateOf(1) }
+    var text by remember { mutableStateOf("") }
 
     val counterNames = session.players.flatMap { p -> p.subCounters.map { it.name } }
         .distinctBy { it.lowercase() }
-    val value = if (mode == 0) setValue else amount
+    val entry = Entry.parse(text)
 
     fun Player.currentValue(): Int? =
         if (counter == null) primaryScore
         else subCounters.firstOrNull { it.name.equals(counter, ignoreCase = true) }?.value
 
-    fun next(current: Int) = when (mode) {
-        0 -> setValue
-        1 -> current + amount
-        else -> current - amount
-    }.coerceIn(Limits.MIN_VALUE, Limits.MAX_VALUE)
+    // Nothing typed yet: every seat stays as it is.
+    fun next(current: Int) = entry?.next(current) ?: current
 
     val targets = session.players.filter { it.id in selected }
     val affected = targets.count { p -> p.currentValue()?.let { next(it) != it } == true }
@@ -94,33 +88,15 @@ fun EditAllSeatsDialog(
 
         SectionLabel("What")
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Pill("Score", selected = counter == null) { counter = null; setValue = session.startingScore }
+            Pill("Score", selected = counter == null) { counter = null }
             counterNames.forEach { name ->
-                Pill(name, selected = counter.equals(name, ignoreCase = true)) { counter = name; setValue = 0 }
+                Pill(name, selected = counter.equals(name, ignoreCase = true)) { counter = name }
             }
         }
 
-        Segmented(Modes, mode, onSelect = { mode = it })
-
-        // −5 −1 [value] +1 +5
-        Row(
-            Modifier.fillMaxWidth().clip(ChronoShapes.control).background(c.surface).border(1.dp, c.outline, ChronoShapes.control),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            fun bump(d: Int) {
-                if (mode == 0) setValue = (setValue + d).coerceIn(Limits.MIN_VALUE, Limits.MAX_VALUE)
-                else amount = (amount + d).coerceIn(0, Limits.MAX_VALUE)
-            }
-            StepKey("−5", Modifier.weight(1f)) { bump(-5) }
-            StepKey("−1", Modifier.weight(1f)) { bump(-1) }
-            Text(
-                formatScore(value),
-                style = ChronoTheme.type.score.copy(fontSize = 34.sp, lineHeight = 36.sp),
-                color = c.text, textAlign = TextAlign.Center, modifier = Modifier.weight(2f),
-            )
-            StepKey("+1", Modifier.weight(1f)) { bump(1) }
-            StepKey("+5", Modifier.weight(1f)) { bump(5) }
-        }
+        EquationLine(text)
+        EquationKeys(text, entry) { text = it }
+        Note("Type an equation to set every seat to its result, or start with + or − to change each seat's own value (for example +5).")
 
         Column {
             targets.forEachIndexed { i, p ->
@@ -153,32 +129,18 @@ fun EditAllSeatsDialog(
 
         Pill(
             if (affected == 1) "Apply to 1 seat" else "Apply to $affected seats",
-            Modifier.fillMaxWidth(), style = PillStyle.PRIMARY, enabled = affected > 0,
+            Modifier.fillMaxWidth(), style = PillStyle.PRIMARY, enabled = entry != null && affected > 0,
         ) {
             dispatch(
                 GameAction.BulkEdit(
                     playerIds = targets.map { it.id },
                     counterName = counter,
-                    mode = if (mode == 0) BulkMode.SET else BulkMode.ADD,
-                    value = when (mode) {
-                        0 -> setValue
-                        1 -> amount
-                        else -> -amount
-                    },
+                    mode = if (entry?.relative == true) BulkMode.ADD else BulkMode.SET,
+                    value = entry?.value ?: 0,
                 ),
             )
             onDismiss()
         }
         Note("Logged as one entry per seat, and a single Undo reverts the whole change.")
-    }
-}
-
-@Composable
-private fun StepKey(label: String, modifier: Modifier, onClick: () -> Unit) {
-    Box(
-        modifier.heightIn(min = MinTouch + 8.dp).clip(ChronoShapes.control).clickable(onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(label, style = ChronoTheme.type.body, color = ChronoTheme.colors.muted)
     }
 }

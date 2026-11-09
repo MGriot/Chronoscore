@@ -15,7 +15,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -26,7 +25,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.chronoscore.engine.BulkMode
-import io.chronoscore.engine.Expression
+import io.chronoscore.engine.Entry
 import io.chronoscore.ui.formatScore
 import io.chronoscore.ui.theme.ChronoIcons
 import io.chronoscore.ui.theme.ChronoShapes
@@ -34,7 +33,6 @@ import io.chronoscore.ui.theme.ChronoTheme
 import io.chronoscore.ui.theme.parseHex
 
 private const val MAX_LENGTH = 40
-private val Modes = listOf("Set", "+ Add", "− Sub")
 
 /**
  * Direct entry (UI kit · Dialogs). Sets or adds/subtracts on this seat, or — with the
@@ -52,17 +50,11 @@ fun KeypadDialog(
     onApply: (allSeats: Boolean, mode: BulkMode, value: Int) -> Unit,
 ) {
     var allSeats by remember { mutableStateOf(false) }
-    var mode by remember { mutableIntStateOf(0) }
     var text by remember { mutableStateOf("") }
     val c = ChronoTheme.colors
 
-    val entered = Expression.evaluate(text)
-    val preview = when {
-        entered == null -> null
-        mode == 0 -> entered
-        mode == 1 -> current + entered
-        else -> current - entered
-    }
+    val entry = Entry.parse(text)
+    val preview = entry?.next(current)
 
     DialogFrame("$playerName · $targetLabel", onDismiss, rotated = rotated, scrollable = true, maxWidth = 400.dp) {
         if (seatCount > 1) {
@@ -75,21 +67,14 @@ fun KeypadDialog(
             )
         }
 
-        // The equation as typed, e.g. "12+5×3", then "40 → 52" with the new value in the text colour.
-        Text(
-            text.ifEmpty { "type an equation" },
-            style = ChronoTheme.type.counter.copy(fontSize = 20.sp),
-            color = if (text.isEmpty()) c.muted.copy(alpha = 0.7f) else c.text,
-            textAlign = TextAlign.End, maxLines = 1,
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
-        )
+        EquationLine(text)
         Row(
             Modifier.fillMaxWidth().heightIn(min = 72.dp).clip(ChronoShapes.control).background(c.surface)
                 .padding(horizontal = 16.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                if (allSeats && mode == 0) "All seats" else formatScore(current),
+                if (allSeats && entry?.relative != true) "All seats" else formatScore(current),
                 style = ChronoTheme.type.counter.copy(fontSize = 22.sp), color = c.muted,
             )
             Icon(ChronoIcons.ArrowRight, null, Modifier.padding(horizontal = 10.dp).size(18.dp), tint = c.muted)
@@ -107,39 +92,54 @@ fun KeypadDialog(
             }
         }
 
-        Segmented(Modes, mode, onSelect = { mode = it })
+        EquationKeys(text, entry) { text = it }
 
-        // Calculator pad: (key, weight) per row. "=" folds the equation into its result.
-        val rows = listOf(
-            listOf("C" to 1, "(" to 1, ")" to 1, "⌫" to 1),
-            listOf("7" to 1, "8" to 1, "9" to 1, "÷" to 1),
-            listOf("4" to 1, "5" to 1, "6" to 1, "×" to 1),
-            listOf("1" to 1, "2" to 1, "3" to 1, "−" to 1),
-            listOf("0" to 2, "=" to 1, "+" to 1),
-        )
-        rows.forEach { row ->
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                row.forEach { (key, weight) ->
-                    Key(key, enabled = key != "=" || entered != null, Modifier.weight(weight.toFloat())) {
-                        when (key) {
-                            "C" -> text = ""
-                            "⌫" -> text = text.dropLast(1)
-                            "=" -> entered?.let { text = it.toString().replace('-', '−') }
-                            else -> if (text.length < MAX_LENGTH) text += key
-                        }
+        Pill("Apply", Modifier.fillMaxWidth(), style = PillStyle.PRIMARY, enabled = entry != null) {
+            val e = entry ?: return@Pill
+            onApply(allSeats, if (e.relative) BulkMode.ADD else BulkMode.SET, e.value)
+            onDismiss()
+        }
+    }
+}
+
+/** The equation as typed, e.g. "12+5×3"; a hint while empty. */
+@Composable
+internal fun EquationLine(text: String) {
+    val c = ChronoTheme.colors
+    Text(
+        text.ifEmpty { "12+5×3 · or +5 / −3 to change" },
+        style = ChronoTheme.type.counter.copy(fontSize = 20.sp),
+        color = if (text.isEmpty()) c.muted.copy(alpha = 0.7f) else c.text,
+        textAlign = TextAlign.End, maxLines = 1,
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+    )
+}
+
+/**
+ * Calculator pad. A plain equation sets the value; starting with + or − changes the current
+ * value instead. "=" folds the equation into its result.
+ */
+@Composable
+internal fun EquationKeys(text: String, entry: Entry?, onText: (String) -> Unit) {
+    val rows = listOf(
+        listOf("C" to 1, "(" to 1, ")" to 1, "⌫" to 1),
+        listOf("7" to 1, "8" to 1, "9" to 1, "÷" to 1),
+        listOf("4" to 1, "5" to 1, "6" to 1, "×" to 1),
+        listOf("1" to 1, "2" to 1, "3" to 1, "−" to 1),
+        listOf("0" to 2, "=" to 1, "+" to 1),
+    )
+    rows.forEach { row ->
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            row.forEach { (key, weight) ->
+                Key(key, enabled = key != "=" || entry != null, Modifier.weight(weight.toFloat())) {
+                    when (key) {
+                        "C" -> onText("")
+                        "⌫" -> onText(text.dropLast(1))
+                        "=" -> entry?.let { onText(it.folded()) }
+                        else -> if (text.length < MAX_LENGTH) onText(text + key)
                     }
                 }
             }
-        }
-
-        Pill("Apply", Modifier.fillMaxWidth(), style = PillStyle.PRIMARY, enabled = entered != null) {
-            val n = entered ?: return@Pill
-            when (mode) {
-                0 -> onApply(allSeats, BulkMode.SET, n)
-                1 -> onApply(allSeats, BulkMode.ADD, n)
-                else -> onApply(allSeats, BulkMode.ADD, -n)
-            }
-            onDismiss()
         }
     }
 }

@@ -80,3 +80,32 @@ object Expression {
         }
     }
 }
+
+/**
+ * What was typed on the keypad: an equation that sets the value, or — when it starts with
+ * `+` or `−` — a change to the current value ("+5", "−3×2"). [value] is the new value for a
+ * set, or the change when [relative].
+ */
+data class Entry(val relative: Boolean, val value: Int) {
+    /** The value a seat at [current] ends up with, within the score limits. */
+    fun next(current: Int): Int =
+        (if (relative) current + value else value).coerceIn(Limits.MIN_VALUE, Limits.MAX_VALUE)
+
+    /** The equation that stands for this entry's result: "42", or "+5" / "−3" for a change. */
+    fun folded(): String = when {
+        !relative -> value.toString().replace('-', '−')
+        value >= 0 -> "+$value"
+        else -> "−${-value}"
+    }
+
+    companion object {
+        /** Null while [text] is empty or not a complete equation. */
+        fun parse(text: String): Entry? {
+            val t = text.trim()
+            if (t.isEmpty()) return null
+            val relative = t.first() in "+-−"
+            val v = Expression.evaluate(if (relative) "0$t" else t) ?: return null
+            return Entry(relative, v)
+        }
+    }
+}

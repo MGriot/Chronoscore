@@ -219,7 +219,7 @@ At the bottom of New game:
 
 Open it with **#** on a seat, or by tapping a counter's value.
 
-- **Set** replaces the value, and **+ Add** / **− Sub** change it by the amount you type. The preview reads *old → new*, for example *40 → 33*.
+- An equation **sets** the value; start it with **+** or **−** to **change** the current value instead (`+5`, `−3×2`). The preview reads *old → new*, for example *40 → 33*.
 - Type a whole equation with **+ − × ÷** and **( )**, for example `12+5×3`. The preview shows the result as you type; **=** folds the equation into its result, **C** clears it and ⌫ deletes the last key. **Apply** commits it as before, and Undo takes it back.
 - **Only *name* / All seats** chooses the scope: the change applies to this seat only, or to every seat at once.
 
@@ -239,7 +239,7 @@ Turning a counter on adds it to every seat at 0. A half-filled switch means the 
 
 1. Pick the seats (or **All**).
 2. Pick what to change: **Score** or a counter by name.
-3. Choose **Set to**, **+ Add** or **− Sub**.
+3. Type an equation on the calculator keys. A plain equation sets every seat to its result; starting with **+** or **−** changes each seat's own value.
 
 Each seat shows its preview as *old → new*. Seats the change leaves as they are are dimmed, and aren't counted in **Apply to n seats**. Apply writes one log entry per seat, and a single **Undo** reverts all of them.
 

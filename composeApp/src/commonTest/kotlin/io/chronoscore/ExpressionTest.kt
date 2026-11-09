@@ -1,5 +1,6 @@
 package io.chronoscore
 
+import io.chronoscore.engine.Entry
 import io.chronoscore.engine.Expression
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -38,5 +39,20 @@ class ExpressionTest {
     fun resultIsClampedToScoreLimits() {
         assertEquals(99_999, ev("99999×99"))
         assertEquals(-99_999, ev("−99999×99"))
+    }
+
+    @Test
+    fun leadingSignChangesTheCurrentValueOtherwiseItSets() {
+        assertEquals(Entry(false, 27), Entry.parse("12+5×3"))
+        assertEquals(Entry(true, 5), Entry.parse("+5"))
+        assertEquals(Entry(true, -6), Entry.parse("−3×2"))
+        assertEquals(55, Entry.parse("+5")!!.next(50))
+        assertEquals(27, Entry.parse("12+5×3")!!.next(50))
+        assertEquals(-5, Entry.parse("0−5")!!.next(50))
+        assertNull(Entry.parse(""))
+        assertNull(Entry.parse("×3"))
+        assertNull(Entry.parse("+"))
+        assertEquals("+5", Entry.parse("2+3")!!.copy(relative = true).folded())
+        assertEquals("−6", Entry.parse("−3×2")!!.folded())
     }
 }
