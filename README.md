@@ -21,9 +21,9 @@ Get the latest build from [**Releases**](https://github.com/MGriot/Chronoscore/r
 
 | Platform | File | Notes |
 | --- | --- | --- |
-| Android 7.0+ | `Chronoscore-1.4.0.apk` | Signed release build. Allow installs from your browser or file manager, then open the file. |
-| Windows x64 | `Chronoscore-1.4.0.exe` | Installer with its own Java runtime, so you don't need Java. Adds Chronoscore to the Start menu. |
-| Windows x64 (portable) | `Chronoscore-windows-x64-1.4.0.jar` | Needs Java 17+. Run it with `java -jar Chronoscore-windows-x64-1.4.0.jar`. |
+| Android 7.0+ | `Chronoscore-1.4.1.apk` | Signed release build. Allow installs from your browser or file manager, then open the file. |
+| Windows x64 | `Chronoscore-1.4.1.exe` | Installer with its own Java runtime, so you don't need Java. Adds Chronoscore to the Start menu. |
+| Windows x64 (portable) | `Chronoscore-windows-x64-1.4.1.jar` | Needs Java 17+. Run it with `java -jar Chronoscore-windows-x64-1.4.1.jar`. |
 
 To get a Linux build, build it from source (see below).
 
@@ -91,7 +91,7 @@ New in 1.3:
 
 New in 1.4:
 
-- **Calculator keypad:** type a whole equation with **+ − × ÷** and **( )** (for example `12+5×3`), see the result and *old → new* preview as you type, then Apply. **=** folds the equation into its result.
+- **Calculator keypad:** type a whole equation with **+ − × ÷** and **( )** (for example `12+5×3`), see the result and *old → new* preview as you type, then Apply. Start with **+** or **−** to change the current value (`+5`) instead of setting it. **Edit all seats** uses the same keys; the old Set / Add / Sub switch is gone.
 - **Winner and loser marks:** mark a seat **Winner** or **Loser** by hand from its editor, or mark single members of a team. A marked member shows ✓ or ✗, and Stats count that result for them.
 - **Result rules:** in Match options and New game, add rules like *0 points = loser* or *score ≥ 10 = winner*. A Loser is out and a Winner ends the match. Rules are saved with presets and backups.
 
