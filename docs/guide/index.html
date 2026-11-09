@@ -301,9 +301,9 @@
   <h2>Install</h2>
   <div class="table-wrap"><table>
     <tr><th>Platform</th><th>File</th><th>How</th></tr>
-    <tr><td>Android 7.0+</td><td><code>Chronoscore-1.3.2.apk</code></td><td>Allow installs from your browser or file manager, then open the file. Updating over 1.0 keeps all your matches.</td></tr>
-    <tr><td>Windows 10/11 (x64)</td><td><code>Chronoscore-1.3.2.exe</code></td><td>Run the installer. It includes its own Java runtime, so you don't need Java installed. Chronoscore appears in the Start menu.</td></tr>
-    <tr><td>Windows, portable</td><td><code>Chronoscore-windows-x64-1.3.2.jar</code></td><td>Needs Java 17+. Run <code>java -jar Chronoscore-windows-x64-1.3.2.jar</code>.</td></tr>
+    <tr><td>Android 7.0+</td><td><code>Chronoscore-1.4.0.apk</code></td><td>Allow installs from your browser or file manager, then open the file. Updating over 1.0 keeps all your matches.</td></tr>
+    <tr><td>Windows 10/11 (x64)</td><td><code>Chronoscore-1.4.0.exe</code></td><td>Run the installer. It includes its own Java runtime, so you don't need Java installed. Chronoscore appears in the Start menu.</td></tr>
+    <tr><td>Windows, portable</td><td><code>Chronoscore-windows-x64-1.4.0.jar</code></td><td>Needs Java 17+. Run <code>java -jar Chronoscore-windows-x64-1.4.0.jar</code>.</td></tr>
     <tr><td>Linux</td><td>build from source</td><td><code>./gradlew :composeApp:packageDeb</code> or <code>packageRpm</code> on the target machine.</td></tr>
   </table></div>
   <p>Your data is upgraded automatically the first time 1.1 starts. Nothing is lost, and 1.0 matches open with every new option off.</p>
@@ -383,7 +383,7 @@
       <p>Open it with <kbd>#</kbd> on a seat, or by tapping a counter's value.</p>
       <ul>
         <li><strong>Set</strong> replaces the value. <strong>+ Add</strong> and <strong>− Sub</strong> change it by the amount you type. The preview reads <em>old → new</em>, for example <em>40 → 33</em>.</li>
-        <li><strong>±</strong> makes a Set value negative.</li>
+        <li><strong>Type an equation</strong> with <kbd>+</kbd> <kbd>−</kbd> <kbd>×</kbd> <kbd>÷</kbd> and <kbd>( )</kbd>, for example <em>12+5×3</em>. The result shows as you type; <kbd>=</kbd> folds the equation into its result, <kbd>C</kbd> clears it and <kbd>⌫</kbd> deletes the last key. <strong>Apply</strong> commits it, and Undo takes it back.</li>
         <li><strong>Only <em>name</em> / All seats</strong> chooses whether the change applies to this seat or every seat.</li>
       </ul>
       <p>A keypad opened from a flipped seat is turned to face that player.</p>
@@ -533,6 +533,12 @@
     <li>The winner gets a ring and a <span class="tag">WINNER</span> tag, and the <strong>result bar</strong> replaces the turn bar. A tie names everyone tied; if nobody is left standing, it's a draw.</li>
     <li><strong>Rematch</strong> in the result bar starts the same game, players and options again in one tap. <strong>New game</strong> (<strong>+</strong> on a phone) opens the <a href="#new-game">setup</a>.</li>
     <li>Results come from the scores, so <strong>Undo brings an eliminated seat back</strong>, and correcting a score can reopen a finished match.</li>
+  </ul>
+  <h3>Result rules and marks</h3>
+  <ul>
+    <li><strong>Result rules</strong> (<em>Match options</em> and <em>New game</em>) turn a score into a result: <em>if a seat's score is = / ≤ / ≥ / &lt; / &gt; a value → Winner or Loser</em>. <em>0 points = loser</em> is one tap. A Loser is out; a Winner ends the match. Rules are saved with presets.</li>
+    <li><strong>Edit seat → Auto / Winner / Loser</strong> marks a whole seat by hand and overrides the rules; <em>Auto</em> hands the call back.</li>
+    <li>On a team seat each member also has <strong>Seat / Winner / Loser</strong>. A marked member shows ✓ or ✗ beside their name, and Stats count that result for them instead of the team's. Hand-set marks are not part of Undo.</li>
   </ul>
 </section>
 
