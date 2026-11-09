@@ -26,13 +26,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.chronoscore.engine.BulkMode
+import io.chronoscore.engine.Expression
 import io.chronoscore.ui.formatScore
 import io.chronoscore.ui.theme.ChronoIcons
 import io.chronoscore.ui.theme.ChronoShapes
 import io.chronoscore.ui.theme.ChronoTheme
 import io.chronoscore.ui.theme.parseHex
 
-private const val MAX_DIGITS = 5
+private const val MAX_LENGTH = 40
 private val Modes = listOf("Set", "+ Add", "− Sub")
 
 /**
@@ -52,11 +53,10 @@ fun KeypadDialog(
 ) {
     var allSeats by remember { mutableStateOf(false) }
     var mode by remember { mutableIntStateOf(0) }
-    var digits by remember { mutableStateOf("") }
-    var negative by remember { mutableStateOf(false) }
+    var text by remember { mutableStateOf("") }
     val c = ChronoTheme.colors
 
-    val entered = digits.toIntOrNull()?.let { if (negative && mode == 0) -it else it }
+    val entered = Expression.evaluate(text)
     val preview = when {
         entered == null -> null
         mode == 0 -> entered
@@ -75,7 +75,14 @@ fun KeypadDialog(
             )
         }
 
-        // "40 → 52" once something is typed, with the new value in the text colour.
+        // The equation as typed, e.g. "12+5×3", then "40 → 52" with the new value in the text colour.
+        Text(
+            text.ifEmpty { "type an equation" },
+            style = ChronoTheme.type.counter.copy(fontSize = 20.sp),
+            color = if (text.isEmpty()) c.muted.copy(alpha = 0.7f) else c.text,
+            textAlign = TextAlign.End, maxLines = 1,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+        )
         Row(
             Modifier.fillMaxWidth().heightIn(min = 72.dp).clip(ChronoShapes.control).background(c.surface)
                 .padding(horizontal = 16.dp, vertical = 10.dp),
@@ -88,7 +95,7 @@ fun KeypadDialog(
             Icon(ChronoIcons.ArrowRight, null, Modifier.padding(horizontal = 10.dp).size(18.dp), tint = c.muted)
             if (preview == null) {
                 Text(
-                    "type a value", style = ChronoTheme.type.body, color = c.muted.copy(alpha = 0.7f),
+                    "no result yet", style = ChronoTheme.type.body, color = c.muted.copy(alpha = 0.7f),
                     textAlign = TextAlign.End, modifier = Modifier.weight(1f),
                 )
             } else {
@@ -100,35 +107,39 @@ fun KeypadDialog(
             }
         }
 
-        Segmented(Modes, mode, onSelect = { mode = it; if (it != 0) negative = false })
+        Segmented(Modes, mode, onSelect = { mode = it })
 
-        val rows = listOf(listOf("1", "2", "3"), listOf("4", "5", "6"), listOf("7", "8", "9"), listOf("±", "0", "⌫"))
+        // Calculator pad: (key, weight) per row. "=" folds the equation into its result.
+        val rows = listOf(
+            listOf("C" to 1, "(" to 1, ")" to 1, "⌫" to 1),
+            listOf("7" to 1, "8" to 1, "9" to 1, "÷" to 1),
+            listOf("4" to 1, "5" to 1, "6" to 1, "×" to 1),
+            listOf("1" to 1, "2" to 1, "3" to 1, "−" to 1),
+            listOf("0" to 2, "=" to 1, "+" to 1),
+        )
         rows.forEach { row ->
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                row.forEach { key ->
-                    val enabled = key != "±" || mode == 0
-                    Key(key, enabled, Modifier.weight(1f)) {
+                row.forEach { (key, weight) ->
+                    Key(key, enabled = key != "=" || entered != null, Modifier.weight(weight.toFloat())) {
                         when (key) {
-                            "⌫" -> digits = digits.dropLast(1)
-                            "±" -> negative = !negative
-                            else -> if (digits.length < MAX_DIGITS) digits = (digits + key).trimStart('0').ifEmpty { "0" }
+                            "C" -> text = ""
+                            "⌫" -> text = text.dropLast(1)
+                            "=" -> entered?.let { text = it.toString().replace('-', '−') }
+                            else -> if (text.length < MAX_LENGTH) text += key
                         }
                     }
                 }
             }
         }
 
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Pill("Clear", Modifier.weight(1f)) { digits = ""; negative = false }
-            Pill("Apply", Modifier.weight(1f), style = PillStyle.PRIMARY, enabled = entered != null) {
-                val n = entered ?: return@Pill
-                when (mode) {
-                    0 -> onApply(allSeats, BulkMode.SET, n)
-                    1 -> onApply(allSeats, BulkMode.ADD, n)
-                    else -> onApply(allSeats, BulkMode.ADD, -n)
-                }
-                onDismiss()
+        Pill("Apply", Modifier.fillMaxWidth(), style = PillStyle.PRIMARY, enabled = entered != null) {
+            val n = entered ?: return@Pill
+            when (mode) {
+                0 -> onApply(allSeats, BulkMode.SET, n)
+                1 -> onApply(allSeats, BulkMode.ADD, n)
+                else -> onApply(allSeats, BulkMode.ADD, -n)
             }
+            onDismiss()
         }
     }
 }

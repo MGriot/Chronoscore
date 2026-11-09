@@ -1,6 +1,7 @@
 package io.chronoscore.engine
 
 import io.chronoscore.model.GameSession
+import io.chronoscore.model.Mark
 import io.chronoscore.model.Profile
 import io.chronoscore.model.WinMode
 
@@ -41,8 +42,17 @@ fun computeStats(sessions: List<GameSession>, profiles: List<Profile>, game: Str
             s.players.flatMap { p ->
                 val won = if (outcome.finished) p.id in outcome.winners else null
                 // A team seat counts once for each member, with the team's score and result.
-                val people = if (p.isTeam) p.members.map { it.name to it.profileId } else listOf(p.name to p.profileId)
-                people.map { (name, profileId) ->
+                // A member's own Winner/Loser mark overrides the seat's result.
+                val people = if (p.isTeam) {
+                    p.members.map { m ->
+                        Triple(m.name, m.profileId, when (m.mark) {
+                            Mark.WINNER -> true
+                            Mark.LOSER -> false
+                            Mark.NONE -> won
+                        })
+                    }
+                } else listOf(Triple(p.name, p.profileId, won))
+                people.map { (name, profileId, personWon) ->
                     val profile = profileId?.let(byId::get)
                     Row(
                         key = profile?.id ?: ("name:" + name.lowercase()),
@@ -50,7 +60,7 @@ fun computeStats(sessions: List<GameSession>, profiles: List<Profile>, game: Str
                         color = profile?.colorHex ?: p.colorHex,
                         isProfile = profile != null,
                         score = p.primaryScore,
-                        won = won,
+                        won = personWon,
                         time = p.timeMillis,
                         lowerIsBetter = lowerIsBetter,
                     )

@@ -2,7 +2,9 @@ package io.chronoscore.engine
 
 import io.chronoscore.model.GameSession
 import io.chronoscore.model.Limits
+import io.chronoscore.model.Mark
 import io.chronoscore.model.Player
+import io.chronoscore.model.ResultRule
 import io.chronoscore.model.WinMode
 
 /**
@@ -25,13 +27,18 @@ fun GameSession.outcome(): Outcome {
     val rule = options.winRule
     val timedOut = options.timeControl?.outOnTimeout == true
     val eliminated = players.filter { p ->
-        p.conceded || (timedOut && (p.clockMillis ?: 1) <= 0) || when (rule.mode) {
+        p.conceded || p.resultMark(options.resultRules) == Mark.LOSER ||
+            (timedOut && (p.clockMillis ?: 1) <= 0) || when (rule.mode) {
             WinMode.ELIMINATION -> p.primaryScore <= rule.target || (options.mtgExtras && p.isMtgDead())
             WinMode.ELIMINATION_ABOVE -> p.primaryScore >= rule.target
             else -> false
         }
     }.map { it.id }.toSet()
     val alive = players.filter { it.id !in eliminated }
+
+    // A seat marked winner (by hand or by a result rule) ends the match.
+    val marked = alive.filter { it.resultMark(options.resultRules) == Mark.WINNER }
+    if (marked.isNotEmpty()) return Outcome(eliminated, marked.map { it.id }, finished = true)
 
     // Darts mode: the darts decide; the win rule is not used.
     if (options.darts != null) {
@@ -55,6 +62,16 @@ fun GameSession.outcome(): Outcome {
     if (players.size > 1 && alive.size <= 1) return Outcome(eliminated, alive.map { it.id }, finished = true)
     return Outcome(eliminated, emptyList(), finished = false)
 }
+
+/** The seat's result: a hand-set mark first, then the first [rules] entry its score matches. */
+fun Player.resultMark(rules: List<ResultRule>): Mark {
+    if (mark != Mark.NONE) return mark
+    return rules.firstOrNull { it.compare.test(primaryScore, it.value) }?.mark ?: Mark.NONE
+}
+
+/** One person's result in a team seat: their own mark, else the seat's. */
+fun Player.memberMark(index: Int, rules: List<ResultRule>): Mark =
+    members.getOrNull(index)?.mark?.takeIf { it != Mark.NONE } ?: resultMark(rules)
 
 /** MTG state-based losses: 21 damage from one commander, or 10 poison. */
 private fun Player.isMtgDead(): Boolean =

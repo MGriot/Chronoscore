@@ -7,6 +7,7 @@ import io.chronoscore.model.DartsGame
 import io.chronoscore.model.DartsRules
 import io.chronoscore.model.GameSession
 import io.chronoscore.model.Limits
+import io.chronoscore.model.Mark
 import io.chronoscore.model.MatchOptions
 import io.chronoscore.model.Player
 import io.chronoscore.model.ScoreHistoryEntry
@@ -168,6 +169,16 @@ class GameEngine(
             if (action.conceded && session.activePlayerId == action.playerId) passTurn(updated, forward = true) else updated
         }
 
+        is GameAction.SetMark -> session.updatePlayer(action.playerId) { p ->
+            val index = action.memberIndex
+            when {
+                index == null -> p.copy(mark = action.mark)
+                index in p.members.indices ->
+                    p.copy(members = p.members.mapIndexed { i, m -> if (i == index) m.copy(mark = action.mark) else m })
+                else -> p
+            }
+        }
+
         is GameAction.SetProfile -> session.updatePlayer(action.playerId) { p ->
             val profile = action.profile
             if (profile == null) p.copy(profileId = null)
@@ -206,6 +217,8 @@ class GameEngine(
                         subCounters = p.subCounters.map { it.copy(value = 0) },
                         timeMillis = 0,
                         conceded = false,
+                        mark = Mark.NONE,
+                        members = p.members.map { it.copy(mark = Mark.NONE) },
                         commanderDamage = emptyMap(),
                         clockMillis = session.options.timeControl?.bankMillis,
                     )
@@ -578,6 +591,7 @@ fun MatchOptions.sanitized(): MatchOptions = (darts?.let { d ->
         turnTracking = true,
         sheetMode = false,
         winRule = WinRule(),
+        resultRules = emptyList(),
         darts = d.copy(start = d.start.coerceIn(MIN_X01_START, MAX_X01_START), rounds = d.rounds.coerceIn(1, 20)),
     )
 } ?: this).run { copy(
@@ -591,6 +605,8 @@ fun MatchOptions.sanitized(): MatchOptions = (darts?.let { d ->
         )
     },
     winRule = winRule.copy(target = winRule.target.coerceIn(Limits.MIN_VALUE, Limits.MAX_VALUE)),
+    resultRules = resultRules.filter { it.mark != Mark.NONE }.take(Limits.MAX_RESULT_RULES)
+        .map { it.copy(value = it.value.coerceIn(Limits.MIN_VALUE, Limits.MAX_VALUE)) },
 ) }
 
 /** Low starts are allowed for checkout practice. */

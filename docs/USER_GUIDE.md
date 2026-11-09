@@ -118,6 +118,12 @@ Timer mode turns the turn tracker on. Seats take turns in seat order, and the tu
 
 Seats that are out are dimmed but stay editable from their editor. Results are worked out from the scores, so **Undo brings an eliminated seat back**.
 
+#### Result rules and marks
+
+- **Result rules** (in Match options and New game) turn a score into a result: *If a seat's score is = / ≤ / ≥ / < / > a value → Winner or Loser*. For example, **0 points = loser**. A Loser is out; a Winner ends the match. Rules are saved with presets.
+- **Edit seat → Auto / Winner / Loser** marks a whole seat by hand, and overrides the rules. **Auto** hands the call back to them.
+- On a team seat, each member also has **Seat / Winner / Loser**. A marked member shows ✓ or ✗ next to their name, and Stats count that result for them instead of the team's. Hand-set marks are not part of Undo; set them back to Auto or Seat.
+
 When the match is decided, the **result bar** names the winner and offers:
 
 - **Rematch:** the same game, players and options, with scores back to the start. One tap.
@@ -214,7 +220,7 @@ At the bottom of New game:
 Open it with **#** on a seat, or by tapping a counter's value.
 
 - **Set** replaces the value, and **+ Add** / **− Sub** change it by the amount you type. The preview reads *old → new*, for example *40 → 33*.
-- **±** makes a Set value negative.
+- Type a whole equation with **+ − × ÷** and **( )**, for example `12+5×3`. The preview shows the result as you type; **=** folds the equation into its result, **C** clears it and ⌫ deletes the last key. **Apply** commits it as before, and Undo takes it back.
 - **Only *name* / All seats** chooses the scope: the change applies to this seat only, or to every seat at once.
 
 A keypad opened from a flipped seat is turned to face that player.

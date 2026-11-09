@@ -2,6 +2,7 @@ package io.chronoscore.engine
 
 import io.chronoscore.model.CounterTarget
 import io.chronoscore.model.DayNight
+import io.chronoscore.model.Mark
 import io.chronoscore.model.MatchOptions
 import io.chronoscore.model.Profile
 import io.chronoscore.model.TeamMember
@@ -64,6 +65,12 @@ sealed interface GameAction {
 
     /** Marks a seat out by hand, or back in. */
     data class SetConceded(val playerId: String, val conceded: Boolean) : GameAction
+
+    /**
+     * Marks a seat — or, with [memberIndex], one person of a team — as winner or loser by hand;
+     * [Mark.NONE] hands the call back to the result rules.
+     */
+    data class SetMark(val playerId: String, val memberIndex: Int?, val mark: Mark) : GameAction
 
     /** Links a seat to a saved player (taking its name and color), or unlinks it with null. */
     data class SetProfile(val playerId: String, val profile: Profile?) : GameAction

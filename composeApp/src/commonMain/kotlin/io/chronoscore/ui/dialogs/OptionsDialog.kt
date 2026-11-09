@@ -22,7 +22,11 @@ import io.chronoscore.engine.sanitized
 import io.chronoscore.model.DartsGame
 import io.chronoscore.model.DartsRules
 import io.chronoscore.model.HandCalc
+import io.chronoscore.model.Compare
+import io.chronoscore.model.Limits
+import io.chronoscore.model.Mark
 import io.chronoscore.model.MatchOptions
+import io.chronoscore.model.ResultRule
 import io.chronoscore.model.TimeBonus
 import io.chronoscore.model.TimeControl
 import io.chronoscore.model.WinMode
@@ -32,6 +36,8 @@ import io.chronoscore.ui.theme.ChronoTheme
 
 private val TurnLimits = listOf(null, 30, 60, 120, 300)
 private val TurnLimitLabels = listOf("Off", "30s", "1m", "2m", "5m")
+
+private val Compares = Compare.entries
 
 private val BankMinutes = listOf(1, 3, 5, 10, 15, 30, 60)
 private val BonusSeconds = listOf(2, 5, 10, 30)
@@ -124,6 +130,25 @@ fun OptionsEditor(options: MatchOptions, onChange: (MatchOptions) -> Unit) {
         }
     }
 
+    SectionLabel("Result rules")
+    options.resultRules.forEachIndexed { index, r ->
+        val update = { n: ResultRule -> set(options.copy(resultRules = options.resultRules.mapIndexed { i, old -> if (i == index) n else old })) }
+        Text("If a seat's score is…", style = ChronoTheme.type.body, color = ChronoTheme.colors.text)
+        Segmented(Compares.map { it.symbol }, Compares.indexOf(r.compare), onSelect = { update(r.copy(compare = Compares[it])) })
+        NumberField("Score", r.value) { update(r.copy(value = it)) }
+        Segmented(listOf("Winner", "Loser"), if (r.mark == Mark.WINNER) 0 else 1, onSelect = { update(r.copy(mark = if (it == 0) Mark.WINNER else Mark.LOSER)) })
+        Pill("Remove rule", Modifier.fillMaxWidth()) { set(options.copy(resultRules = options.resultRules.filterIndexed { i, _ -> i != index })) }
+    }
+    if (options.resultRules.size < Limits.MAX_RESULT_RULES) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (options.resultRules.isEmpty()) {
+                Pill("0 points = loser") { set(options.copy(resultRules = listOf(ResultRule(Compare.EQ, 0, Mark.LOSER)))) }
+            }
+            Pill("Add rule", leadingIcon = ChronoIcons.Plus) { set(options.copy(resultRules = options.resultRules + ResultRule())) }
+        }
+    }
+    Note("A seat matching a rule is marked Winner or Loser. A Loser is out; a Winner ends the match. Marking a seat by hand overrides the rules.")
+
     SectionLabel("Game extras")
     SwitchRow(
         "Magic: The Gathering extras",
@@ -181,6 +206,7 @@ private fun MatchOptions.summaryParts(): List<String> =
         }
         if (sheetMode) add(handCalculator?.let { "${it.title} sheet" } ?: "Round sheet")
         if (mtgExtras) add("MTG")
+        resultRules.forEach { add("${it.compare.symbol} ${it.value} ${if (it.mark == Mark.WINNER) "wins" else "loses"}") }
     }
 
 /**

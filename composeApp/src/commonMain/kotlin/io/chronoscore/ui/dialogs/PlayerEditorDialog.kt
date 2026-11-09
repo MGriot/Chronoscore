@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.sp
 import io.chronoscore.engine.GameAction
 import io.chronoscore.model.Accents
 import io.chronoscore.model.Limits
+import io.chronoscore.model.Mark
 import io.chronoscore.model.MatchOptions
 import io.chronoscore.model.Player
 import io.chronoscore.model.Profile
@@ -110,6 +111,8 @@ fun PlayerEditorDialog(
                 selected = player.conceded,
             ) { dispatch(GameAction.SetConceded(player.id, !player.conceded)) }
         }
+        // Hand-set result for the seat; "Auto" leaves it to the result rules.
+        MarkPicker(player.mark, neutral = "Auto") { dispatch(GameAction.SetMark(player.id, null, it)) }
         player.clockMillis?.let { bank ->
             // Timer mode: penalties, handicaps, or reviving a seat that ran out by mistake.
             Row(
@@ -257,6 +260,7 @@ private fun TeamEditor(player: Player, profiles: List<Profile>, dispatch: (GameA
                 set(player.members.filterIndexed { i, _ -> i != index })
             }
         }
+        MarkPicker(member.mark, neutral = "Seat") { dispatch(GameAction.SetMark(player.id, index, it)) }
     }
     if (player.members.size < Limits.MAX_TEAM_MEMBERS) {
         Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -283,7 +287,18 @@ private fun TeamEditor(player: Player, profiles: List<Profile>, dispatch: (GameA
             }
         }
     }
-    Note("Members share this seat's score. Stats count the result for each of them. Remove every member to make it a single seat again.")
+    Note("Members share this seat's score. Mark a member Winner or Loser to give them a result of their own; \"Seat\" follows the seat. Remove every member to make it a single seat again.")
+}
+
+/** Auto/Seat · Winner · Loser, for a seat or one team member. */
+@Composable
+private fun MarkPicker(mark: Mark, neutral: String, onSelect: (Mark) -> Unit) {
+    val marks = listOf(Mark.NONE, Mark.WINNER, Mark.LOSER)
+    Segmented(
+        options = listOf(neutral, "Winner", "Loser"),
+        selectedIndex = marks.indexOf(mark),
+        onSelect = { onSelect(marks[it]) },
+    )
 }
 
 /** Rounded color swatch; the selected one takes a text-colored ring with a gap. */

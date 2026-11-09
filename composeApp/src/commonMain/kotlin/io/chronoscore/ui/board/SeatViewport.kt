@@ -65,6 +65,7 @@ import androidx.compose.ui.unit.sp
 import io.chronoscore.engine.nowMillis
 import io.chronoscore.model.CounterTarget
 import io.chronoscore.model.Limits
+import io.chronoscore.model.Mark
 import io.chronoscore.model.Player
 import io.chronoscore.model.ScoreHistoryEntry
 import io.chronoscore.model.SubCounter
@@ -361,7 +362,10 @@ internal fun SeatHeader(
             if (player.isTeam && !compact) {
                 Spacer(Modifier.width(6.dp))
                 Text(
-                    player.members.joinToString(" · ") { it.name },
+                    // A hand-set member result shows next to the name: ✓ winner, ✗ loser.
+                    player.members.joinToString(" · ") {
+                        it.name + when (it.mark) { Mark.WINNER -> " ✓"; Mark.LOSER -> " ✗"; Mark.NONE -> "" }
+                    },
                     style = ChronoTheme.type.label.copy(fontSize = 11.sp, letterSpacing = 0.sp),
                     color = p.muted,
                     maxLines = 1,

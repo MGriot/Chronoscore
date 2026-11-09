@@ -10,6 +10,7 @@ import io.chronoscore.model.DayNight
 import io.chronoscore.model.GamePreset
 import io.chronoscore.model.GameSession
 import io.chronoscore.model.Limits
+import io.chronoscore.model.Mark
 import io.chronoscore.model.MatchOptions
 import io.chronoscore.engine.cleanMembers
 import io.chronoscore.model.Profile
@@ -53,6 +54,7 @@ internal data class PlayerExtras(
     /** Seat rotation in degrees; null in rows from before 1.2, which only had is_flipped. */
     val rotation: Int? = null,
     val members: List<TeamMember> = emptyList(),
+    val mark: Mark = Mark.NONE,
 )
 
 /** A full local backup: every saved match, preset and player profile. */

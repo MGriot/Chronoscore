@@ -41,7 +41,7 @@ class SessionRepository(
         queries.deleteSubCounters(id)
         queries.deletePlayers(id)
         session.players.forEach { p ->
-            val extras = PlayerExtras(p.timeMillis, p.conceded, p.profileId, p.commanderDamage, p.clockMillis, p.rotation, p.members)
+            val extras = PlayerExtras(p.timeMillis, p.conceded, p.profileId, p.commanderDamage, p.clockMillis, p.rotation, p.members, p.mark)
             queries.insertPlayer(
                 p.id, id, p.seatIndex.toLong(), p.name, p.colorHex, p.primaryScore.toLong(), if (p.rotation == 180) 1L else 0L,
                 ChronoJson.encodeToString(PlayerExtras.serializer(), extras),
@@ -148,6 +148,7 @@ class SessionRepository(
                 commanderDamage = extras.commanderDamage,
                 clockMillis = extras.clockMillis,
                 members = extras.members,
+                mark = extras.mark,
             )
         }
         if (players.isEmpty()) return null

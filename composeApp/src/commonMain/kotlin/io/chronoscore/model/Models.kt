@@ -37,11 +37,39 @@ data class SubCounter(
     val value: Int = 0,
 )
 
+/** A hand-set or rule-given result for a seat or a team member. */
+@Serializable
+enum class Mark { NONE, WINNER, LOSER }
+
+/** How a [ResultRule] compares a seat's score with its value. */
+@Serializable
+enum class Compare(val symbol: String) {
+    EQ("="), LE("≤"), GE("≥"), LT("<"), GT(">");
+
+    fun test(score: Int, value: Int): Boolean = when (this) {
+        EQ -> score == value
+        LE -> score <= value
+        GE -> score >= value
+        LT -> score < value
+        GT -> score > value
+    }
+}
+
+/** "If a seat's score is [compare] [value], it is a [mark]." The first matching rule wins. */
+@Serializable
+data class ResultRule(
+    val compare: Compare = Compare.EQ,
+    val value: Int = 0,
+    val mark: Mark = Mark.LOSER,
+)
+
 /** One person playing in a team seat; [profileId] links them to a saved player for stats. */
 @Serializable
 data class TeamMember(
     val name: String,
     val profileId: String? = null,
+    /** Hand-set result for this person alone; NONE follows the seat. */
+    val mark: Mark = Mark.NONE,
 )
 
 @Serializable
@@ -73,6 +101,8 @@ data class Player(
     val clockMillis: Long? = null,
     /** Team seat: the people sharing this seat's score; empty for a single player. */
     val members: List<TeamMember> = emptyList(),
+    /** Hand-set result for the whole seat; NONE falls back to the match's result rules. */
+    val mark: Mark = Mark.NONE,
 ) {
     val isTeam: Boolean get() = members.isNotEmpty()
 
@@ -238,6 +268,8 @@ data class MatchOptions(
     val darts: DartsRules? = null,
     /** Round sheet: works out each hand's points (needs [sheetMode]); null to type them in. */
     val handCalculator: HandCalc? = null,
+    /** Score-based winner/loser rules, e.g. "= 0 → Loser". Hand-set marks override them. */
+    val resultRules: List<ResultRule> = emptyList(),
 ) {
     val usesClock: Boolean
         get() = matchClock || (turnTracking && (seatTimers || turnLimitSeconds != null || timeControl != null))
@@ -347,6 +379,7 @@ object Limits {
     const val MAX_PLAYERS = 8
     const val MAX_SUB_COUNTERS = 4
     const val MAX_TEAM_MEMBERS = 4
+    const val MAX_RESULT_RULES = 5
     const val MAX_VALUE = 99_999
     const val MIN_VALUE = -99_999
     const val MAX_NAME_LENGTH = 20
