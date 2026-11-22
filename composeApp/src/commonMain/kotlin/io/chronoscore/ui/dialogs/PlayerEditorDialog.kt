@@ -98,21 +98,32 @@ fun PlayerEditorDialog(
         }
 
         SectionLabel("In this match")
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            // Darts pass the turn after each visit; Undo on the keypad gives it back.
-            if (options.turnTracking && !darts) {
-                Pill(if (isActive) "Their turn" else "Give turn", Modifier.weight(1f), enabled = !isActive) {
-                    dispatch(GameAction.SetActivePlayer(player.id))
-                    close()
-                }
+        // Darts pass the turn after each visit; Undo on the keypad gives it back.
+        if (options.turnTracking && !darts) {
+            Pill(if (isActive) "Their turn" else "Give turn", Modifier.fillMaxWidth(), enabled = !isActive) {
+                dispatch(GameAction.SetActivePlayer(player.id))
+                close()
             }
-            Pill(
-                if (player.conceded) "Back in" else "Mark as out", Modifier.weight(1f),
-                selected = player.conceded,
-            ) { dispatch(GameAction.SetConceded(player.id, !player.conceded)) }
         }
-        // Hand-set result for the seat; "Auto" leaves it to the result rules.
-        MarkPicker(player.mark, neutral = "Auto") { dispatch(GameAction.SetMark(player.id, null, it)) }
+        // One control for the seat's result: Out (conceded, or marked Loser) and Winner exclude each other.
+        val out = player.conceded || player.mark == Mark.LOSER
+        Segmented(
+            options = listOf("Auto", "Winner", "Out"),
+            selectedIndex = when {
+                out -> 2
+                player.mark == Mark.WINNER -> 1
+                else -> 0
+            },
+            onSelect = { i ->
+                when (i) {
+                    0 -> if (player.conceded) dispatch(GameAction.SetConceded(player.id, false))
+                         else dispatch(GameAction.SetMark(player.id, null, Mark.NONE))
+                    1 -> dispatch(GameAction.SetMark(player.id, null, Mark.WINNER))
+                    else -> if (!out) dispatch(GameAction.SetConceded(player.id, true))
+                }
+            },
+        )
+        Note("Auto follows the win and result rules. Out takes the seat out of the match as a loss; pick Auto or Undo to bring it back.")
         player.clockMillis?.let { bank ->
             // Timer mode: penalties, handicaps, or reviving a seat that ran out by mistake.
             Row(

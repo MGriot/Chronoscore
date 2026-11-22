@@ -12,6 +12,7 @@ import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
@@ -62,13 +63,14 @@ private val LightTokens = ChronoColors(
     background = Color(0xFFFAFAFA),
     surface = Color(0xFFF4F4F5),
     raised = Color(0xFFE4E4E7),
-    outline = Color(0xFFE4E4E7),
+    // At least 3:1 on background and surface, so control borders stay visible (WCAG 1.4.11).
+    outline = Color(0xFF8A8A93),
     muted = Color(0xFF52525B),
     text = Color(0xFF09090B),
     primary = Color(0xFF09090B),
     onPrimary = Color(0xFFFFFFFF),
     destructive = Color(0xFFE11D48),
-    positive = Color(0xFF16A34A),
+    positive = Color(0xFF15803D),
     negative = Color(0xFFE11D48),
     isDark = false,
 )
@@ -157,5 +159,21 @@ fun parseHex(hex: String): Color {
     return Color(0xFF000000 or v)
 }
 
-/** Seat fill for the "Colored" style: the accent, slightly deepened so white text stays crisp. */
-fun seatFill(accent: Color): Color = lerp(accent, Color.Black, 0.12f)
+/**
+ * Seat fill for the "Colored" style (and filled seat tags): the accent, deepened until white text
+ * reaches [SEAT_TEXT_CONTRAST], so 85 % white labels still pass 4.5:1. Dark accents
+ * (blue, violet) keep the light 12 % shade; bright ones (amber, lime, green) go deeper.
+ */
+fun seatFill(accent: Color): Color {
+    var t = 0.12f
+    var fill = lerp(accent, Color.Black, t)
+    while (contrastWithWhite(fill) < SEAT_TEXT_CONTRAST && t < 0.6f) {
+        t += 0.02f
+        fill = lerp(accent, Color.Black, t)
+    }
+    return fill
+}
+
+private const val SEAT_TEXT_CONTRAST = 5.7f
+
+private fun contrastWithWhite(c: Color): Float = 1.05f / (c.luminance() + 0.05f)

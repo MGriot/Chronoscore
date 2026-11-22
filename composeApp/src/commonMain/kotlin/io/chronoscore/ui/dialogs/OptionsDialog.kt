@@ -73,7 +73,7 @@ fun OptionsEditor(options: MatchOptions, onChange: (MatchOptions) -> Unit) {
         set(options.copy(matchClock = it))
     }
     SwitchRow(
-        "Seat timers", "Each seat's time on its own turns, like a chess clock.", options.seatTimers,
+        "Seat timers", "Counts up the time each seat spends on its turns. Nothing runs out.", options.seatTimers,
         enabled = options.turnTracking,
     ) { set(options.copy(seatTimers = it)) }
     Text(
@@ -141,8 +141,10 @@ fun OptionsEditor(options: MatchOptions, onChange: (MatchOptions) -> Unit) {
     }
     if (options.resultRules.size < Limits.MAX_RESULT_RULES) {
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            if (options.resultRules.isEmpty()) {
-                Pill("0 points = loser") { set(options.copy(resultRules = listOf(ResultRule(Compare.EQ, 0, Mark.LOSER)))) }
+            // A shortcut, not a rule; hidden when "out at or below" already knocks out a 0 score.
+            val zeroAlreadyOut = rule.mode == WinMode.ELIMINATION && rule.target >= 0
+            if (options.resultRules.isEmpty() && !zeroAlreadyOut) {
+                Pill("0 points = loser", leadingIcon = ChronoIcons.Plus) { set(options.copy(resultRules = listOf(ResultRule(Compare.EQ, 0, Mark.LOSER)))) }
             }
             Pill("Add rule", leadingIcon = ChronoIcons.Plus) { set(options.copy(resultRules = options.resultRules + ResultRule())) }
         }
@@ -217,7 +219,7 @@ private fun MatchOptions.summaryParts(): List<String> =
 private fun TimerModeEditor(options: MatchOptions, set: (MatchOptions) -> Unit) {
     val control = options.timeControl
     SwitchRow(
-        "Timer mode", "Each seat counts down its own time bank, like a chess clock. Tap your seat to end your turn.",
+        "Timer mode", "A chess clock: each seat counts down its own time bank and can run out. Tap your seat to end your turn.",
         control != null,
     ) { on -> set(options.copy(turnTracking = options.turnTracking || on, timeControl = if (on) TimeControl() else null)) }
     if (control == null) return

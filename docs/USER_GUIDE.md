@@ -80,7 +80,7 @@ One seat is active: it gets a ring and a **TURN** tag, and the **turn bar** appe
 ### Match clock, seat timers and turn limit
 
 - **Match clock:** total match time, shown in the turn bar.
-- **Seat timers:** each seat's own time on its turns, like a chess clock (needs the turn tracker).
+- **Seat timers:** each seat's own time on its turns, counting up; nothing runs out (needs the turn tracker). For a countdown, use Timer mode.
 - **Turn limit:** a countdown per turn (30 s, 1, 2 or 5 min). Past the limit, the time turns rose and counts overtime.
 - **⏸** in the turn bar pauses. While paused, the turn bar shows a white **▶ Start** button (with the match time, when the match clock is on). The clock also pauses by itself when you leave the app or close the window.
 
@@ -111,7 +111,7 @@ Timer mode turns the turn tracker on. Seats take turns in seat order, and the tu
 
 | Rule | How it works |
 | --- | --- |
-| None | No automatic result. When everyone else is marked out (**Edit seat → Mark as out**), the last seat wins. |
+| None | No automatic result. When everyone else is out (**Edit seat → Out**), the last seat wins. |
 | Target | The match ends when a seat reaches the target. *Highest wins* or *Lowest wins* (e.g. Hearts to 100). |
 | Low out (elimination) | Seats at or below the threshold (0 by default) are **OUT**. The last seat standing wins. |
 | High out | For penalty points: seats at or above the threshold (101 by default, as in Scala 40) are **OUT**. The last seat standing wins. |
@@ -159,7 +159,7 @@ Card values are listed in each calculator: Burraco jolly 30, pinella 20, ace 15,
 
 <img src="images/phone-darts.png" width="280" alt="Darts 501">
 
-Choose a game under **Match options → Darts game** (or a darts preset). Seat scores sit on top, then the **visit** in progress (its three darts and their total) and the last three visits, and a keypad at the bottom: pick **Single / Double / Treble**, then the number (the ring goes back to Single after each dart). **25** is the single bull; with Double it is the bull's eye (50). After three darts, a bust or a win the turn passes by itself; **Next** in the turn bar ends a visit early, counting the darts not thrown as misses. The outlined **↶** key, set apart from Miss, takes back one dart, and a bust or a win with it. In Cricket the marks sit in a column under each player; when they run under the keypad, a fade at the bottom shows there is more to scroll.
+Choose a game under **Match options → Darts game** (or a darts preset). Seat scores sit on top, then the **visit** in progress (its three darts and their total) and as many of the last three visits as fit, and a keypad at the bottom: pick **Single / Double / Treble**, then the number (the ring goes back to Single after each dart). **25** is the single bull; with Double it is the bull's eye (50). After three darts, a bust or a win the turn passes by itself; **Next** in the turn bar ends a visit early, counting the darts not thrown as misses. The outlined **↶** key, set apart from Miss, takes back one dart, and a bust or a win with it. In Cricket the keypad only has the numbers that score (15–20, bull and Miss; any other number is a miss), so every mark row stays in view, in a column under each player.
 
 | Game | Rules |
 | --- | --- |
@@ -341,7 +341,7 @@ Starting a new game clears the table but never deletes a match. The one you leav
 Tap a seat's name or **✎** to edit it. The actions are in two groups:
 
 - **Seat:** set its score, flip it 180° or turn it in 30° steps.
-- **In this match** (depending on the match options): **Give turn**, **Mark as out / Back in**, **Clock −1 min / +1 min** (timer mode), **Monarch** and **Initiative**.
+- **In this match** (depending on the match options): **Give turn**, the result picker **Auto / Winner / Out** (Auto follows the rules; Out concedes), **Clock −1 min / +1 min** (timer mode), **Monarch** and **Initiative**.
 
 Below them: rename the seat, link it to a **Saved player** or make it a team, change its color, manage its counters, or remove the seat (tap twice to confirm).
 

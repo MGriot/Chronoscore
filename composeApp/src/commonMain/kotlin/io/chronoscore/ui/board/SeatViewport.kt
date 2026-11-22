@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -56,6 +57,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -138,14 +140,15 @@ internal fun seatPalette(player: Player, style: SeatStyle): SeatPalette {
     val c = ChronoTheme.colors
     return if (style == SeatStyle.COLORED) {
         SeatPalette(
-            fill = seatFill(accent), text = Color.White, muted = Color.White.copy(alpha = 0.75f),
+            fill = seatFill(accent), text = Color.White, muted = Color.White.copy(alpha = 0.85f),
             outline = Color.White.copy(alpha = 0.35f), bar = Color.White, chipFill = Color.Black.copy(alpha = 0.12f),
             ring = Color.White, tagFill = Color.White, tagText = seatFill(accent),
         )
     } else {
         SeatPalette(
             fill = c.surface, text = c.text, muted = c.muted, outline = c.outline, bar = accent,
-            chipFill = Color.Transparent, ring = accent, tagFill = accent, tagText = Color.White,
+            // Tags carry small bold text, so they use the deepened fill rather than the raw accent.
+            chipFill = Color.Transparent, ring = accent, tagFill = seatFill(accent), tagText = Color.White,
         )
     }
 }
@@ -176,8 +179,8 @@ fun SeatViewport(
 
     val counterCount = player.subCounters.size + if (status.commanderDamage != null) 1 else 0
     val hasCounters = counterCount > 0
-    // A slanted card narrower than this cuts off the name or the mini chips.
-    val minTiltedWidth = maxOf(TILTED_NAME_WIDTH, MINI_CHIP_WIDTH * counterCount + 12.dp)
+    // A slanted card narrower than this cuts off the name; mini chips wrap onto more rows instead.
+    val nameWidth = TILTED_NAME_BASE + TILTED_NAME_CHAR * player.name.length.coerceAtMost(TILTED_NAME_MAX_CHARS)
     val tilted = isTilted(angle)
 
     RotatedSeat(
@@ -188,8 +191,11 @@ fun SeatViewport(
         ring = if (highlighted || status.active || status.winner) p.ring else null,
         // A slanted card gets the shape that leaves the largest score under its name line.
         quality = { w, h ->
-            val score = min((w - TILTED_SCORE_PAD * 2) / (2 * 0.68f), (h - NAME_LINE - if (hasCounters) 36.dp else 0.dp) * 0.78f).value
-            if (w < minTiltedWidth) score * (w / minTiltedWidth) else score
+            val counters = if (hasCounters) MINI_CHIP_ROW + 8.dp else 0.dp
+            val score = min((w - TILTED_SCORE_PAD * 2) / (2 * 0.68f), (h - NAME_LINE - counters) * 0.78f).value
+            // A cut-off name costs far more than a smaller score: any card that shows the whole
+            // name (even with a small score) beats one that cuts it.
+            if (w < nameWidth) score * (w / nameWidth) - NAME_CUT_PENALTY else score.coerceAtLeast(1f)
         },
         backdrop = {
             // Primary score: the half to the player's left decrements, the right half increments.
@@ -301,10 +307,15 @@ private val CORNER_INSET = 2.dp
 internal val NAME_LINE = 30.dp
 /** Side padding of a slanted seat's score, room for its − / + marks. */
 private val TILTED_SCORE_PAD = 24.dp
-/** Width a slanted seat's name line needs to show a short name in full. */
-private val TILTED_NAME_WIDTH = 90.dp
-/** Width of one "PSN 0" mini chip and its gap. */
-private val MINI_CHIP_WIDTH = 66.dp
+/** Name sizes a slanted seat tries, largest first; 9 sp is the readability floor. */
+private val NAME_SIZES = listOf(12f, 11f, 10f, 9f)
+/** Width a slanted seat's name line needs: padding and colour bar, plus one uppercase letter each at 9 sp. */
+private val TILTED_NAME_BASE = 36.dp
+private val TILTED_NAME_CHAR = 6.8.dp
+private const val TILTED_NAME_MAX_CHARS = 10
+private const val NAME_CUT_PENALTY = 1_000f
+/** Height of the mini chip row. */
+private val MINI_CHIP_ROW = 32.dp
 
 /** Places a header button upright in [corner] of a slanted seat's cell. */
 @Composable
@@ -351,14 +362,30 @@ internal fun SeatHeader(
         Box(Modifier.size(width = 4.dp, height = 18.dp).background(p.bar))
         Spacer(Modifier.width(8.dp))
         Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                player.name.uppercase(),
-                style = ChronoTheme.type.label.copy(fontWeight = FontWeight.SemiBold, letterSpacing = if (compact) 0.5.sp else 1.sp),
-                color = p.text,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f, fill = false).clickable(onClick = callbacks.onEdit),
-            )
+            val nameStyle = ChronoTheme.type.label.copy(fontWeight = FontWeight.SemiBold, letterSpacing = if (compact) 0.5.sp else 1.sp)
+            if (buttons) {
+                Text(
+                    player.name.uppercase(), style = nameStyle, color = p.text, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false).clickable(onClick = callbacks.onEdit),
+                )
+            } else {
+                // A slanted seat's name line is short: shrink the name (down to 9 sp) before cutting it.
+                BoxWithConstraints(Modifier.weight(1f, fill = false)) {
+                    val measurer = rememberTextMeasurer()
+                    val label = player.name.uppercase()
+                    val room = constraints.maxWidth
+                    val fitted = remember(label, room, nameStyle) {
+                        NAME_SIZES.map { nameStyle.copy(fontSize = it.sp, letterSpacing = if (it < 11f) 0.sp else 0.5.sp) }
+                            .firstOrNull { measurer.measure(label, it, maxLines = 1).size.width <= room }
+                            ?: nameStyle.copy(fontSize = NAME_SIZES.last().sp, letterSpacing = 0.sp)
+                    }
+                    Text(
+                        label, style = fitted,
+                        color = p.text, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.clickable(onClick = callbacks.onEdit),
+                    )
+                }
+            }
             if (player.isTeam && !compact) {
                 Spacer(Modifier.width(6.dp))
                 Text(
@@ -526,6 +553,8 @@ private fun CounterRow(
 @Composable
 private fun MiniCounterStrip(player: Player, p: SeatPalette, status: SeatStatus, callbacks: SeatCallbacks) {
     if (player.subCounters.isEmpty() && status.commanderDamage == null) return
+    // One row that never hides a counter: in a narrow (e.g. slanted) seat the chips share the
+    // width and their labels shorten, but every value stays visible.
     Row(
         Modifier.fillMaxWidth().padding(horizontal = 6.dp, vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally),
@@ -538,14 +567,17 @@ private fun MiniCounterStrip(player: Player, p: SeatPalette, status: SeatStatus,
 }
 
 @Composable
-private fun MiniChip(label: String, value: Int, p: SeatPalette, onClick: () -> Unit) {
+private fun RowScope.MiniChip(label: String, value: Int, p: SeatPalette, onClick: () -> Unit) {
     Row(
-        Modifier.height(28.dp).clip(RoundedCornerShape(5.dp)).background(p.chipFill)
+        Modifier.weight(1f, fill = false).height(28.dp).clip(RoundedCornerShape(5.dp)).background(p.chipFill)
             .border(1.dp, p.outline, RoundedCornerShape(5.dp))
             .clickable(onClickLabel = label, onClick = onClick).padding(horizontal = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(label, style = ChronoTheme.type.label.copy(fontSize = 9.sp, letterSpacing = 0.5.sp), color = p.muted, maxLines = 1)
+        Text(
+            label, style = ChronoTheme.type.label.copy(fontSize = 9.sp, letterSpacing = 0.5.sp), color = p.muted,
+            maxLines = 1, softWrap = false, overflow = TextOverflow.Clip, modifier = Modifier.weight(1f, fill = false),
+        )
         Spacer(Modifier.width(4.dp))
         Text("$value", style = ChronoTheme.type.counter.copy(fontSize = 13.sp), color = p.text, maxLines = 1)
     }

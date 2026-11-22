@@ -431,7 +431,7 @@
         <li>Rename the seat, set its score, or turn it (30° steps, or flip 180°).</li>
         <li><strong>Clock −1 min / +1 min</strong> (timer mode): correct a clock, give a handicap, or bring back a seat that ran out by mistake.</li>
         <li><strong>Give turn</strong> makes it the active seat (turn tracker on).</li>
-        <li><strong>Mark as out</strong> or <strong>Back in</strong>: concede, or undo a concession.</li>
+        <li><strong>Auto / Winner / Out</strong>: the seat's result. Auto follows the rules, Winner ends the match, Out concedes; pick Auto to bring the seat back.</li>
         <li><strong>Monarch</strong> (with a crown) and <strong>Initiative</strong> (MTG extras on).</li>
         <li><strong>Saved player</strong>: save this seat as a player, or pick an existing one. It takes that player's name and color, and the seat's results count toward their <a href="#stats">stats</a>.</li>
         <li>Choose a color, manage counters, or remove the seat (tap twice to confirm).</li>
@@ -484,7 +484,7 @@
   <h2>Match clock and seat timers</h2>
   <div class="cards">
     <div class="card"><h4>Match clock</h4><p>Total time for the match, shown in the turn bar next to the pause button.</p></div>
-    <div class="card"><h4>Seat timers</h4><p>Each seat shows its own total time on turns, like a chess clock. Only the active seat's time runs.</p></div>
+    <div class="card"><h4>Seat timers</h4><p>Each seat shows its own total time on turns, counting up; nothing runs out. Only the active seat's time runs.</p></div>
     <div class="card"><h4>Turn limit</h4><p>A countdown for each turn. Past the limit, the time turns rose and counts into negative overtime.</p></div>
   </div>
   <ul>
@@ -523,7 +523,7 @@
   <p>Choose a rule under <em>Match options → Winning</em>:</p>
   <div class="table-wrap"><table>
     <tr><th>Rule</th><th>How it works</th><th>Good for</th></tr>
-    <tr><td><strong>None</strong></td><td>No automatic result. A seat can still <em>Mark as out</em>; when only one seat is left, it wins.</td><td>Most games</td></tr>
+    <tr><td><strong>None</strong></td><td>No automatic result. A seat can still be set to <em>Out</em> in its editor; when only one seat is left, it wins.</td><td>Most games</td></tr>
     <tr><td><strong>Target</strong></td><td>The match ends when a seat reaches the target score (counting up or down, depending on where you started). Then <em>Highest wins</em> or <em>Lowest wins</em> decides.</td><td>Race to 10 VP; Hearts (to 100, lowest wins)</td></tr>
     <tr><td><strong>Low out</strong> (elimination)</td><td>A seat at or below the threshold (0 by default) is <span class="tag outline">OUT</span>. The last seat standing wins.</td><td>Life-total games, Magic</td></tr>
     <tr><td><strong>High out</strong></td><td>For penalty points: a seat at or above the threshold (101 by default) is <span class="tag outline">OUT</span>. The last seat standing wins.</td><td>Scala 40</td></tr>
@@ -590,7 +590,7 @@
     <div>
       <p>Choose a game under <em>Match options → Darts game</em>, or a darts <a href="#presets">preset</a>. The table becomes a darts board: seat scores on top, then the <strong>visit</strong> in progress (three darts and their total) and the last three visits, and a keypad at the bottom.</p>
       <ul>
-        <li>Pick <strong>Single / Double / Treble</strong>, then the number. The ring goes back to Single after each dart. <strong>25</strong> is the single bull; with Double it is the bull's eye (50).</li>
+        <li>Pick <strong>Single / Double / Treble</strong>, then the number. The ring goes back to Single after each dart. <strong>25</strong> is the single bull; with Double it is the bull's eye (50). In Cricket the keypad has only 15–20, bull and Miss, since other numbers don't score.</li>
         <li>After three darts, a bust or a win, the turn passes by itself. <strong>Next</strong> in the turn bar ends a visit early; the darts not thrown count as misses.</li>
         <li>The outlined <strong>↶</strong> key, set apart from Miss, takes back one dart, and a bust or a win with it.</li>
         <li>In Cricket the marks sit in a column under each player. When they run under the keypad, a fade at the bottom shows there's more to scroll.</li>

@@ -5,6 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -54,6 +55,7 @@ import io.chronoscore.model.Player
 import io.chronoscore.ui.dialogs.Segmented
 import io.chronoscore.ui.theme.ChronoIcons
 import io.chronoscore.ui.theme.ChronoTheme
+import io.chronoscore.ui.theme.MinTouch
 import io.chronoscore.ui.theme.parseHex
 
 /**
@@ -78,7 +80,9 @@ fun DartsBoard(
     val cricket = rules.game == DartsGame.CRICKET
     val scroll = rememberScrollState()
 
-    Column(modifier.clip(shape).background(c.surface).border(1.dp, c.outline, shape)) {
+    BoxWithConstraints(modifier.clip(shape).background(c.surface).border(1.dp, c.outline, shape)) {
+    val fit = dartsFit(maxHeight, cricket, cardRows = if (cricket) 1 else (players.size + SEATS_PER_ROW - 1) / SEATS_PER_ROW)
+    Column(Modifier.fillMaxSize()) {
         Box(Modifier.weight(1f).fillMaxWidth()) {
             Column(Modifier.fillMaxSize().verticalScroll(scroll)) {
                 // At most four cards a row, so scores stay readable on a phone with 5–8 players.
@@ -98,7 +102,7 @@ fun DartsBoard(
                 }
                 if (cricket) CricketMarks(state, players)
                 VisitRow(session, state)
-                if (!cricket) RecentVisits(session, state)
+                if (!cricket) RecentVisits(session, state, fit.recentRows)
             }
             // A fade at the bottom edge says the marks go on below the keypad's top.
             if (scroll.canScrollForward) {
@@ -114,24 +118,63 @@ fun DartsBoard(
             canUndo = session.darts.isNotEmpty(),
             onThrow = onThrow,
             onUndo = onUndo,
-            // Thrown-dart entry wants big keys; cricket needs the height for its marks.
-            keyHeight = if (cricket) 44.dp else 56.dp,
+            keyHeight = fit.keyHeight,
+            cricketOnly = cricket,
         )
+    }
     }
 }
 
 private val CRICKET_NUMBER_WIDTH = 44.dp
+/** Height of one cricket mark row and its rule. */
+private val MARK_ROW = 20.dp
+private val RECENT_ROW = 26.dp
+private val RECENT_LABEL = 16.dp
+private const val MAX_RECENT = 3
+/** Keypad height without its four key rows: padding, the ring selector and the gaps. */
+private val KEYPAD_FIXED = 12.dp + MinTouch + 4.dp + 4.dp * 4
+/** Board height above the keypad: one row of seat cards (cricket's are compact), and the visit row. */
+private val X01_CARD_ROW = 92.dp
+private val CRICKET_CARD_ROW = 78.dp
+private val VISIT_ROW = 52.dp
+/** Slack for the estimates above, so a row that "fits" isn't left under the scroll fade. */
+private val FIT_SLACK = 10.dp
 
-/** The last three finished visits, newest first, under the visit in progress. */
+private class DartsFit(val keyHeight: Dp, val recentRows: Int)
+
+/**
+ * Key height and the number of recent visits that fit [height], so nothing above the keypad is
+ * cut mid-row: cricket keeps all seven mark rows in view, X01 shows only whole recent visits.
+ * Keys never go under the touch minimum; when even that doesn't fit, the area scrolls (with its fade).
+ */
+private fun dartsFit(height: Dp, cricket: Boolean, cardRows: Int): DartsFit {
+    val keys = if (cricket) 2 else 4
+    val top = if (cricket) {
+        CRICKET_CARD_ROW + (MARK_ROW + 1.dp) * CricketTargets.size + VISIT_ROW
+    } else {
+        // Big keys matter more than history: size them to leave room for one recent visit.
+        X01_CARD_ROW * cardRows + VISIT_ROW + RECENT_LABEL + RECENT_ROW
+    }
+    val fixed = KEYPAD_FIXED - 4.dp * (4 - keys) + FIT_SLACK
+    val key = ((height - top - fixed) / keys).coerceIn(MinTouch, 56.dp)
+    val keypad = fixed + key * keys
+    val recent = if (cricket) 0 else {
+        val room = height - keypad - X01_CARD_ROW * cardRows - VISIT_ROW - RECENT_LABEL
+        (room / RECENT_ROW).toInt().coerceIn(0, MAX_RECENT)
+    }
+    return DartsFit(key, recent)
+}
+
+/** The last finished visits (at most [rows]), newest first, under the visit in progress. */
 @Composable
-private fun RecentVisits(session: GameSession, state: DartsState) {
+private fun RecentVisits(session: GameSession, state: DartsState, rows: Int) {
     val c = ChronoTheme.colors
-    val recent = state.visits.filter { it.closed }.takeLast(3).asReversed()
+    val recent = state.visits.filter { it.closed }.takeLast(rows).asReversed()
     if (recent.isEmpty()) return
     Column(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Text("LAST VISITS", style = ChronoTheme.type.label.copy(fontSize = 10.sp), color = c.muted)
         recent.forEach { visit ->
-            Row(Modifier.fillMaxWidth().heightIn(min = 26.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.fillMaxWidth().heightIn(min = RECENT_ROW), verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     session.player(visit.playerId)?.name.orEmpty(), style = ChronoTheme.type.body.copy(fontSize = 13.sp),
                     color = c.text, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f),
@@ -225,7 +268,7 @@ private fun CricketMarks(state: DartsState, players: List<Player>) {
             val dead = players.all { state.seats[it.id]?.closed(number) == true }
             // Same spacing as the cards above, so each mark sits under its player.
             Row(
-                Modifier.fillMaxWidth().height(22.dp).alpha(if (dead) 0.4f else 1f),
+                Modifier.fillMaxWidth().height(MARK_ROW).alpha(if (dead) 0.4f else 1f),
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -306,6 +349,7 @@ private fun DartKeypad(
     onThrow: (Int, Int) -> Unit,
     onUndo: () -> Unit,
     keyHeight: Dp,
+    cricketOnly: Boolean,
 ) {
     var ring by remember { mutableIntStateOf(1) }
     val c = ChronoTheme.colors
@@ -322,14 +366,15 @@ private fun DartKeypad(
             selectedIndex = ring - 1,
             onSelect = { ring = it + 1 },
         )
-        // Six keys a row keeps the board above the keypad readable on a phone.
-        (1..18).chunked(6).forEach { row ->
+        // Six keys a row keeps the board above the keypad readable on a phone. Cricket only
+        // scores 15–20 and the bull (any other number is a miss), so it gets just those.
+        (if (cricketOnly) listOf((15..20).toList()) else (1..18).chunked(6)).forEach { row ->
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 row.forEach { n -> DartKey("$n", Modifier.weight(1f), keyHeight, selected = n == target, enabled = enabled) { throwDart(n) } }
             }
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            listOf(19, 20).forEach { n -> DartKey("$n", Modifier.weight(1f), keyHeight, selected = n == target, enabled = enabled) { throwDart(n) } }
+            (if (cricketOnly) emptyList() else listOf(19, 20)).forEach { n -> DartKey("$n", Modifier.weight(1f), keyHeight, selected = n == target, enabled = enabled) { throwDart(n) } }
             DartKey(
                 if (ring >= 2) "Bull" else "25", Modifier.weight(1f), keyHeight,
                 selected = target == BULL, enabled = enabled && ring <= 2,

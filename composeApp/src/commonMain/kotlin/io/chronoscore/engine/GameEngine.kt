@@ -164,7 +164,8 @@ class GameEngine(
         }
 
         is GameAction.SetConceded -> {
-            val updated = session.updatePlayer(action.playerId) { it.copy(conceded = action.conceded) }
+            // Out and a hand-set Winner/Loser exclude each other: going out or coming back in clears the mark.
+            val updated = session.updatePlayer(action.playerId) { it.copy(conceded = action.conceded, mark = Mark.NONE) }
             // A seat that concedes on its own turn hands the turn on.
             if (action.conceded && session.activePlayerId == action.playerId) passTurn(updated, forward = true) else updated
         }
@@ -172,7 +173,8 @@ class GameEngine(
         is GameAction.SetMark -> session.updatePlayer(action.playerId) { p ->
             val index = action.memberIndex
             when {
-                index == null -> p.copy(mark = action.mark)
+                // Marking a seat Winner brings it back in if it had conceded.
+                index == null -> p.copy(mark = action.mark, conceded = p.conceded && action.mark != Mark.WINNER)
                 index in p.members.indices ->
                     p.copy(members = p.members.mapIndexed { i, m -> if (i == index) m.copy(mark = action.mark) else m })
                 else -> p
